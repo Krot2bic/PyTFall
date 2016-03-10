@@ -1,27 +1,15 @@
 init: # screens:
-    screen be_test(char=None):
-        # text "[char.name]" align (0.5, 0.2)
-        $ pass
-        # vbox:
-            # spacing 5
-            # xalign 1.0
-            # for i in battle.teams[1]:
-                # text "%s, %s" % (battle.get_cp(battle.teams[1], i)[0], battle.get_cp(battle.teams[1], i)[1])
-                # text "Img Size: %s" % ", ".join(str(i) for i in i.be_spritesize)
-        # vbox:
-            # spacing 5
-            # xalign 0
-            # for i in battle.teams[0]:
-                # text "%s, %s" % (battle.get_cp(battle.teams[0], i)[0], battle.get_cp(battle.teams[0], i)[1])
-                
     screen target_practice(skill, targets):
+        
+        style_group "dropdown_gm"
+        
         default highlight_idle = False
         default return_all = False
         if "all" in skill.type:
             $ return_all = True
             
         for t in targets:
-            $ pos = battle.get_cp(t, type="tc", yo=-20)
+            $ pos = battle.get_cp(t, type="tc", yo=-40)
             imagebutton:
                 pos pos
                 xanchor 0.5
@@ -38,101 +26,168 @@ init: # screens:
                     hovered SetScreenVariable("highlight_idle", True)
                     unhovered SetScreenVariable("highlight_idle", False)
                     
-        if config.developer:
-            textbutton "Terminate":
-                align (0.5, 0)
-                action Hide("be_test"), Hide("target_practice"), Hide("pick_skill"), Hide("battle_overlay"), Jump("mainscreen")
+            if t in battle.corpses:
+                add Transform(t.besprite, pos=t.cpos, alpha=0.4)
+                
+            frame:
+                style_group "dropdown_gm"
+                align (0.5, 0.88)
+                textbutton "Cancel":
+                    # style "dropdown_gm_button"
+                    
+                    action Return(False)
                  
     screen pick_skill(char):
         
         default tt = Tooltip("")
         default menu_mode = "top"
         
-        vbox:
-            xalign 0.5
-            ypos 0.9
-            yanchor 1.0
-            spacing 1
-            if tt.value:
-                frame: # This is the spell/attack description frame:
-                    style "dropdown_gm_frame"
-                    ymaximum 400
-                    has hbox spacing 10
-                    # Elements:
-                    $ element = tt.value.get_element()
-                    if element:
-                        fixed:
-                            xysize (100, 100)
-                            if element.icon:
-                                $ img = ProportionalScale(element.icon, 90, 90)
-                                add img align (0.5, 0.5)
-                    text tt.value.desc style "content_text" size 20 color ivory
+        if menu_mode != "top":
+            frame:
+                align (0.95, 0.07)
+                style_group "dropdown_gm"
+                textbutton "{color=[black]}{size=-5}Back":
+                    xsize 100
+                    action SetScreenVariable("menu_mode", "top")
+                    
+        if tt.value:
+            frame: # This is the spell/attack description frame:
+                pos (0.5, 0.89) anchor (0.5, 1.0)
+                style "dropdown_gm_frame"
+                ymaximum 400
+                has vbox spacing 2
+                # Elements:
+                text "Name: [tt.value.name]" style "content_text" size 20 color ivory
+                $ element = tt.value.get_element()
+                if element:
+                    $ color = getattr(store, element.font_color)
+                    text "Element: {color=[color]}[element.id]" style "content_text" size 20 color ivory
+                text "Desc: [tt.value.desc]" style "content_text" size 14 color ivory
+                    # fixed:
+                        # xysize (100, 100)
+                        # if element.icon:
+                            # $ img = ProportionalScale(element.icon, 90, 90)
+                            # add img align (0.5, 0.5)
+                
             
+        frame:
+            style_group "dropdown_gm"
+            pos (0.5, 0.2) anchor (0.5, 0)
+            ymaximum 400
+            has hbox box_wrap True 
+            
+            at fade_in_out(t1=0.6, t2=0.3)
+            
+            # First we'll get all the skills and sort them into:
+            # *Attack (battle) skills.
+            # *Magic skills.
+            python:
+                attacks = copy.copy(char.attack_skills)
+                attacks =  list(set(attacks)) # This will make sure that we'll never get two of the same attack skills.
+                attacks.sort(key=attrgetter("name"))
+                magic = copy.copy(char.magic_skills)
+                try:
+                    magic.sort(key=attrgetter("name"))
+                except AttributeError:
+                    raise Exception, char.name
+                
+                # We'll also try to figure out if there is at least one usable attack for them:
+                active_attacks = list() # list(a for a in attacks if battle_skills[a].check_conditions(char)) # BUG IN REN'PY!
+                for i in attacks:
+                    if i.check_conditions(char):
+                        active_attacks.append(char)
+                        break
+                # active_magic = list(s for s in magic if battle_skills[s].check_conditions(char)) # BUG IN REN'PY!
+                active_magic = list()
+                for i in magic:
+                    if i.check_conditions(char):
+                        active_magic.append(char)
+                        break
+            
+        if menu_mode == "top":
             frame:
                 style_group "dropdown_gm"
-                # align (0.5, 0.9)
+                pos (0.5, 0.2) anchor (0.5, 0)
                 ymaximum 400
                 has hbox box_wrap True 
                 
                 at fade_in_out(t1=0.6, t2=0.3)
-                
-                # First we'll get all the skills and sort them into:
-                # *Attack (battle) skills.
-                # *Magic skills.
-                # *Skills (That use vitality) later?.?
-                # And then sort them in alphabetical order.
-                python:
-                    attacks = copy.copy(char.attack_skills)
-                    attacks.sort(key=attrgetter("name"))
-                    magic = copy.copy(char.magic_skills)
-                    try:
-                        magic.sort(key=attrgetter("name"))
-                    except AttributeError:
-                        raise Error, char.name
+                textbutton "Attacks":
+                    action SensitiveIf(active_attacks), SetScreenVariable("menu_mode", "attacks")
+                textbutton "Magic":
+                    action SensitiveIf(active_magic), SetScreenVariable("menu_mode", "magic")
+                textbutton "Skip":
+                    xminimum 100
+                    action Return(BE_Skip())
                     
-                    # We'll also try to figure out if there is at least one usable attack for them:
-                    active_attacks = list() # list(a for a in attacks if battle_skills[a].check_conditions(char)) # BUG IN REN'PY!
-                    for i in attacks:
-                        if i.check_conditions(char):
-                            active_attacks.append(char)
-                            break
-                    # active_magic = list(s for s in magic if battle_skills[s].check_conditions(char)) # BUG IN REN'PY!
-                    active_magic = list()
-                    for i in magic:
-                        if i.check_conditions(char):
-                            active_magic.append(char)
-                            break
+        elif menu_mode == "attacks":
+            frame:
+                style_group "dropdown_gm"
+                pos (0.5, 0.2) anchor (0.5, 0)
+                ymaximum 400
+                has hbox box_wrap True 
                 
-                if menu_mode == "top":
-                    textbutton "Attacks":
-                        action SensitiveIf(active_attacks), SetScreenVariable("menu_mode", "attacks")
-                    textbutton "Magic":
-                        action SensitiveIf(active_magic), SetScreenVariable("menu_mode", "magic")
-                    textbutton "Skip":
-                        xminimum 100
-                        action Return(BE_Skip())
+                at fade_in_out(t1=0.6, t2=0.3)
+                if len(attacks) == 1:
+                    timer 0.01 action Return(attacks[0])
+                for skill in attacks:
+                    textbutton "[skill.mn]":
+                        action SensitiveIf(skill.check_conditions(char)), Return(skill)
                         
-                elif menu_mode == "attacks":
-                    for skill in attacks:
-                        textbutton "[skill.mn]":
-                            action SensitiveIf(skill.check_conditions(char)), Return(skill)
-                    textbutton "Back":
-                        xminimum 100
-                        action SetScreenVariable("menu_mode", "top")
+        elif menu_mode == "magic":
+            python:
+                d = OrderedDict()
+                ne = []
+                
+                for e in tgs.elemental:
+                    d[e] = []
+                    
+                for skill in magic:
+                    e = skill.get_element()
+                    if e in d:
+                        d[e].append(skill)
+                    else:
+                        ne.append(skill)
+                        
+                for e in d:
+                    if d[e]:
+                        d[e].sort(key=attrgetter("menu_pos"))
                             
-                elif menu_mode == "magic":
-                    for skill in magic:
-                        textbutton "{=text}{color=[black]}{size=-3}[skill.mn]":
-                            action SensitiveIf(skill.check_conditions(char)), Return(skill)
-                            hovered tt.action(skill)
-                    textbutton "Back":
-                        xminimum 100
-                        action SetScreenVariable("menu_mode", "top")
-                        
-        if config.developer:
-            textbutton "Terminate":
-                align (0.99, 0)
-                action Hide("be_test"), Hide("target_practice"), Hide("pick_skill"), Hide("battle_overlay"), Stop("music"), Jump("mainscreen")
+            frame:
+                style_group "dropdown_gm"
+                pos (0.5, 0.2) anchor (0.5, 0)
+                has vbox
+                
+                at fade_in_out(t1=0.6, t2=0.3)
+                
+                hbox:
+                    xalign 0.5
+                    for e in d:
+                        if d[e]:
+                            frame:
+                                xalign 0.5
+                                xysize (155, 250)
+                                if e.icon:
+                                    $ img = ProportionalScale(e.icon, 130, 130)
+                                    add img align (0.5, 0.1)
+                                vbox:
+                                    for skill in d[e]:
+                                        textbutton "{=text}{color=[black]}{size=-6}[skill.mn]":
+                                            xsize 130
+                                            xalign 0.5
+                                            action SensitiveIf(skill.check_conditions(char)), Return(skill)
+                                            hovered tt.action(skill)
+                                        
+                if ne:
+                    frame:
+                        xalign 0.5
+                        has vbox
+                        for skill in ne:
+                            textbutton "{=text}{color=[black]}{size=-6}[skill.mn]":
+                                xsize 130
+                                xalign 0.5
+                                action SensitiveIf(skill.check_conditions(char)), Return(skill)
+                                hovered tt.action(skill)
           
     screen battle_overlay():
         # Averything that is displayed all the time:
@@ -144,7 +199,7 @@ init: # screens:
                 xysize (440, 50)
                 scrollbars "vertical"
                 has vbox
-                for entry in reversed(battle.log):
+                for entry in reversed(battle.combat_log):
                     label "%s"%entry style_group "stats_value_text" text_size 14 text_color ivory 
                     
         
@@ -159,8 +214,8 @@ init: # screens:
                             profile_img = member.show('portrait', resize=(95, 95), cache=True)
                             scr = renpy.get_screen("pick_skill")
                             if scr:
-                                char = scr.scope["_args"][0]
-                            if member == char:
+                                char = scr.scope["_args"][0] # This is not the best code :(
+                            if scr and member == char:
                                 portrait_frame = im.Twocolor("content/gfx/frame/MC_bg3.png", grey, grey)
                                 img = "content/gfx/frame/ink_box.png"
                             else:
@@ -264,5 +319,5 @@ init: # screens:
             vbox:
                 align (0.99, 0)
                 textbutton "Terminate":
-                    action Hide("be_test"), Hide("target_practice"), Hide("pick_skill"), Hide("battle_overlay"), Jump("mainscreen")
+                    action Hide("be_test"), Hide("target_practice"), Hide("pick_skill"), Hide("battle_overlay"), Stop("music"), Stop("sound"), Jump("mainscreen")
                 

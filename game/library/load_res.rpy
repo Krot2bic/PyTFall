@@ -49,9 +49,10 @@ label load_resources:
         
         # Variables:
         char = None # Character global
-        girl_equip = None # Girl equipment screen came from label holder
-        girl_profile = None # Girl profile screen came from label holder
-        pyt_gallery = None
+        came_to_equip_from = None # Girl equipment screen came from label holder
+        eqtarget = None # Equipment screen
+        char_profile = None # Girl profile screen came from label holder
+        gallery = None
         
         # Descriptions for: *Elements
         pytfall.desc = object()
@@ -91,7 +92,7 @@ label load_json_tags:
         del jsonfiles
         del rg_jsonfiles
          
-        # raise Error, tagdb.__dict__["tagmap"].keys()[1:10]
+        # raise Exception, tagdb.__dict__["tagmap"].keys()[1:10]
         for tag in jsontagdb.tagmap.keys():
             if tag.startswith("("):
                 del jsontagdb.tagmap[tag]
@@ -105,7 +106,7 @@ label load_json_tags:
         
 label convert_json_to_filenames:
     if not jsontagdb.tagmap:
-        $ renpy.show_screen("pyt_message_screen", "No JSON tags were found!")
+        $ renpy.show_screen("message_screen", "No JSON tags were found!")
         return
     else:    
         python:
@@ -152,5 +153,5 @@ label convert_json_to_filenames:
             del charsdir
             del rcharsdir
             del jsonfiles
-            renpy.show_screen("pyt_message_screen", "%d images converted!" % jsontagdb.count_images())
+            renpy.show_screen("message_screen", "%d images converted!" % jsontagdb.count_images())
     return

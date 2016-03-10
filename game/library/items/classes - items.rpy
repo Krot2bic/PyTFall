@@ -1,10 +1,13 @@
 init -9 python:
-
     ####### Equipment Classes ########
     class Item(_object):
+        NOT_USABLE = set(["gift", "quest", "loot"])
+        NOT_TRANSFERABLE = set(["gift", "quest", "loot"])
+        NOT_SELLABLE = set(["quest"])
+        CONS_AND_MISC = set(['consumable', 'misc'])
 
         def __init__(self):
-            self.desc = ''
+            self.desc = ""
             self.slot = "consumable"
             self.mod = {}
             self.mod_skills = {}
@@ -16,10 +19,16 @@ init -9 python:
             self.remove_be_spells = []
             self.addeffects = []
             self.removeeffects = []
-            self.goodtraits = []
-            self.badtraits = []
+            self.goodtraits = set()
+            self.badtraits = set()
 
-            self.hidden = True
+            # Rules:
+            self.usable = None
+            self.transferable = None
+            self.sellable = None
+            
+            self.hidden = True # Not used atm, decides if we should hide the effects.
+            self.jump_to_label = ""
             self.price = 0
             self.sex = 'unisex'
             self.unique = "" # Should be girls id in case of unique item.
@@ -32,6 +41,25 @@ init -9 python:
             self.badness = 0
 
         def init(self):
+            # Rules:
+            if self.usable is None:
+                if self.slot in self.NOT_USABLE:
+                    self.usable = False
+                else:
+                    self.usable = True
+                    
+            if self.transferable is None:
+                if self.slot in self.NOT_TRANSFERABLE:
+                    self.transferable = False
+                else:
+                    self.transferable = True
+                    
+            if self.sellable is None:
+                if self.slot in self.NOT_SELLABLE:
+                    self.sellable = False
+                else:
+                    self.sellable = True
+            
             if not hasattr(self, "eqchance"):
                 self.eqchance = self.badness
                 
@@ -60,16 +88,33 @@ init -9 python:
                 if not hasattr(self, 'mreusable'):
                     self.mreusable = False
 
-            # Insures normal behaviour:     
-            if self.statmax and self.slot not in ['consumable', 'misc']:
+            # Ensures normal behaviour:     
+            if (self.statmax or self.skillmax) and self.slot not in self.CONS_AND_MISC:
                 self.statmax = False
-            if self.skillmax and self.slot not in ['consumable', 'misc']:
                 self.skillmax = False
                 
-            if self.sex == "Male": self.sex = 'male'
-            if self.sex == "Female": self.sex = 'female'
-            if self.sex == "Unisex": self.sex = 'unisex'
+            # Gets rid of possible caps:
+            self.sex = self.sex.lower()
 
+        def get_stat_eq_bonus(self, char, stat):
+            """Simple method that tries to get the real bonus an item can offer for the stat.
+            
+            This method assumes that item can offer a bonus to the stat!
+            Presently used in auto_equip method.
+            Does not take traits into concideration, just max/lvl_max and stats.
+            """
+            stats = char.stats
+            if stat in self.max:
+                new_max = stats.max[stat] + self.max[stat]
+                new_max = min(new_max, stats.lvl_max[stat])
+            else:
+                new_max = char.get_max(stat)
+            new_stat = stats.stats[stat] + stats.imod[stat] + self.mod[stat]
+            if new_stat > new_max:
+                new_stat = new_max
+            return new_stat - stats.get_stat(stat)
+            
+            
     # Inventory with listing
     # this is used together with a specialized screens/functions
     class Inventory(_object):
@@ -86,8 +131,8 @@ init -9 python:
             self.filter = 'all'
             self.male_filter = False # Filters out female only items
             self.female_filter = False
-            self.ALL_FILTERS = ['all', 'weapon', 'smallweapon', 'consumable', "head", 'body', 'wrist', 'feet', 'cape', 'amulet', 'ring', "gift", 'misc']
-            self.GEQ_FILTERS = ['all', 'weapon', 'smallweapon', 'consumable', "head", 'body', 'wrist', 'feet', 'cape', 'amulet', 'ring', 'misc']
+            self.ALL_FILTERS = ['all', 'weapon', 'smallweapon', 'head', 'body', 'wrist', 'feet', 'cape', 'amulet', 'ring', 'consumable', 'gift', 'misc', 'quest']
+            self.GEQ_FILTERS = ['all', 'weapon', 'smallweapon', 'consumable', 'head', 'body', 'wrist', 'feet', 'cape', 'amulet', 'ring', 'misc', 'quest']
             self.FILTERS = self.ALL_FILTERS
 
         def set_page_size(self, size):
@@ -100,7 +145,8 @@ init -9 python:
             Filter for items
             Currently filtered by slot
             """
-            if last_label in ("girl_profile", "girl_equip", "items_transfer"):
+            # if last_label in ("char_profile", "char_equip", "items_transfer"):
+            if last_label in ("items_transfer"):
                 self.FILTERS = self.GEQ_FILTERS
             else:
                 self.FILTERS = self.ALL_FILTERS
@@ -118,14 +164,14 @@ init -9 python:
             if filter == 'all':
                 if self.male_filter:
                     self.items = list(items[item] for item in self.content.iterkeys() if items[item].sex != "female")
-                elif last_label in ("girl_equip", "items_transfer") or self.female_filter:
+                elif last_label in ("char_equip", "items_transfer") or self.female_filter:
                     self.items = list(items[item] for item in self.content.iterkeys() if items[item].sex != "male" and items[item].slot in self.FILTERS)
                 else:
                     self.items = list(items[item] for item in self.content.iterkeys())
             else:
                 if self.male_filter:
                     self.items = list(items[item] for item in self.content.iterkeys() if items[item].slot == filter and items[item].sex != 'female')
-                elif last_label in ("girl_equip", "items_transfer") or self.female_filter:
+                elif last_label in ("char_equip", "items_transfer") or self.female_filter:
                     self.items = list(items[item] for item in self.content.iterkeys() if items[item].slot == filter and items[item].sex != 'male')
                 else:    
                     self.items = list(items[item] for item in self.content.iterkeys() if items[item].slot == filter)
@@ -185,7 +231,7 @@ init -9 python:
 
         def get_item_count(self, item):
             """
-            Returns total amount of any particular item in the inventory
+            Returns total amount of any particular item in the inventory.
             """
             if isinstance(item, Item):
                 item = item.id
@@ -195,8 +241,8 @@ init -9 python:
         def append(self, item, amount=1):
             """
             Add and item to inv and recalc max page.
-            After rescaling, both remove and append methods are overkill
-            In case of game code review, one should prolly be removed
+            After rescaling, both remove and append methods are overkill.
+            In case of game code review, one should prolly be removed.
             """
             if isinstance(item, basestring):
                 item = store.items[item]
@@ -220,7 +266,7 @@ init -9 python:
                         self.items.remove(item)
                 self.set_max_page()
                 return True
-            return False    
+            return False
 
         def clear(self):
             """
@@ -329,3 +375,147 @@ init -9 python:
             else:
                 if self.gold < 15000:
                     self.gold += randint(16000, 25000)
+                    
+                    
+    class GuiItemsTransfer(_object):
+        """Handles the logical bit of transferring items between inventories.
+        """
+        def __init__(self, location, char=None, last_label=None):
+            '''Takes location (so far we only have brothels) as an argument'''
+            self.left_char = None
+            self.right_char = None
+            self.left_image_cache = None
+            self.right_image_cache = None
+            
+            if location == "personal_transfer":
+                self.location = location
+                self.select_left_char(hero)
+                self.left_char.inventory.apply_filter("all")
+                self.select_right_char(char)
+                self.right_char.inventory.apply_filter("all")
+            else:
+                self.location = location
+
+            self.left_item = None
+            self.right_item = None
+            self.items_amount = 1
+            self.filter = 'all'
+            self.item_cache = None
+            self.last_label = last_label
+            
+        def populate_character_viewports(self):
+            """This is a poor hack that is used to populate inventory holders...
+            It's not a good idea to do this on every screen refresh as it seems to be done now.
+            
+            It's prolly a better idea to do this in __init__?
+            """
+            members = list()
+            
+            if isinstance(self.location, UpgradableBuilding): # Updated to allow TrainingDungeon to work as well, might need to change later
+                # Later we may want to call this from girls profile screen/hero profile screen
+                # Right now this check is redundant
+                members = self.location.get_girls()
+                if hero.location == self.location:
+                    members.insert(0, hero)
+            elif isinstance(self.location, NewStyleUpgradableBuilding): # Updated to allow TrainingDungeon to work as well, might need to change later
+                # Later we may want to call this from girls profile screen/hero profile screen
+                # Right now this check is redundant
+                members = self.location.all_workers
+                if hero.location == self.location:
+                    members.insert(0, hero)
+            elif self.location == "personal_transfer":
+                members = [hero, self.right_char]
+            
+            if members: return [True, members]
+            else: return [False]
+                
+        def show_left_items_selection(self):
+            '''Populates left items selection viewport'''
+            if self.left_char != None:
+                return True
+            else: return False
+            
+        def show_right_items_selection(self):
+            '''Populates right items selection viewport'''
+            if self.right_char != None:
+                return True
+            else: return False
+            
+        def select_left_char(self, char):
+            char.inventory.set_page_size(23)
+            if char == self.right_char:
+                renpy.show_screen('message_screen', "Same character cannot be chozen from both sides!")
+            else:
+                self.left_char = char
+                self.left_image_cache = self.left_char.show('portrait', resize=(205, 205))
+        
+        def select_right_char(self, char):
+            char.inventory.set_page_size(23)
+            if char == self.left_char:
+                renpy.show_screen('message_screen', "Same character cannot be chozen from both sides!")
+            else:
+                self.right_char = char
+                self.right_image_cache = self.right_char.show('portrait', resize=(205, 205))
+        
+        def select_left_item(self, item):
+            self.left_item = item
+            self.item_cache = item
+        
+        def select_right_item(self, item):
+            self.right_item = item
+            self.item_cache = item
+            
+        def show_right_transfer_button(self):
+            if self.left_item and self.right_char:
+                return True
+            else:
+                return False
+                
+        def show_left_transfer_button(self):
+            if self.right_item and self.left_char:
+                return True
+            else:
+                return False
+                
+        
+        def get_left_inventory(self):
+            return [item for item in self.left_char.inventory.getpage()]
+
+            
+        def get_right_inventory(self):
+            return [item for item in self.right_char.inventory.getpage()]
+
+                
+        def transfer_item_right(self):
+            item = self.left_item
+            source = self.left_char
+            target = self.right_char
+            for i in range(self.items_amount):
+                if item.id in source.inventory.content:
+                    if not transfer_items(source, target, item):
+                        # Otherwise MC will say this in case of unique/quest items trasnfer refusal.
+                        if source != hero:
+                            source.say(choice(["Like hell am I giving away!", "Go get your own!", "Go find your own %s!" % item.id,"Would you like fries with that?",
+                                                           "Perhaps you would like me to give you the key to my flat where I keep my money as well?"]))
+                        break
+                else:
+                    break
+            if item.id not in source.inventory.content:                
+                self.left_item = None
+
+        def transfer_item_left(self):
+            item = self.right_item
+            source = self.right_char
+            target = self.left_char
+            for i in range(self.items_amount):
+                if item.id in source.inventory.content:
+                    if not transfer_items(source, target, item):
+                        # Otherwise MC will say this in case of unique/quest items trasnfer refusal.
+                        if source != hero:
+                            source.say(choice(["Like hell am I giving away!", "Go get your own!", "Go find your own %s!" % item.id, "Would you like fries with that?",
+                                                           "Perhaps you would like me to give you the key to my flat where I keep my money as well?"]))
+                        break
+                else:
+                    break
+            if item.id not in source.inventory.content:                
+                self.right_item = None

@@ -1,26 +1,14 @@
 init -999 python:
-    # TODO:
-    """
-    This is a general todo list with stuff that needs to get fixed, adapted to modernt done or otherwise improved:
-    1) Define contants to use with SL2
-    2) Parametarize screens to kwargs instead of globals so they run faster
-    3) Modernize Arena screens
-    4) Go through the game making sure as many images are predicted before shown whenever sensible (or even possible)
-    """
-    
-    
     ##################### Import Modules #####################
     import os
     import sys
     import re
     import pygame
     import time
-    import threading
     import string
     import logging
     import fnmatch
     import json
-    from types import * # Star import should be removed (currently used in the BE)
     import math
     from math import sin, cos, radians
     import random
@@ -34,18 +22,18 @@ init -999 python:
     import collections
     from collections import OrderedDict
     import xml.etree.ElementTree as ET
-    sys.path.append(renpy.loader.transfn("library"))
+    sys.path.append(renpy.loader.transfn("library")) # May fail if we ever post to Android, there is now a new python folder for imports in newer Ren'Py version that can be used instead. SimPy.__init__ may have to be adjusted.
     import simpy
-    
-    # def listdir_nohidden(path):
-        # for f in os.listdir(path):
-            # if not f.startswith('.'):
-                # yield f
+    import cPickle as pickle
                 
     ############## Settings and other useful stuff ###############
     # absolute path to the pytfall/game directory, which is formatted according
     # to the conventions of the local OS
     gamedir = os.path.normpath(config.gamedir)
+    
+    def content_path(path):
+        '''Returns proper path for a file in the content directory *To be used with os module.'''
+        return renpy.loader.transfn('content/' + path)
     
     # enable logging via the 'logging' module
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)-8s %(name)-15s %(message)s')
@@ -104,14 +92,6 @@ init -999 python:
             renpy.config.skipping = None
     
     renpy.choice_for_skipping = choice_for_skipping
-            
-    
-    # To lazy to write out Capitals
-    # true = True
-    # false = False
-    # none = None
-    # result = True
-    Error = Exception
     
     # Object to specify a lack of value when None can be considered valid.
     # Use as "x is undefined".
@@ -123,12 +103,6 @@ init -999 python:
     # Prepping a list to append all quests for the registration.
     world_quests = list()
     
-    # Setting default town path to persistent:
-    # if not persistent.town_path:
-        # persistent.town_path = "content/gfx/bg/locations/map_buttons/dark/"
-    # renpy.image("bg humans", "".join([persistent.town_path, "humans.jpg"]))
-    renpy.image("bg humans", "content/gfx/bg/locations/map_buttons/gismo/humans.jpg")
-    
     # Getting rid of Ren'Py's containers since we don't require rollback.
     dict = _dict
     set = _set
@@ -136,7 +110,7 @@ init -999 python:
     # object = _object # We are not using Ren'Pys object anywhere but it will throw errors if initiated this early because layout cannot be built with Pythons one.
     _rollback = False
     
-    # Regestration of extra music channels:
+    # Registration of extra music channels:
     renpy.music.register_channel("events", "sfx", False, file_prefix="content/sfx/sound/")
     renpy.music.register_channel("events2", "sfx", False,  file_prefix="content/sfx/sound/")
     renpy.music.register_channel("world", "music", True, file_prefix="content/sfx/music/world/")
@@ -144,10 +118,10 @@ init -999 python:
     
     ######################## Classes/Functions ###################################
     # Auto Animation from a folder:
-    def animate(path, delay=0.25, function=None, transition=None):
+    def animate(path, delay=0.25, function=None, transition=None, loop=False):
         # Build a list of all images:
-        dirs = os.listdir("".join([gamedir, path]))
-        images = list("".join([path[1:], "/", fn]) for fn in dirs if fn.endswith(('.png', '.gif')))
+        files = os.listdir("".join([gamedir, path]))
+        images = list("".join([path[1:], "/", fn]) for fn in files if fn.endswith(('.png', '.gif', ".jpg", ".jpeg")))
         # Build a list of arguments
         args = list()
         # for image in images:
@@ -155,7 +129,7 @@ init -999 python:
         # return anim.TransitionAnimation(*args)
         for image in images:
             args.append([image, delay])
-        return AnimateFromList(args)
+        return AnimateFromList(args, loop=loop)
 
     class Flags(_object):
         """Simple class to log all variables into a single namespace
@@ -164,18 +138,55 @@ init -999 python:
         """
         def __init__(self):
             self.flags = dict()
+            
+        def __iter__(self):
+            return iter(self.flags)
         
         def set_flag(self, flag, value=True):
             self.flags[flag] = value
             
+        def up_counter(self, flag, value=1, max=None, delete=False):
+            """A more advanced version of a counter than mod_flag.
+            
+            This can keep track of max and min.
+            """
+            if flag in self.flags:
+                f = self.flags[flag]
+                new_value = f + value
+                if (max is not None) and new_value >= max:
+                    self.flags[flag] = max
+                    if delete:
+                        self.del_flag(flag)
+                else:
+                    self.flags[flag] = new_value
+            else:
+                self.flags[flag] = value
+                
+        def down_counter(self, flag, value=1, min=None, delete=False):
+            """A more advanced version of a counter than mod_flag.
+            
+            This can keep track of max and min.
+            """
+            if flag in self.flags:
+                f = self.flags[flag]
+                new_value = f - value
+                if (min is not None) and new_value <= min:
+                    self.flags[flag] = min
+                    if delete:
+                        self.del_flag(flag)
+                else:
+                    self.flags[flag] = new_value
+            else:
+                self.flags[flag] = value
+            
         def mod_flag(self, flag, value):
-            """Can be used as counter for integer based flags.
+            """Can be used as a simple counter for integer based flags.
             
             Simply changes the value of the flag otherwise.
             """
             if not flag in self.flags:
                 self.flags[flag] = value
-                if config.debug:
+                if config.debug and "next" not in last_label: # Not logged during last day for clearer logs.
                     devlog.warning("{} flag modded before setting it's value!".format(flag))
                 return
                 
@@ -191,7 +202,7 @@ init -999 python:
             """
             if not flag in self.flags:
                 self.flags[flag] = set(value)
-                if config.debug:
+                if config.debug and "next" not in last_label: # Not logged during last day for clearer logs.
                     devlog.warning("{} flag modded before setting it's value!".format(flag))
                 return
                 
@@ -267,17 +278,23 @@ init -999 python:
         
     # Returns the position of cursor if show cursorPosition is called
     # show cursorPosition on bottom
-    def cursorPositionFunction(st, at):
-        x,y = pygame.mouse.get_pos()
-        return Text("{size=-5}%d - %d"%(x,y)), .1
+    def dd_cursor_position(st, at):
+        x, y = renpy.get_mouse_pos()
+        return Text("{size=-5}%d - %d"%(x, y)), .1
         # -------------------------------------------------------------------------------------------------------- Ends here    
     
     ########################## Images ##########################
+    # Colors are defined in colors.rpy to global namespace, prolly was not the best way but file was ready to be used.
+    
+    # Setting default town path to persistent:
+    # if not persistent.town_path:
+        # persistent.town_path = "content/gfx/bg/locations/map_buttons/dark/"
+    # renpy.image("bg humans", "".join([persistent.town_path, "humans.jpg"]))
+    renpy.image("bg humans", "content/gfx/bg/locations/map_buttons/gismo/humans.jpg")
+    
     renpy.image('bg black', Solid((0, 0, 0, 255)))
     renpy.image('bg blood', Solid((150, 6, 7, 255)))
-    # Colors are defined in colors.rpy
-
-
+    
     ##################### Autoassociation #####################
     # Backrounds are automatically registered in the game and set to width/height of the default screen
     # displayed by "show bg <filename>" or similar commands
@@ -341,75 +358,70 @@ init -999 python:
                         700))
             
     # Auto-Animations are last
-    for dir in os.listdir("".join([gamedir, '/content/gfx/animations/'])):
-        if " " in dir:
-            renpy.image(dir.split(" ")[0], animate("".join(["/content/gfx/animations/", dir]), float(dir.split(" ")[1])))
-        else:
-            renpy.image(dir, animate("".join(["/content/gfx/animations/", dir])))
+    def load_frame_by_frame_animations_from_dir(folder):
+        path = content_path(folder)
+        for dir in os.listdir(path):
+            split_dir = dir.split(" ")
+            len_split = len(split_dir)
             
-    for dir in os.listdir("".join([gamedir, '/content/gfx/be/auto-animations/'])):
-        if " " in dir:
-            renpy.image(dir.split(" ")[0], animate("".join(["/content/gfx/be/auto-animations/", dir]), float(dir.split(" ")[1])))
-        else:
-            renpy.image(dir, animate("".join(["/content/gfx/be/auto-animations/", dir])))
+            folder_path = "/".join(["/content", folder, dir])
+            img_name = split_dir[0]
+            delay = float(split_dir[1]) if len_split > 1 else 0.25
+            loop = bool(int(split_dir[2])) if len_split > 2 else False
+            
+            renpy.image(img_name, animate(folder_path, delay, loop=loop))
+            
+    load_frame_by_frame_animations_from_dir("gfx/animations")
+    load_frame_by_frame_animations_from_dir("gfx/be/auto-animations")
             
 # Additional 'constant' definements
 
-label _instant_exit:
-    $ renpy.quit()
-
 # Adds a number of useful development tools to the left buttom corner
-# X - Instant Exit, surpassing the confirmation diologue
+# X - Instant Exit
 # R - Recompilation of the game
-# Also shows mouse coordinates
+# Shows mouse coordinates
 screen debugTools():
     zorder 5
     vbox:
-        xalign 0.02
-        yalign 0.98
+        align (0.02, 0.98)
         hbox:
             xalign 0
             button:
                 text "X"
-                action ui.callsinnewcontext("_instant_exit")
+                action Quit(confirm=False)
             button:
                 text "R"
                 action ui.callsinnewcontext("_save_reload_game")
 
-        add (DynamicDisplayable(cursorPositionFunction)) xpos 10
-        text("{size=10}[last_label]") xpos 10
-
+        add DynamicDisplayable(dd_cursor_position) xpos 10
+        text "[last_label]"  xpos 10 size 10
 
 
 init -1 python: # Constants:
     # for f in renpy.list_files():
         # if f.endswith((".png", ".jpg")):
             # renpy.image(f, At(f, slide(so1=(600, 0), t1=0.7, eo2=(1300, 0), t2=0.7)))
-    
-    blank = "content/gfx/interface/images/blank.png"
-
     equipSlotsPositions = dict()
-    equipSlotsPositions['head'] = [u'Head', 0.4, 0.1]
-    equipSlotsPositions['body'] = [u'Body', 0.4, 0.3]
-    equipSlotsPositions['amulet'] = [u'Amulet', 0.6, 0.3]
-    equipSlotsPositions['cape'] = [u'Cape', 0.2, 0.3]
-    equipSlotsPositions['weapon'] = [u'Weapon', 0.2, 0.5]
-    equipSlotsPositions['smallweapon'] = [u'Small Weapon', 0.6, 0.5]
-    equipSlotsPositions['feet'] = [u'Feet', 0.4, 0.9]
-    equipSlotsPositions['misc'] = [u'Misc', 0.4, 0.7] 
-    equipSlotsPositions['wrist'] = [u'Wrist', 0.4, 0.5]
+    equipSlotsPositions['head'] = [u'Head', 0.2, 0.2]
+    equipSlotsPositions['body'] = [u'Body', 0.2, 0.4]
+    equipSlotsPositions['amulet'] = [u'Amulet', 1.0, 0.4]
+    equipSlotsPositions['cape'] = [u'Cape', 1.0, 0.2]
+    equipSlotsPositions['weapon'] = [u'Weapon', 0.2, 0.6]
+    equipSlotsPositions['smallweapon'] = [u'Small Weapon', 1.0, 0.6]
+    equipSlotsPositions['feet'] = [u'Feet', 1.0, 0.8]
+    equipSlotsPositions['misc'] = [u'Misc', 0.035, 0.51]
+    equipSlotsPositions['wrist'] = [u'Wrist', 0.2, 0.8]
     
-    # TODO: Remove most of this after retagging effort.
-    main_sex_tags = ["sex", "anal", "les", "blowjob", "bdsm", "group", "mast"]
-    for_gm_selection = ["sex", "anal", "les", "blowjob", "bdsm", "group", "mast", "strip", "nude", "ripped", "battle", "cosplay", "cooking", "waitress", "musician", "singer", "studying", "hurt", "pajamas", "lingerie", "scared", "angry"]
-    water_selection = ["beach", "onsen", "pool", "swimsuit", "bikini"]
-    all_indoor_tags = ["generic indoor", "arena", "bar", "bathroom", "bedroom", "classroom", "kitchen", "living room", "library", "shop", "stage"]
-    all_outdoor_tags = ["generic outdoor", "beach", "forest", "meadow", "onsen", "park", "pool", "road", "ruin", "urban", "wilderness", "yard"]
-
+init:
+    default SKILLS_MAX = {k:5000 for k in PytCharacter.SKILLS}
+    default SKILLS_THRESHOLD = {k:2000 for k in PytCharacter.SKILLS} # Must be exceeded before skills becomes harder to gain.
+    
 init 999 python:
     # ensure that all initialization debug messages have been written to disk
     devlogfile.flush()
+    
     # Build Maps:
     # tilemap = TileMap("my_map.json")
     # map_image = tilemap.build_map()
+    
     tl.timer("Ren'Py User Init!")

@@ -103,7 +103,7 @@
 # label interactions_datefinish:
     # show bg wood
     
-    # show screen pyt_girl_interactions
+    # show screen girl_interactions
     
     # "Back at home:"
     
@@ -175,10 +175,8 @@
     
 label interactions_eattogether:
     "You invite her to eat together somewhere."
-    call interactions_check_for_bad_stuff
-    call interactions_check_for_minor_bad_stuff
-    if calling_interactions_end == 1 or calling_interactions_end_minor == 1:
-        jump girl_interactions_end
+    $ interactions_check_for_bad_stuff(char)
+    $ interactions_check_for_minor_bad_stuff(char)
     if char.flag("gm_eat_together") != day:
         $char.set_flag("gm_eat_together", value=day)
     else:
@@ -201,7 +199,7 @@ label interactions_eattogether:
             $ a = 3
         "Restaurant":
             $ a = 4
-        "Change you mind":
+        "Change your mind":
             jump girl_interactions
     if a == 1:
         show bg city_bar as back with dissolve
@@ -271,13 +269,13 @@ label interactions_eattogether:
                     $ pass
         if ct("Always Hungry") and dice (70):
             $ char.override_portrait("portrait", "indifferent")
-            char.say "They mostly serving light snacks here, so it's difficult for her to eat one's fill."
+            char.say "They're mostly serving light snacks here, so it's difficult for her to eat to one's fill."
             $ char.disposition -= 5
             $ b += randint (5, 10)
             $ char.restore_portrait()
         if ct("Aggressive") and dice (50):
             $ char.override_portrait("portrait", "angry")
-            char.say "She didn't liked how some drunk customers loudly discussed her, leading to a small skirmish. You managed to calm her, but not before they broke some glasses."
+            char.say "She didn't like how some drunk customers loudly discussed her, leading to a small skirmish. You managed to calm her, but not before they broke some glasses."
             $ char.restore_portrait()
             $ b += randint (10, 30)
         if ct("Clumsy") and dice (30):
@@ -296,7 +294,7 @@ label interactions_eattogether:
         call eat_together_pay
         if (d == 1 or dice(55)) and ct("Exhibitionist"):
             $ gm.set_img("stripping", "simple bg", type="first_default")
-            "Your meeting ends with her drunk, naked and dancing on the table under cheers of customers."
+            "Your meeting ends with her drunk, naked and dancing on the table to the cheers of customers."
             hide back
             jump girl_interactions_end
 
@@ -313,7 +311,7 @@ label interactions_eattogether:
                     "She looks a but disappointed."
                     $ char.disposition -= 5
     elif a == 2:
-        "Together you sit at a table under a beach umbrella and order some light meal and soda."
+        "Together you sit at a table under a beach umbrella and order a light meal and soda."
         if dice (50):
             "The weather is nice today."
         else:
@@ -404,7 +402,7 @@ label interactions_eattogether:
 label eat_together_chat:
     if char.disposition >= 400:
         if ct("Impersonal") or ct("Dandere") or ct("Kuudere") or ct("Shy"):
-            $ narrator(choice(["She didn't talked much, but she enjoyed your company nevertheless.", "You had to do most of the talking, but she listened you with a smile.", "She welcomed the chance to spend some time with you.", "She is visibly at ease when talking to you, even though she didn't talked much."]))
+            $ narrator(choice(["She didn't talk much, but she enjoyed your company nevertheless.", "You had to do most of the talking, but she listened to you with a smile.", "She welcomed the chance to spend some time with you.", "She is visibly at ease when talking to you, even though she didn't talk much."]))
         else:
             $ narrator(choice(["It was quite a friendly chat.", "You gossiped like close friends.", "She welcomed the chance to spend some time with you.", "She is visibly at ease when talking to you.", "You both have enjoyed the conversation."]))
         if a == 1:
@@ -453,7 +451,7 @@ label eat_together_pay:
 
         else:
             if hero.gold >= b:
-                "You pay the whole sum as a true gentleman."
+                "You pay the whole sum like a true gentleman."
                 $ hero.take_money(b)
             elif char.gold + hero.gold >= b:
                 "You don't have enough money, and your companion has to pay too. She looks disappointed."

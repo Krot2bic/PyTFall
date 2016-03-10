@@ -1,4 +1,3 @@
-# after a couple days mc gets a paper airplane with instructions written to meet with kunoichi ub the forest
 init python:
     qtsunade = register_quest("Medic's Request")
     register_event("intro_storyi_entervillage", quest="Medic's Request", run_conditions=[qtsunade.condition(0, True)], locations=["forest_entrance"], dice=100, max_runs=1)
@@ -14,7 +13,7 @@ label tsunade_request_part_one(event):
     "Your skill now should be sufficient to pass Tsunade exam. You should return to the Hidden Village."
     $ pytfall.world_quests.get(event.quest).next_in_label("Your skill now should be sufficient to pass Tsunade exam. You should return to the Hidden Village.", "part2")
     $ pytfall.world_events.kill_event("tsunade_request_part_one")
-    $ register_event_in_label("story_tsunade_first_meeting", trigger_type="auto", locations=["hiddenVillage_entrance"], dice=100, max_runs=1)
+    $ register_event_in_label("story_tsunade_first_meeting", trigger_type="auto", locations=["hiddenvillage_entrance"], dice=100, max_runs=1)
     $ pytfall.world_events.force_event("story_tsunade_first_meeting")
     return
     
@@ -89,7 +88,7 @@ label intro_storyi_entervillage(event):
         "You feel like the world around you changes."
         stop world fadeout 2.0
         play world "park3.mp3" fadein 2.0
-        show bg hidden_village with noisedissolve
+        show bg hiddenvillage_entrance with noisedissolve
     "You stand in the middle of a small village."
     if first_try == 1:
         s.say "See? Told you he would not just stare at my chest and get it."
@@ -227,7 +226,7 @@ label story_tsunade_first_meeting(event):
     t.say "That's all, you may go now, I need some rest."
     "She is going to sleep right here?.."
     hide xxx with dissolve
-    show bg hidden_village with dissolve
+    show bg hiddenvillage_entrance with dissolve
     "Looks like you have a lot of work to do. Better start as soon as possible."
     $ del a
     $ t.restore_portrait()

@@ -1,4 +1,4 @@
-init python:
+init -999 python:
     tags_dict = {
     # Main Tags:
     'nn': 'sfw',
@@ -207,3 +207,6 @@ init python:
     'z2': 'night',
     'z3': 'autumn'
     }
+    
+    loc_tags = list(tags_dict[t] for t in tags_dict if t.startswith("l"))
+    sex_action_tags = []

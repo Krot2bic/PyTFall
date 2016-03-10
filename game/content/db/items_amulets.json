@@ -13,7 +13,7 @@
     "slot": "amulet",
     "max": {"charisma": 3},
     "mod": {"charisma": 7},
-    "locations": ["General Store"]
+    "locations": ["General Store", "Look around"]
     },
     {
     "id": "Leash",
@@ -29,7 +29,7 @@
     "slot": "amulet",
     "max": {"joy": -10, "character": -10},
     "mod": {"attack": -20, "defence": -20, "agility": -10, "character": -25},
-    "locations": ["General Store"],
+    "locations": ["General Store", "Look around"],
     "goodtraits": ["Masochist"]
     },
     {
@@ -63,11 +63,10 @@
     "hidden": false,
     "infinite": false,
     "slot": "amulet",
-    "bg_color": "dark",
     "max": {"charisma": 5},
     "mod": {"charisma": 10},
     "mod_skills": {"refinement": [0, 0, 0.01, 0, 0]},
-    "locations": ["General Store"]
+    "locations": ["General Store", "Look around"]
     },
     {
     "id": "Pearl Necklace",
@@ -79,7 +78,6 @@
     "badness": 80,
     "eqchance": 20,
     "hidden": false,
-    "bg_color": "dark",
     "infinite": false,
     "slot": "amulet",
     "max": {"charisma": 10},
@@ -101,7 +99,7 @@
     "slot": "amulet",
     "max": {"charisma": 15},
     "mod": {"character": -15, "refinement": -20},
-    "locations": ["General Store"],
+    "locations": ["General Store", "Look around"],
     "mod_skills": {"refinement": [-0.01, 0, -0.02, 0, 0], "bdsm": [0.01, 0, 0.02, 0, 0]},
     "goodtraits": ["Masochist"]
     },
@@ -115,7 +113,6 @@
     "badness": 85,
     "eqchance": 20,
     "hidden": false,
-    "bg_color": "dark",
     "infinite": false,
     "slot": "amulet",
     "max": {"charisma": 5, "refinement": 5},
@@ -136,12 +133,12 @@
     "infinite": false,
     "slot": "amulet",
     "max": {"attack": 5},
-    "locations": ["General Store"],
+    "locations": ["General Store", "Look around"],
     "goodtraits": ["Manly", "Kuudere"]
     },
     {
     "id": "Aromatic Pendant",
-    "desc": "This pendant is spreading around a light aphrodisiac that has a effect of both men and women.",
+    "desc": "This pendant is spreading around a light aphrodisiac that has an effect of both men and women.",
     "icon": "content/items/amulet/ap.png",
     "price": 400,
     "sex": "unisex",
@@ -165,7 +162,6 @@
     "chance": 15,
     "badness": 0,
     "eqchance": 100,
-    "bg_color": "dark",
     "hidden": false,
     "infinite": false,
     "slot": "amulet",
@@ -221,7 +217,7 @@
     "infinite": false,
     "slot": "amulet",
     "mod": {"luck": 5},
-    "locations": ["Witches Hut"]
+    "locations": ["Witches Hut", "Look around"]
     },
     {
     "id": "Health Charm",
@@ -236,7 +232,7 @@
     "infinite": false,
     "slot": "amulet",
     "max": {"health": 25},
-    "locations": ["Witches Hut"]
+    "locations": ["Witches Hut", "Look around"]
     },
     {
     "id": "Mana Charm",
@@ -251,7 +247,7 @@
     "infinite": false,
     "slot": "amulet",
     "max": {"mp": 25},
-    "locations": ["Witches Hut"]
+    "locations": ["Witches Hut", "Look around"]
     },
     {
     "id": "Victory Charm",
@@ -287,7 +283,7 @@
     },
     {
     "id": "Darksome Trophy",
-    "desc": "Acquired from a slain barbarian. It suppose to increase the bearers strength, but it wasn’t very useful to the previous owner.",
+    "desc": "Acquired from a slain barbarian. It's supposed to increase the bearer's strength, but it wasn’t very useful to the previous owner.",
     "icon": "content/items/amulet/dt.png",
     "price": 150,
     "sex": "unisex",

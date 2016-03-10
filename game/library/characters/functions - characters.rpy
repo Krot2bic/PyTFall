@@ -1,5 +1,31 @@
 init -11 python:
     # Characters related:
+    def get_first_name(sex="female"):
+        """Gets a randomly generated first name.
+        
+        sex: male/female
+        """
+        if sex == "female":
+            if not store.female_first_names:
+                store.female_first_names = load_female_first_names(200)
+            return store.female_first_names.pop()
+        elif sex == "male":
+            if not store.male_first_names:
+                store.male_first_names = load_male_first_names(200)
+            return store.male_first_names.pop()
+        else:
+            raise Exception("Unknow argument passed to get_first_name func!")
+            
+    def get_last_name():
+        if not store.random_last_names:
+            store.random_last_names = load_random_last_names(200)
+        return random_last_names.pop()
+        
+    def get_team_name():
+        if not hasattr(store, "random_team_names") or not store.random_team_names:
+            store.random_team_names = load_team_names(50)
+        return random_team_names.pop()
+    
     def build_mob(id=None, level=1):
         mob = Mob()
         Stats = mob.STATS
@@ -107,8 +133,7 @@ init -11 python:
         return mob
         
     def build_rc(id=None, name=None, last_name=None, pattern=None, level=1, add_to_gameworld=True):
-        '''
-        Creates a random character!
+        ''' Creates a random character!
         id: id to choose from the rchars dictionary that holds rGirl loading data from JSON files, will be chosen at random if none availible.
         name: (String) Name for a girl to use. If None one will be chosen from randomNames file!
         last_name: Same thing only for last name :)
@@ -155,16 +180,14 @@ init -11 python:
         
         # Names/Origin:
         if not name:
-            if not store.random_names:
-                store.random_names = load_random_names(200)
-            rg.name = random_names.pop()
+            if not store.female_first_names:
+                store.female_first_names = load_female_first_names(200)
+            rg.name = get_first_name()
         else:
             rg.name = name
             
         if not last_name:
-            if not store.random_last_names:
-                store.random_last_names = load_random_last_names(200)
-            rg.fullname = " ".join([rg.name, random_last_names.pop()])
+            rg.fullname = " ".join([rg.name, get_last_name()])
             
         rg.nickname = rg.name
         
@@ -184,12 +207,16 @@ init -11 python:
                 rg.location = data["force_location"]
                 
         # Occupations:
+        if pattern: # In case if there is no pattern, 
+            rg.traits.basetraits = set(create_traits_base(pattern))
+            for t in rg.traits.basetraits:
+                rg.apply_trait(t)
         # This is possibly temporary: TODO: Update after discussion:
-        if "init_basetraits" in data:
-            d = data["init_basetraits"]
-            if pattern not in d:
-                devlog.warning(str("{} Random Girl tried to apply blocked pattern: {}!".format(id, pattern)))
-            rg.occupation = choice(d)
+        # if "init_basetraits" in data:
+            # d = data["init_basetraits"]
+            # if pattern not in d:
+                # devlog.warning(str("{} Random Girl tried to apply blocked pattern: {}!".format(id, pattern)))
+            # rg.occupation = choice(d)
         
         # Battle and Magic skills:
         # TODO: This should be battle_skills! (plural and a list))
@@ -272,7 +299,7 @@ init -11 python:
         
         if max_out_stats:
             for stat in char.stats.stats:
-                if stat not in ["alignment"]:
+                if stat not in ["alignment", "disposition"]:
                     setattr(char, stat, char.get_max(stat))
         # -------- 
         
@@ -320,11 +347,13 @@ init -11 python:
             basetrait = choice([traits["Warrior"], traits["Mage"]])
             _traits.append(basetrait)
         elif pattern == "ServiceGirl":
-            _traits.append(traits["Service"])
+            _traits.append(choice([traits["Maid"], traits["Cleaner"], traits["Waitress"], traits["Bartender"]]))
         elif pattern == "Prostitute":
             _traits.append(traits["Prostitute"])
         elif pattern == "Stripper":
             _traits.append(traits["Stripper"])
+        elif pattern == "Manager":
+            _traits.append(traits["Manager"])
         else:
             raise Exception("Cannot create base traits list from pattern: {}".format(pattern))
             
@@ -343,10 +372,16 @@ init -11 python:
         
         if not id:
             client.id = "Client" + str(random.random())
+            
         if name:
             client.name = name
+        else:
+            client.name = get_first_name(gender)
+            
         if last_name:
             client.fullname = client.name + " " + last_name
+        else:
+            client.fullname = client.name + " " + get_last_name()
             
         # Patterns:
         if not pattern:
@@ -392,3 +427,79 @@ init -11 python:
                 arena_girl.arena_willing = True
                 arena_girl.arena_active = False # Should prolly be moved to preparation?
                 arena_girl.status = "free"
+                
+    def copy_char(char):
+        """Due to some sh!tty coding on my part, just a simple deepcopy/copy will not do :(
+        
+        This func cannot be used to make a playable character that can properly interact with the game world.
+        """
+        # new = deepcopy(char)
+        # Trying to improve the performace:
+        new = pickle.loads(pickle.dumps(char, -1))
+        
+        # One More Attempt through class Instantiation, does not work yet:
+        # new = char.__class__()
+        # Stats copy (Only for the new instance attempt)
+        # new.id = char.id
+        # new.location = shallowcopy(char.location)
+        # new.stats = shallowcopy(char.stats)
+        # new.stats.instance = new
+        # # Effects (Also, just for the new instance attempt)
+        # if hasattr(char, "effects"):
+            # new.effects = char.effects.copy()
+        
+        # Traits copy:
+        real_traits = list(traits[t] for t in [trait.id for trait in char.traits])
+        new.traits[:] = real_traits
+        new.traits.normal = char.traits.normal.copy()
+        new.traits.items = char.traits.items.copy()
+        new.traits.ab_traits = char.traits.ab_traits.copy()
+        new.traits.blocked_traits = char.traits.blocked_traits.copy()
+        new.traits.basetraits = char.traits.basetraits.copy()
+        
+        # Equipment slots:
+        new.eqslots = char.eqslots.copy()
+        
+        # Skills:
+        real_attack_skills = list(battle_skills[s] for s in [skill.name for skill in char.attack_skills])
+        new.attack_skills[:] = real_attack_skills
+        new.attack_skills.normal = char.attack_skills.normal.copy()
+        new.attack_skills.items = char.attack_skills.items.copy()
+        
+        real_magic_skills = list(battle_skills[s] for s in [skill.name for skill in char.magic_skills])
+        new.magic_skills[:] = real_magic_skills
+        new.magic_skills.normal = char.magic_skills.normal.copy()
+        new.magic_skills.items = char.magic_skills.items.copy()
+        
+        return new
+
+    def set_char_to_work(char, building, job=False):
+        """Attempts to find the best possible job to the char in given building.
+        
+        For now it just randomly picks any fitting job or sets to None.
+        In the future, this should find the best possible job and set the char to it.
+        
+        Note: Due to older logic, this function expects job argument to be None when a character is made jobless by player input or game logic!
+        """
+        if job is False:
+            available_jobs = list(j for j in building.jobs if j.all_occs & char.occupations)
+            job = choice(available_jobs) if available_jobs else None
+        
+        # We want to remove char as a building manager if he/she leave the post, we don't do that when char is set to rest or auto-rest.
+        if building.manager == char:
+            sj = store.simple_jobs
+            if job not in (sj["Manager"], sj["Rest"], sj["AutoRest"]):
+                building.manager = None
+                        
+        char.action = job
+        
+        if job is None:
+            return
+        
+        if hasattr(building, "all_workers"):
+            if char not in building.all_workers:
+                building.all_workers.append(char)
+                
+        # Make sure that the manager is set:
+        if job == simple_jobs["Manager"]:
+            building.manager = char

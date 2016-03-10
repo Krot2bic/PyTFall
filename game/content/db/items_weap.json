@@ -41,7 +41,6 @@
     "icon": "content/items/weapon/ic.png",
     "price": 550,
     "sex": "unisex",
-    "bg_color": "dark",
     "chance": 70,
     "badness": 88,
     "eqchance": 12,
@@ -107,7 +106,7 @@
     "attacks": ["SwordAttack"],
     "max": {"attack": 20},
     "mod": {"attack": 10, "character": 5},
-    "locations": ["Work Shop"]
+    "locations": ["Work Shop", "Look around"]
     },
     {
     "id": "Long Sword",
@@ -251,18 +250,17 @@
     "hidden": true,
     "infinite": false,
     "slot": "weapon",
-    "bg_color": "dark",
     "type": "Sword",
     "attacks": ["SwordAttack"],
     "max": {"attack": 20, "agility": 10},
     "mod": {"attack": 10, "character": 10, "agility": 10},
     "mod_skills": {"refinement": [0.01, 0, 0, 0, 0]},
-    "locations": ["Work Shop"]
+    "locations": ["Work Shop", "Look around"]
     },
     {
     "id": "Tower Shield",
     "desc": "A very large heavy shield utilized by only the strongest foot soldiers.",
-    "icon": "content/items/sweapon/tower_shield_II.png",
+    "icon": "content/items/weapon/ts.png",
     "price": 1000,
     "sex": "unisex",
     "chance": 15,
@@ -290,7 +288,6 @@
     "infinite": false,
     "slot": "weapon",
     "type": "Sword",
-    "bg_color": "dark",
     "attacks": ["SwordAttack"],
     "max": {"attack": 13, "character": 13, "agility": 13, "charisma": 13, "constitution": 13, "health": 13, "mp": 13, "vitality": 13},
     "mod": {"attack": 13, "character": 13, "agility": 13, "charisma": 13, "constitution": 13},
@@ -308,7 +305,6 @@
     "hidden": true,
     "infinite": false,
     "slot": "weapon",
-    "bg_color": "dark",
     "type": "Sword",
     "attacks": ["SwordAttack"],
     "max": {"attack": 90, "charisma": 20, "agility": 10},
@@ -431,7 +427,7 @@
     "attacks": ["RodAttack"],
     "max": {"attack": 4},
     "mod": {"charisma": -4, "attack": 4},
-    "locations": ["Exploration"]
+    "locations": ["Exploration", "Look around"]
     },
     {
     "id": "Mallet",
@@ -449,7 +445,7 @@
     "attacks": ["RodAttack"],
     "max": {"attack": 20},
     "mod": {"charisma": -10, "character": 10, "agility": -10, "attack": 10, "defence": -5},
-    "locations": ["Exploration"]
+    "locations": ["Exploration", "Look around"]
     },
     {
     "id": "Pitchfork",
@@ -539,7 +535,7 @@
     "attacks": ["BowAttack"],
     "max": {"attack": 25, "defence": -10, "agility":7},
     "mod": {"attack": 10, "character": 5, "defence": -10},
-    "locations": ["Work Shop"]
+    "locations": ["Work Shop", "Look around"]
     },
     {
     "id": "Long Bow",
@@ -610,7 +606,6 @@
     "infinite": false,
     "slot": "weapon",
     "type": "Bow",
-    "bg_color": "dark",
     "attacks": ["BowAttack"],
     "max": {"attack": 180, "charisma": 45, "agility": 40, "defence": -70},
     "mod": {"attack": 80, "character": 50, "charisma": 35, "agility": 30, "defence": -70},

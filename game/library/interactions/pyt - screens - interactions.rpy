@@ -20,8 +20,6 @@ init python:
 
 label girl_interactions:
     python:
-        # We need to recreate this in order to update the menu accordingly! TODO: Improve!
-        # pytfall.world_actions = WorldActionsManager()
         if "girl_meets" in pytfall.world_actions.locations:
             del pytfall.world_actions.locations["girl_meets"]
         pytfall.world_actions.clear()
@@ -47,16 +45,35 @@ label girl_interactions:
         gm.show_menu_givegift = False
         
         # Show screen
-        renpy.show_screen("pyt_girl_interactions")
+        renpy.show_screen("girl_interactions")
         renpy.with_statement(dissolve)
-    
+
+    if char.flag("quest_cannot_be_fucked") != True and interactions_silent_check_for_bad_stuff(char): # check for nonquest cases and no issues with the character
+        if dice(20): 
+            $ char.set_flag("gm_char_proposed_sex", value=day) # 20% chance to skip sex proposition and set a flag, to make it more random
+        $ sub = check_submissivity(char)*20 + 50 # another chance check from 30 to 70 based on submissiveness
+        if dice(sub) and check_lovers(char, hero) and ((day - char.flag("gm_char_proposed_sex")) > 1 or char.flag("gm_char_proposed_sex") == 0): # no matter if MC agrees or not, they will do it once per 2 days at best
+            call interactions_girl_proposes_sex
+            menu:
+                "Do you wish to have sex with [char.name]?"
+                "Yes":
+                    $ char.set_flag("gm_char_proposed_sex", value=day)
+                    jump interactions_sex_scene_select_place
+                "No":
+                    $ char.set_flag("gm_char_proposed_sex", value=day)
+                    $ char.override_portrait("portrait", "indifferent")
+                    $rc("...", "I see...", "Maybe next time then...")
+                    $ char.restore_portrait()
+                    jump girl_interactions_after_greetings
+                    
     # Show greeting
     if gm.see_greeting:
         $ gm.see_greeting = False
         
         if renpy.has_label("%s_greeting"%gm.mode):
             call expression ("%s_greeting"%gm.mode) from _call_expression
-    
+            
+label girl_interactions_after_greetings: # when character wants to say something in the start of interactions, we need to skip greetings and go here
     python:
         # Show menu
         gm.show_menu = True
@@ -227,7 +244,7 @@ label girl_interactions_end:
         
         # Reset scene
         renpy.scene()
-        renpy.hide_screen("pyt_girl_interactions")
+        renpy.hide_screen("girl_interactions")
         
         # End the GM
         gm.end()
@@ -257,47 +274,65 @@ label girl_interactions_control:
         # Gifts
         elif result[0] == "gift":
             python:
-                # Show menu
+                # Show menu:
                 if result[1] is True:
                     gm.show_menu = False
                     gm.show_menu_givegift = True
                 
-                # Hide menu
+                # Hide menu:
                 elif result[1] is None:
                     gm.show_menu = True
                     gm.show_menu_givegift = False
             
-                # Give gift
+                # Give gift:
                 else:
                     item = result[1]
-                    dismod = 0
-                    if (hasattr(item, "traits") and any(trait in char.traits for trait in item.traits)) or (hasattr(item, "occupations") and char.occupation in item.occupations):
-                        if hasattr(item, "traits"):
-                            for key in item.traits:
-                                if key in char.traits:
-                                    dismod += item.traits[key]
+                    dismod = item.dismod if hasattr(item, "dismod") else 0
+                    
+                    if hasattr(item, "traits"):
+                        for t in item.traits:
+                            if traits[t] in char.traits:
+                                dismod += item.traits[t]
                          
-                        if hasattr(item, "occupations"):
-                            for key in item.occupations:
-                                if key == char.occupation:
-                                    dismod += item.occupations[key]
+                    if hasattr(item, "occupations"):
+                        for occ in item.occupations:
+                            if occ in char.occupations:
+                                dismod += item.occupations[occ]
                      
+                    flag_name = "_day_countdown_{}".format(item.id)
+                    flag_value = int(char.flag(flag_name))
+                    if dismod > 70:
+                        dismod = 70
+                    if char.disposition > 50:
+                        if dismod*10 > char.disposition:
+                            dismod = round(char.disposition * 0.1)
                     else:
-                        dismod = item.dismod
-                     
+                        if dismod > 5:
+                            dismod = 5
+                    # Add the appropriate dismod value:
+                    if flag_value != 0:
+                        if flag_value < item.cblock:
+                            char.disposition = int(round(float(dismod)*(item.cblock-flag_value)/item.cblock))
+                        elif flag_value >= item.cblock:
+                            setattr(gm, "show_menu", True)
+                            setattr(gm, "show_menu_givegift", False)
+                            gm.jump("refusegift")
+                    else:
+                        char.disposition += dismod
+                        
                     hero.inventory.remove(item)
-                    char.disposition += dismod
                     setattr(gm, "show_menu", True)
                     setattr(gm, "show_menu_givegift", False)
-                     
-                    if dismod < 0:
+                    
+                    char.up_counter(flag_name, item.cblock)
+                    if dismod <= 0:
                         gm.jump("badgift")
-                     
-                    elif 50 < dismod >= 0:
+                    elif dismod <= 30:
                         gm.jump("goodgift")
-                     
                     else:
                         gm.jump("perfectgift")
+                        
+                    
         
         # Controls
         elif result[0] == "control":
@@ -306,8 +341,7 @@ label girl_interactions_control:
                 jump girl_interactions_end
     
 
-screen pyt_girl_interactions():
-    
+screen girl_interactions():
     # BG
     add "content/gfx/images/bg_gradient.png" yalign 0.2
     
@@ -322,12 +356,12 @@ screen pyt_girl_interactions():
             bottom_bar "content/gfx/interface/bars/progress_bar_full1.png"
             top_bar "content/gfx/interface/bars/progress_bar_1.png"
             thumb None
-            xysize(22, 175)
+            xysize (22, 175)
         
         python:
             # Trying to invert the values (bar seems messed up with negative once):
             if gm.char.disposition < 0:
-                inverted_disposition = gm.char.disposition * -1
+                inverted_disposition = -gm.char.disposition
             else:
                 inverted_disposition = 0
         
@@ -335,7 +369,7 @@ screen pyt_girl_interactions():
             bar_invert True
             top_gutter 12
             bottom_gutter 0
-            value AnimatedValue(value=inverted_disposition, range=gm.char.stats.min["disposition"]*-1, delay=4.0)
+            value AnimatedValue(value=inverted_disposition, range=-gm.char.stats.min["disposition"], delay=4.0)
             bottom_bar im.Flip("content/gfx/interface/bars/progress_bar_1.png", vertical=True)
             top_bar "content/gfx/interface/bars/bar_mine.png"
             thumb None
@@ -371,36 +405,45 @@ screen pyt_girl_interactions():
     
     # Give gift interface
     if gm.show_menu_givegift:
-        vbox:
-            align (0.75, 0.5)
-            
+        frame:
+            style "dropdown_gm_frame"
+            xysize (385, 455)
+            align (0.89, 0.27)
             viewport:
-                maximum(400, 400)
+                xysize (365, 433)
                 scrollbars "vertical"
                 mousewheel True
-                 
-                vbox:
-                    xalign 0.5
-                     
-                    for item in hero.inventory:
-                        $ item = items[item]
-                        if item.slot == "gift":
-                            button:
-                                xysize(350, 90)
-                                hbox:
-                                    add LiveComposite((90, 90), (0, 0), im.Scale(item.icon, 90, 90), (0, 0), Text(str(hero.inventory.content[item.id])))
-                                    null width 10
-                                    text "[item.id]" yalign 0.5
-                                 
-                                action If(hero.AP > 0, Return(["gift", item]))
+                has vbox
+                
+                for item in hero.inventory:
+                    $ item = items[item]
+                    if item.slot == "gift":
+                        button:
+                            style "main_screen_3_button"
+                            xysize (350, 100)
+                            hbox:
+                                fixed:
+                                    yoffset 3
+                                    xysize (90, 90)
+                                    add im.Scale(item.icon, 90, 90)
+                                    text str(hero.inventory.content[item.id]) color ivory style "library_book_header_main" align (0, 0)
+                                null width 10
+                                text "[item.id]" yalign 0.5 style "library_book_header_sub" color ivory
+                            action If(hero.AP > 0, Return(["gift", item]))
             
-            null height 10
-            textbutton "Back" action Return(["gift", None]) minimum(220, 30) xalign 0.5
+                null height 10
+                textbutton "Back":
+                    action Return(["gift", None])
+                    minimum(220, 30)
+                    xalign 0.5
+                    style "main_screen_3_button"
+                    text_style "library_book_header_sub"
+                    text_color ivory
     
-    use pyt_top_stripe(False)
+    use top_stripe(False)
     
 
-screen pyt_girl_interactions_old:
+screen girl_interactions_old:
     
     # Controls
     frame:
@@ -507,5 +550,5 @@ screen pyt_girl_interactions_old:
         yalign 0.2
         add ProportionalScale(gm.img, 900, 530)
     
-    use pyt_top_stripe(True)
+    use top_stripe(True)
     

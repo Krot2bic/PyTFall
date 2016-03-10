@@ -10,9 +10,10 @@
         
         # Load random names selections for rGirls:
         tl.timer("Loading: Random Name Files")
-        random_names = load_random_names(200)
+        female_first_names = load_female_first_names(200)
+        male_first_names = load_male_first_names(200)
         random_last_names = load_random_last_names(200)
-        
+        random_team_names = load_team_names(50)
         # Load random names selections for Teams:
         file = open(renpy.loader.transfn(content_path("db/RandomTeamNames_1.txt")))
         randomTeamNames = file.readlines()
@@ -45,7 +46,6 @@
         # This should be reorganized later:
         tgs = object() # TraitGoups!
         tgs.breasts = [i for i in traits.values() if i.breasts]
-        #TODO: Come up with better name for permennt traits?
         tgs.body = [i for i in traits.values() if i.body]
         tgs.base = [i for i in traits.values() if i.basetrait and not i.mob_only]
         tgs.elemental = [i for i in traits.values() if i.elemental]
@@ -60,6 +60,12 @@
         items.update(load_gifts())
         tl.timer("Loading: Items")
         
+    $ tl.timer("Loading: Battle Skills")
+    $ battle_skills = dict()
+    call load_battle_skills
+    $ tl.timer("Loading: Battle Skills")
+    
+    python:    
         # MC:
         hero = Player()
         
@@ -67,13 +73,13 @@
         
         tl.timer("Loading: SimpleJobs")
         # This jobs are usually normal, most common type that we have in PyTFall
-        temp = [TestingJob(), WhoreJob(), StripJob(), ServiceJob()]
+        temp = [TestingJob(), WhoreJob(), StripJob(), ServiceJob(), BarJob(), Manager()]
         simple_jobs = {j.id: j for j in temp}
         del temp
         tl.timer("Loading: SimpleJobs")
         
         tl.timer("Loading: Brothels")
-        brothels = load_brothels()
+        # brothels = load_brothels() # Disabling for now, should be renamed soon to businesses.
         # pytWhoringActs = build_whoring_acts()
         tl.timer("Loading: Brothels")
         
@@ -86,6 +92,7 @@
         # maps = xml_to_dict(content_path('db/map.xml'))
         calendar = Calendar(day=28, month=2, year=125)
         global_flags = Flags()
+        girlslist_last_page_viewed = 0
         
         # import cPickle as pickle
         # tl.timer("Loading: Binary Tag Database")
@@ -160,15 +167,11 @@
     # Loading apartments/guilds:
     call load_resources
     
+label dev_testing_menu:
     if config.developer:
         menu:
             "Test Intro":
                 call intro
-            "Skip":
-                pass
-            
-    if config.developer:
-        menu:
             "MC Setup Screen":
                 call mc_setup
                 $ neow = True
@@ -176,12 +179,42 @@
                 $ pass
             "MC Level 100":
                 $ initial_levelup(hero, 100, max_out_stats=True)
-            "Test Story":
+            "Dark Test":
                 jump intro_story
+                jump dev_testing_menu
             "Test Matrix":
                 call test_matrix
-            "Test Vortex":
-                call test_vortex
+                jump dev_testing_menu
+
+            "Test UDD/SFX":
+                menu:
+                    "Test Vortex":
+                        call test_vortex
+                        jump dev_testing_menu
+                    "Quality Test":
+                        call screen testing_image_quality
+                        jump dev_testing_menu
+                    "FilmStrip":
+                        call screen testing_new_filmstrip
+                        jump dev_testing_menu
+                    "Animation":
+                        scene black
+                        show expression Transform("cataclysm", yzoom=2.5, xzoom=1.5) as cataclysm
+                        pause 5.5
+                        hide cataclysm
+                        "Done"
+                        jump dev_testing_menu
+                    "Particle":
+                        scene black
+                        show expression ParticleBurst([Solid("#%06x"%renpy.random.randint(0, 0xFFFFFF), xysize=(5, 5)) for i in xrange(50)], mouse_sparkle_mode=True) as pb
+                        pause
+                        hide pb
+                        jump dev_testing_menu
+                    "Test Robert Penners Easing":
+                        call screen test_penners_easing
+                        jump dev_testing_menu
+                        
+                        
         python:
             if not hasattr(store, "neow"):
                 renpy.music.stop()
@@ -236,7 +269,8 @@
     if "testBrothel" in store.__dict__:
         $ del store.__dict__["testBrothel"]
     
-    $ shop_items = list(item for item in items.values() if (set(pytfall.shops) & set(item.locations)))
+    $ shop_items = [item for item in items.values() if (set(pytfall.shops) & set(item.locations))]
+    $ auto_buy_items = [item for item in shop_items if item.usable and not item.jump_to_label]
     
     #  --------------------------------------
     # Put here to facilitate testing:
@@ -245,9 +279,6 @@
     
     jump mainscreen
     
-
-# This is very convinient, but could prove slow...
-# Disabled until 0.9...
 label after_load:
     stop music
     return

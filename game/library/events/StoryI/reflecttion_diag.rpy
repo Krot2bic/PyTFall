@@ -20,7 +20,7 @@ label reflection_quest_part_one:
     stop music
     scene black with dissolve
     play world "cemetery.ogg" fadein 2.0 loop
-    show expression Text("City Cemetery", style="tisa_otm", align=(0.5, 0.33), size=40) as txt1:
+    show expression Text("City Cemetery", style="TisaOTM", align=(0.5, 0.33), size=40) as txt1:
         alpha 0
         linear 3.5 alpha 1.0
     pause 2.5
@@ -86,7 +86,7 @@ label reflection_quest_part_one:
     stop world fadeout 2.0
     $ register_event_in_label("reflection_quest_part_two", quest="Settling in the city", locations=["mainscreen"], run_conditions=["hero.gold >= 3000"], dice=100, max_runs=1)
     scene black
-    jump pyt_city
+    jump city
     
 label reflection_quest_part_two:
     stop music

@@ -276,7 +276,7 @@ init -9 python:
                 for __ in xrange(max(30, len(self.teams_2v2))):
                     if len(templist) >= 2:
                         team = Team(max_size=2)
-                        team.name = randomTeamNames.pop().replace('\n', '')
+                        team.name = get_team_name()
                         team.add(templist.pop())
                         team.add(templist.pop())
                         self.teams_2v2.append(team)
@@ -290,7 +290,7 @@ init -9 python:
                 for __ in xrange(max(30, len(self.teams_3v3))):
                     if len(templist) >= 3:
                         team = Team(max_size=3)
-                        team.name = randomTeamNames.pop().replace('\n', '')
+                        team.name = get_team_name()
                         team.add(templist.pop())
                         team.add(templist.pop())
                         team.add(templist.pop())
@@ -467,7 +467,7 @@ init -9 python:
                     del self.lineup_3v3[index]
                         
             else:
-                raise Error, "Invalid team size for Automatic Arena Combat Resolver: %d"%len(winner)
+                raise Exception, "Invalid team size for Automatic Arena Combat Resolver: %d"%len(winner)
                         
         def find_opfor(self):
             """
@@ -654,15 +654,15 @@ init -9 python:
             Checks if player team is ready for a dogfight.
             """
             if len(hero.team) != len(team):
-                renpy.call_screen("pyt_message_screen", "Make sure that your team has %d members!"%len(team))
+                renpy.call_screen("message_screen", "Make sure that your team has %d members!"%len(team))
                 return
             for member in hero.team:
                 if member != hero and member.status == "slave":
-                    renpy.call_screen("pyt_message_screen", "%s is a slave and slaves are not allowed to fight in the Arena under the penalty of death to both slave and the owner!"%member.name)
+                    renpy.call_screen("message_screen", "%s is a slave and slaves are not allowed to fight in the Arena under the penalty of death to both slave and the owner!"%member.name)
                     return
             for member in hero.team:
                 if member.AP < 2:
-                    renpy.call_screen("pyt_message_screen", "%s does not have enough Action Points for a fight (2 required)!"%member.name)
+                    renpy.call_screen("message_screen", "%s does not have enough Action Points for a fight (2 required)!"%member.name)
                     return
                     
             ht_strength = 0 # hero team*
@@ -692,10 +692,10 @@ init -9 python:
             for member in hero.team:
                 member.AP -= 2
                     
-            renpy.hide_screen("pyt_arena_inside")
-            renpy.hide_screen("pyt_arena_1v1_dogfights")
-            renpy.hide_screen("pyt_arena_2v2_dogfights")
-            renpy.hide_screen("pyt_arena_3v3_dogfights")
+            renpy.hide_screen("arena_inside")
+            renpy.hide_screen("arena_1v1_dogfights")
+            renpy.hide_screen("arena_2v2_dogfights")
+            renpy.hide_screen("arena_3v3_dogfights")
             
             team.leader.say("You seriously believe that you've got a chance?")
             hero.say(choice(["Talk is cheap!", "Defend yourself!"]))
@@ -713,18 +713,18 @@ init -9 python:
             if hero.arena_permit:
                 pass
             else:
-                renpy.call_screen("pyt_message_screen", "Arena Permit is required to fight in the official matches!")
+                renpy.call_screen("message_screen", "Arena Permit is required to fight in the official matches!")
                 return
             
             if n:
                 if self.setup[2] in hero.fighting_days:
-                    renpy.call_screen("pyt_message_screen", "You already have a fight planned for day %d. Having two official matches on the same day is not allowed!"%self.setup[2])
+                    renpy.call_screen("message_screen", "You already have a fight planned for day %d. Having two official matches on the same day is not allowed!"%self.setup[2])
                     return
                 
-                renpy.show_screen("pyt_confirm_match")
+                renpy.show_screen("confirm_match")
                 
             else:
-                renpy.hide_screen("pyt_confirm_match")
+                renpy.hide_screen("confirm_match")
                 self.setup[0] = hero.team
                 hero.fighting_days.append(self.setup[2])
         
@@ -739,25 +739,25 @@ init -9 python:
                     team = setup[1]
             
             if len(hero.team) != len(team):
-                renpy.call_screen("pyt_message_screen", "Make sure that your team has %d members!"%len(team))
+                renpy.call_screen("message_screen", "Make sure that your team has %d members!"%len(team))
                 return
             for member in hero.team:
                 if member != hero and member.status == "slave":
-                    renpy.call_screen("pyt_message_screen", "%s is a slave and slaves are not allowed to fight in the Arena under the penalty of death to both slave and the owner!"%member.name)
+                    renpy.call_screen("message_screen", "%s is a slave and slaves are not allowed to fight in the Arena under the penalty of death to both slave and the owner!"%member.name)
                     return
             for member in hero.team:
                 if member.AP < 3:
-                    renpy.call_screen("pyt_message_screen", "%s does not have enough Action Points for a fight (3 required)!"%member.name)
+                    renpy.call_screen("message_screen", "%s does not have enough Action Points for a fight (3 required)!"%member.name)
                     return
              
             # If we got this far, we can safely take AP off teammembers:
             for member in hero.team:
                 member.AP -= 3
                     
-            renpy.hide_screen("pyt_arena_inside")
-            renpy.hide_screen("pyt_arena_1v1_fights")
-            renpy.hide_screen("pyt_arena_2v2_fights")
-            renpy.hide_screen("pyt_arena_3v3_fights")
+            renpy.hide_screen("arena_inside")
+            renpy.hide_screen("arena_1v1_fights")
+            renpy.hide_screen("arena_2v2_fights")
+            renpy.hide_screen("arena_3v3_fights")
             
             team.leader.say("You seriously believe that you've got a chance?")
             hero.say("Talk is cheap!")
@@ -779,9 +779,9 @@ init -9 python:
                 team = teams[teams.index(team)]
                 teamsize = len(team["members"])
                 if teamsize > 3:
-                    raise Error, "Arena Teams are not allowed to include more than 3 members!"
+                    raise Exception, "Arena Teams are not allowed to include more than 3 members!"
                 if teamsize == 1 and not team["lineups"]:
-                    raise Error, "Single member teams are only avalible for lineups! Adjust data.xml files if you just wish girls to participate in the Arena!"
+                    raise Exception, "Single member teams are only avalible for lineups! Adjust data.xml files if you just wish girls to participate in the Arena!"
                 a_team = Team(name=team["name"], max_size=teamsize)
                 for member in team["members"]:
                     if member == "random_girl":
@@ -795,17 +795,17 @@ init -9 python:
                         if chars[member] in hero.girls:
                             hero.remove_girl(chars[member])
                         if chars[member] in self.get_teams_fighters(teams="2v2"):
-                            raise Error, "You've added unique girl %s to 2v2 Arena teams twice!"%chars[member].name
+                            raise Exception, "You've added unique girl %s to 2v2 Arena teams twice!"%chars[member].name
                         if chars[member] in self.get_teams_fighters(teams="3v3"):
-                            raise Error, "You've added unique girl %s to 3v3 Arena teams more than once!"%chars[member].name
+                            raise Exception, "You've added unique girl %s to 3v3 Arena teams more than once!"%chars[member].name
                         a_team.add(chars[member])
                     elif member in pytfall.arena.ac:
                         member = pytfall.arena.ac[member]
                         if member.unique:
                             if member in self.get_teams_fighters(teams="2v2"):
-                                raise Error, "You've added an unique Arena Fighter %s to 2v2 Arena teams twice!"%member.name
+                                raise Exception, "You've added an unique Arena Fighter %s to 2v2 Arena teams twice!"%member.name
                             if member in self.get_teams_fighters(teams="3v3"):
-                                raise Error, "You've added an unique Arena Fighter %s to 3v3 Arena teams more than once!"%member.name
+                                raise Exception, "You've added an unique Arena Fighter %s to 3v3 Arena teams more than once!"%member.name
                             member.arena_active = True
                             self.arena_fighters.append(member)
                             a_team.add(member)
@@ -822,27 +822,27 @@ init -9 python:
                         member.arena_active = True
                         a_team.add(member)
                     else:
-                        raise Error, "Team Fighter %s is of unknown origin!"%member
+                        raise Exception, "Team Fighter %s is of unknown origin!"%member
                 if team["lineups"]:
                     if teamsize == 1:
                         if team["lineups"] == 1:
-                            raise Error, "Number one spot for 1v1 ladder (lineup) is reserved by the game!"
+                            raise Exception, "Number one spot for 1v1 ladder (lineup) is reserved by the game!"
                         if not self.lineup_1v1[team["lineups"]-1]:
                             self.lineup_1v1[team["lineups"]-1] = a_team
                         else:
-                            raise Error, "Team %s failed to take place %d in 1v1 lineups is already taken by another team (%s), check your arena_teams.json file."%(a_team.name, team["lineups"], self.lineup_1v1[team["lineups"]-1].name)
+                            raise Exception, "Team %s failed to take place %d in 1v1 lineups is already taken by another team (%s), check your arena_teams.json file."%(a_team.name, team["lineups"], self.lineup_1v1[team["lineups"]-1].name)
                     if teamsize == 2:
                         if not self.lineup_2v2[team["lineups"]-1]:
                             self.lineup_2v2[team["lineups"]-1] = a_team
                             self.teams_2v2.append(a_team)
                         else:
-                            raise Error, "Team %s failed to take place %d in 2v2 lineups is already taken by another team (%s), check your arena_teams.json file."%(a_team.name, team["lineups"], self.lineup_2v2[team["lineups"]-1].name)
+                            raise Exception, "Team %s failed to take place %d in 2v2 lineups is already taken by another team (%s), check your arena_teams.json file."%(a_team.name, team["lineups"], self.lineup_2v2[team["lineups"]-1].name)
                     if teamsize == 3:
                         if not self.lineup_3v3[team["lineups"]-1]:
                             self.lineup_3v3[team["lineups"]-1] = a_team
                             self.teams_3v3.append(a_team)
                         else:
-                            raise Error, "Team %s failed to take place %d in 3v3 lineups is already taken by another team (%s), check your arena_teams.json file."%(a_team.name, team["lineups"], self.lineup_3v3[team["lineups"]-1].name)
+                            raise Exception, "Team %s failed to take place %d in 3v3 lineups is already taken by another team (%s), check your arena_teams.json file."%(a_team.name, team["lineups"], self.lineup_3v3[team["lineups"]-1].name)
                 else:
                     if teamsize == 2:
                         self.teams_2v2.append(a_team)
@@ -1010,7 +1010,7 @@ init -9 python:
             shuffle(templist)    
             for i in xrange(10):
                 if len(templist) >= 2 and not self.lineup_2v2[i]:
-                    self.lineup_2v2[i].name = randomTeamNames.pop().replace('\n', '')
+                    self.lineup_2v2[i].name = get_team_name()
                     self.lineup_2v2[i].add(templist.pop())
                     self.lineup_2v2[i].add(templist.pop())
                     
@@ -1032,7 +1032,7 @@ init -9 python:
             shuffle(templist)    
             for i in xrange(10):
                 if len(templist) >= 3 and not self.lineup_3v3[i]:
-                    self.lineup_3v3[i].name = randomTeamNames.pop().replace('\n', '')
+                    self.lineup_3v3[i].name = get_team_name()
                     self.lineup_3v3[i].add(templist.pop())
                     self.lineup_3v3[i].add(templist.pop())
                     self.lineup_3v3[i].add(templist.pop())
@@ -1052,14 +1052,14 @@ init -9 python:
             """
             Checks before chainfight.
             """
-            renpy.predict_screen("pyt_confirm_chainfight")
+            renpy.predict_screen("confirm_chainfight")
                 
             for member in hero.team:
                 if member.AP < 3:
-                    renpy.call_screen("pyt_message_screen", "%s does not have enough Action Points to start a chain fight (3 AP required)!"%member.name)
+                    renpy.call_screen("message_screen", "%s does not have enough Action Points to start a chain fight (3 AP required)!"%member.name)
                     return
                 if member.status == "slave":
-                    renpy.call_screen("pyt_message_screen", "%s is a Slave forbidden from participation in Combat!"%member.name)
+                    renpy.call_screen("message_screen", "%s is a Slave forbidden from participation in Combat!"%member.name)
                     return
                     
             # If we got this far, we can safely take AP off teammembers:
@@ -1076,15 +1076,15 @@ init -9 python:
             """
             # Case: First battle:
             if not pytfall.arena.cf_mob:
-                renpy.hide_screen("pyt_arena_inside")
-                renpy.call_screen("pyt_chain_fight")
+                renpy.hide_screen("arena_inside")
+                renpy.call_screen("chain_fight")
                 
                 result = self.result
         
                 if result == "break":
                     self.result = None
                     hero.AP += 3
-                    renpy.show_screen("pyt_arena_inside")
+                    renpy.show_screen("arena_inside")
                     return
                 
                 self.cf_setup = self.chain_fights[result]
@@ -1178,7 +1178,7 @@ init -9 python:
             if not bonus:
                 d = None
                 
-            renpy.show_screen("pyt_confirm_chainfight", 50, 0.01, 6, d)
+            renpy.show_screen("confirm_chainfight", 50, 0.01, 6, d)
             
         
         def start_chainfight(self):
@@ -1266,10 +1266,10 @@ init -9 python:
                     self.cf_setup = None
                     self.cf_count = 0
                     self.award = None
-                    renpy.show_screen("pyt_arena_finished_chainfight", hero.team)
+                    renpy.show_screen("arena_finished_chainfight", hero.team)
                     return
                 else:
-                    renpy.call_screen("pyt_arena_af_popup", hero.team, team, "Victory")
+                    renpy.call_screen("arena_aftermatch", hero.team, team, "Victory")
                     self.setup_chainfight()
                     return
                             
@@ -1383,7 +1383,7 @@ init -9 python:
                     member.arena_rep -= max(50, (team.get_rep()/30))
                     self.remove_team_from_dogfights(member)
 
-                renpy.call_screen("pyt_arena_af_popup", hero.team, team, "Victory")
+                renpy.call_screen("arena_aftermatch", hero.team, team, "Victory")
                             
             else:# Player lost -->
                 for member in team:
@@ -1473,7 +1473,7 @@ init -9 python:
                     member.arena_rep -= max(50, (hero.team.get_rep()/20))
                     self.remove_team_from_dogfights(member)
 
-                renpy.call_screen("pyt_arena_af_popup", hero.team, team, "Victory")
+                renpy.call_screen("arena_aftermatch", hero.team, team, "Victory")
                             
             else: # Player lost -->
                 winner = setup[1]
@@ -1522,7 +1522,7 @@ init -9 python:
             Working out the kinks before I merge this into be bridge.
             """
             renpy.scene()
-            renpy.hide_screen("pyt_mainscreen")
+            renpy.hide_screen("mainscreen")
             renpy.music.stop(channel="world")
             renpy.music.play(choice(ilists.battle_tracks), fadein=1.5)
             
@@ -1534,7 +1534,7 @@ init -9 python:
             
             for y in xrange(tilemap.height):
                 for x in xrange(tilemap.width):
-                    # raise Error, map.col
+                    # raise Exception, map.col
                     if tilemap.map[y*(tilemap.height+(tilemap.width-tilemap.height)) + x] in tilemap.col:
                         battlefield.RemoveSpace((x, y))
             

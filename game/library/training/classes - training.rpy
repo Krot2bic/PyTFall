@@ -436,7 +436,9 @@ init -9 python:
             """
             Whether this course is available for the girl.
             """
-            if self.jobs is not None and girl.occupation not in self.jobs: return False
+            # TODO: May not be upgraded to modern code properly:
+            # f self.jobs is not None and girl.occupation not in self.jobs: return False
+            if self.jobs is not None and girl.occupations.intersection(self.jobs): return False
             if self.status is not None and  girl.status not in self.status: return False
             
             # Only show if at least 1 option is available
@@ -542,17 +544,11 @@ init -9 python:
             
             if imageTags is not None:
                 for i in imageTags:
-                    if i == "main_sex_tags": self.imageTags.extend(main_sex_tags)
-                    elif i == "all_indoor_tags": self.imageTags.extend(all_indoor_tags)
-                    elif i == "all_outdoor_tags": self.imageTags.extend(all_outdoor_tags)
-                    else: self.imageTags.append(i)
+                    self.imageTags.append(i)
             
             if noImageTags is not None:
                 for i in noImageTags:
-                    if i == "main_sex_tags": self.noImageTags.extend(main_sex_tags)
-                    elif i == "all_indoor_tags": self.noImageTags.extend(all_indoor_tags)
-                    elif i == "all_outdoor_tags": self.noImageTags.extend(all_outdoor_tags)
-                    else: self.noImageTags.append(i)
+                    self.noImageTags.append(i)
             
             if scale is not None:
                 if scale in PytTrainingLesson.POS_FLAGS: self.scale = PytTrainingLesson.POS_EFFECT
@@ -966,7 +962,7 @@ init -9 python:
                     renpy.jump(gm_job.label)
                 
                 else:
-                    renpy.show_screen("pyt_message_screen", "%s cannot be trained in her current location!"%char.nickname)
+                    renpy.show_screen("message_screen", "%s cannot be trained in her current location!"%char.nickname)
             
             elif self.mode == "menu":
                 return self.lesson.can_train(char, hero, one_off_only=True)
@@ -1710,13 +1706,13 @@ init -9 python:
                     self.retrieve(self.girl)
                 
                 else:
-                    renpy.call_screen('pyt_message_screen', "You don't have enough money for this purchase!")
+                    renpy.call_screen('message_screen', "You don't have enough money for this purchase!")
             
             else:
-                renpy.call_screen('pyt_message_screen', "You don't have enough AP left for this action!!")
+                renpy.call_screen('message_screen', "You don't have enough AP left for this action!!")
             
             if not self.girls_list:
-                renpy.hide_screen("pyt_slave_shopping")
+                renpy.hide_screen("slave_shopping")
         
         def can_escape(self, girl, location, guards=None, girlmod=None, pos_traits=None, neg_traits=["Restrained"], use_be=True, simulate=True, be_kwargs=dict()):
             """
@@ -2195,9 +2191,9 @@ init -9 python:
             
             # If we have escaped girls, post the event
             if self.girls:
-                ev = Event()
+                ev = NDEvent()
                 ev.type = type
-                ev.girl = None
+                ev.char = None
                 ev.img = im.Scale("content/gfx/bg/locations/city_jail.jpg", int(config.screen_width*0.6), int(config.screen_height*0.8))
                 ev.txt = "\n".join(txt)
                 NextDayList.append(ev)

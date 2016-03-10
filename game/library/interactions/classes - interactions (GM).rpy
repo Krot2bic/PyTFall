@@ -5,63 +5,96 @@ init -1 python:
         Also resposible for sorting.
         Occupation = condition on which to sort. For now we only have warrior.
         """
-        def __init__(self, name, occupation=None, goodtraits=list(), badtraits=list()):
+        def __init__(self, name, curious_priority=True, **kwargs):
+            goodoccupations = kwargs.get("goodoccupations", set())
+            badoccupations = kwargs.get("badoccupations", set())
+            
+            goodtraits = kwargs.get("goodtraits", set())
+            if goodtraits:
+                goodtraits = set(traits[t] for t in goodtraits)
+                
+            badtraits = kwargs.get("badtraits", set())
+            if badtraits:
+                badtraits = set(traits[t] for t in badtraits)
+                
             self.name = name
-            self.girls = []
+            self.curious_priority = curious_priority
+            self.girls = list()
             
             # Get availible girls and check occupation
             choices = list(i for i in chars.values() if i not in hero.girls and not i.arena_active and i.location in ["city", "girl_meets_quest"] and i not in gm.get_all_girls())
-            conditioned_choices = choices * 1
-            if occupation:
-                conditioned_choices = list(i for i in conditioned_choices if occupation in i.occupations)
-            if goodtraits or badtraits:
-                conditioned_choices = list(i for i in conditioned_choices if ("Curious" in i.traits) or (any(trait in goodtraits for trait in i.traits) and 
-                                            not any(trait in badtraits for trait in i.traits)))
-                
+            # We remove all chars with badtraits:
+            if badtraits:
+                choices = list(i for i in choices if not any(trait in badtraits for trait in i.traits))
+            if badoccupations:
+                choices = list(i for i in choices if not i.occupations.intersection(badoccupations))
+            conditioned_choices = set(choices)
+            
+            if self.curious_priority:
+                goodtraits.add(traits["Curious"])
+            gt = list(i for i in conditioned_choices if any(trait in goodtraits for trait in i.traits)) if goodtraits else list()
+            occs = list(i for i in conditioned_choices if i.occupations.intersection(goodoccupations)) if goodoccupations else list()
+            conditioned_choices = list(conditioned_choices.intersection(gt + occs)) if gt or occs else list(conditioned_choices)
+            
             # Sort the list based on disposition:
             conditioned_choices.sort(key=attrgetter("disposition"))
             choices.sort(key=attrgetter("disposition"))
             
-            # Append to the list (1st girl):
-            if conditioned_choices:
+            # =====================================>>>
+            # We add an absolute overwrite for any character that has the location string set as the name:
+            # Make sure that we do not get the char in two locations on the same day:
+            local_chars = list()
+            for c in chars.values():
+                if c.location == name:
+                    if c in gm.get_all_girls():
+                        gm.remove_girl(c)
+                    local_chars.append(c)
+            shuffle(local_chars)
+            while local_chars and len(self.girls) < 3:
+                self.girls.append(local_chars.pop())
+            
+            # Append to the list (1st girl) Best disposition:
+            # This whole codebit needs to be rewritten when Interactions are restructured.
+            if conditioned_choices and len(self.girls) < 3:
                 if not conditioned_choices[len(conditioned_choices)-1].disposition:
                     shuffle(conditioned_choices)
                     self.girls.append(conditioned_choices.pop())
                 else:
                     self.girls.append(conditioned_choices.pop())
-            elif choices:
+            elif choices and len(self.girls) < 3:
                 if not choices[len(choices)-1].disposition:
                     shuffle(choices)
                     self.girls.append(choices.pop())
                 else:
                     self.girls.append(choices.pop())
                 
-            # Last two:
+            # Last two, Second one should be an Unique char, Third = Any char:
             shuffle(conditioned_choices)
-            while conditioned_choices and len(self.girls) != 3:
+            while conditioned_choices and len(self.girls) < 3:
                 for i in conditioned_choices:
                     if i.__class__ == Char:
                         self.girls.append(i)
                         conditioned_choices.remove(i)
                         break
-                if conditioned_choices:
+                if conditioned_choices and len(self.girls) < 3:
                     self.girls.append(conditioned_choices.pop())
                 # In the perfect world, we'd be done... yet...
                     
-            if len(self.girls) != 3:
+            # This last bit we do in case conditioned choices had failed:
+            if len(self.girls) < 3:
                 choices = list(i for i in choices if i not in self.girls)
                 shuffle(choices)
-                while choices and len(self.girls) != 3:
+                while choices and len(self.girls) < 3:
                     for i in choices:
                         if i.__class__ == Char:
                             self.girls.append(i)
                             choices.remove(i)
                             break
-                    if len(self.girls) != 3:        
+                    if len(self.girls) < 3:        
                         self.girls.append(choices.pop())
                     
             if len(self) > 3:
-                raise Error, "Something went wrong during girls sorting in %s"%self.__class__.__name__
+                raise Exception("Something went wrong during girls sorting in {}.\n List: {}".format(self.__class__.__name__, ", ".join(c.name for c in self)))
             self.termination_day = day + randint(3, 5)
             self.creation_day = day
             
@@ -156,30 +189,28 @@ init -1 python:
             self.img = self.char.show(*args, **kwargs)
             
         def set_img(self, *args, **kwargs):
-            """
-            Sets the image, bypassing the image cache.
+            """Sets the image, bypassing the image cache.
             """
             kwargs["resize"] = kwargs.get("resize", self.img_size)
             self.img = self.char.show(*args, **kwargs)
         
         def change_img(self, img):
-            """
-            Changes the image AND writes to cache!
+            """Changes the image AND writes to cache!
+            
             img = The image to change to.
             """
             self.img_cache = self.img
             self.img = img
             
         def restore_img(self): 
-            """
-            Restores the image to the cached one.
+            """Restores the image to the cached one.
             """   
             self.img = self.img_cache
         
         # Interactions/GM Flow Controls:
         def jump(self, label, free=False, allow_unique=True, **kwargs):
-            """
-            Jumps to a GMIT label with the most specific name.
+            """Jumps to a GMIT label with the most specific name.
+            
             label = The label to jump to.
             free = Whether the interaction is free.
             allow_unique Whether to allow girl.id specific labels.
@@ -192,18 +223,18 @@ init -1 python:
                 # If we are allowed unique labels
                 if allow_unique:
                     # Add the mode specific girl unique label
-                    ls.append("%s_%s_%s"%(self.mode, label, self.char.id))
+                    ls.append("{}_{}_{}".format(self.mode, label, self.char.id))
                 
                 # Add the mode specific label
-                ls.append("%s_%s"%(self.mode, label))
+                ls.append("{}_{}".format(self.mode, label))
             
             # If we are allowed unique labels
             if allow_unique:
                 # Add the girl unique label
-                ls.append("%s_%s"%(label, gm.char.id))
+                ls.append("{}_{}".format(label, gm.char.id))
             
             # Add the generic label
-            ls.append("interactions_%s"%label)
+            ls.append("interactions_{}".format(label))
             
             # If we have labels
             for l in ls:
@@ -212,25 +243,22 @@ init -1 python:
                     self.jump_cache = l
                     break
             else:
-                # Notify and stop @Review: One last try!        
-                # Else we have no labels
                 # Try just the label name...:
-                # TODO: Improve?
                 if renpy.has_label(label):
                     self.jump_cache = label
                     l = label
                 else:
-                    notify("Unable to find GM label %s."%label)
+                    # Notify and stop:
+                    notify("Unable to find GM label {}.".format(label))
                     self.jump_cache = ""
                     return
             
-            # If we aren't a free action
+            # If the action costs AP:
             if not free:
                 # If we have no more points
-                if not self.gm_points and not hero.AP:
-                    renpy.show_screen("pyt_message_screen", "You have no Action Points left!")
+                if not self.gm_points and hero.AP <= 0:
+                    renpy.show_screen("message_screen", "You have no Action Points left!")
                     return
-                
                 else:
                     # Take AP
                     if not self.gm_points:
@@ -245,8 +273,8 @@ init -1 python:
             renpy.jump(l)
             
         def start(self, mode, girl, img=None, exit=None, bg=None):
-            """
-            Starts a girl meet scenario.
+            """Starts a girl meet scenario.
+            
             mode = The mode to use.
             girl = The girl to use.
             img = The image to use.
@@ -292,12 +320,12 @@ init -1 python:
             else:
                 self.start("girl_meets", girl, img, exit, bg)
         
-        def start_int(self, girl, img=None, exit="girl_profile", bg="gallery"):
+        def start_int(self, girl, img=None, exit="char_profile", bg="gallery"):
             """
             Starts the interaction scenario.
             girl = The girl to use.
             img = The image for the girl.
-            exit = The exit label to use. Defaults to "girl_profile".
+            exit = The exit label to use. Defaults to "char_profile".
             bg = The background to use. Defaults to "gallery".
             """
             self.start("girl_interactions", girl, img, exit, bg)
@@ -314,12 +342,12 @@ init -1 python:
             else:
                 self.start_int(girl, **kwargs)
         
-        def start_tr(self, girl, img=None, exit="girl_profile", bg="sex_dungeon_1"):
+        def start_tr(self, girl, img=None, exit="char_profile", bg="sex_dungeon_1"):
             """
             Starts the training scenario.
             girl = The girl to use.
             img = The image for the girl.
-            exit = The exit label to use. Defaults to "girl_profile".
+            exit = The exit label to use. Defaults to "char_profile".
             bg = The background to use. Defaults to "dungeon".
             """
             self.start("girl_trainings", girl, img, exit, bg)

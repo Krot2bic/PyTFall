@@ -1,25 +1,40 @@
 init -1 python: # Core classes:
-    battle_skills = {}
     """
     This is our version of turnbased BattleEngine.
-    I think that we can use zorders on master layer instead of messing with layers.
+    I think that we can use zorders on master layer instead of messing with multiple layers.
     """
     
     BDP = {} # BE DEFAULT POSITIONS *Postions are tuples in lists that go from top to bottom.
     BDP["l0"] = [(160, 360), (120, 410), (80, 460)] # Left (Usually player) teams backrow default positions.
     BDP["l1"] = [(260, 360), (220, 410), (180, 460)] # Left (Usually player) teams frontrow default positions.
-    BDP["r0"] = list((config.screen_width-t[0], t[1]) for t in BDP["l0"]) # Right (Usually enemy).
-    BDP["r1"] = list((config.screen_width-t[0], t[1]) for t in BDP["l1"]) # Right (Usually enemy).
+    BDP["r0"] = list((config.screen_width-t[0], t[1]) for t in BDP["l0"]) # BackRow, Right (Usually enemy).
+    BDP["r1"] = list((config.screen_width-t[0], t[1]) for t in BDP["l1"]) # FrontRow, Right (Usually enemy).
     
+    # We need to get perfect middle positioning:
+    # Get the perfect middle x:
+    perfect_middle_xl = BDP["l0"][1][0] + (BDP["l1"][1][0] - BDP["l0"][1][0])
+    perfect_middle_yl = BDP["l0"][1][1] + (BDP["l1"][1][0] - BDP["l0"][1][0])
+    perfect_middle_xr = BDP["r1"][1][0] + (BDP["r1"][1][0] - BDP["r0"][1][0])
+    perfect_middle_yr = perfect_middle_yl
+    BDP["perfect_middle_right"] = (perfect_middle_xl, perfect_middle_yl)
+    BDP["perfect_middle_left"] = (perfect_middle_xr, perfect_middle_yr)
+    del perfect_middle_xl
+    del perfect_middle_yl
+    del perfect_middle_xr
+    del perfect_middle_yr
     
     class BE_Core(object):
+        """Main BE attrs, data and the loop!
         """
-        Main BE controls and the loop!
-        """
-        def __init__(self, bg, music=None, row_pos=None):
+        def __init__(self, bg, music=None, row_pos=None, start_sfx=None, end_sfx=None, logical=False):
+            """Creates an instance of BE scenario.
+            
+            logical: Just the calculations, without pause/gfx/sfx.
+            """
             self.teams = list() # Each team represents a faction on the battlefield. 0 index for left team and 1 index for right team.
             self.queue = list() # List of events in BE..
-            self.bg = bg # Background we'll use.
+            self.bg = ConsitionSwitcher("default", {"default": bg, "black": Solid("#000000"), "mirrage": Mirage(bg, amplitude=0.04, wavelength=10, ycrop=10)}) # Background we'll use.
+            # self.miragebg = Mirage(bg, amplitude=0.04, wavelength=10, ycrop=10)
                 
             self.music = music
             self.corpses = set() # Anyone died in the BE.
@@ -31,12 +46,22 @@ init -1 python: # Core classes:
                 
             self.controller = None # Whatever controls the current queue of the loop is the controller. Usually it's player or AI combatants.
             self.winner = None
-            self.log = list()
+            self.combat_log = list()
             
             # Events:
             self.end_turn_events = list() # Events we execute on start of the turn.
             self.start_turn_events = list() # Events we execute on the end of the turn.
             self.mid_turn_events = list() # Events to execute after controller was set.
+            
+            self.logical = logical
+            
+            self.start_sfx = start_sfx
+            self.end_sfx = end_sfx
+            
+        def log(self, report):
+            if config.debug:
+                devlog.info(report)
+            self.combat_log.append(report)
             
         def get_faction(self, char):
             # Since factions are simply teams:
@@ -48,7 +73,6 @@ init -1 python: # Core classes:
             """
             Handles events on the battlefield until something that can break the loop is found.
             """
-            renpy.show_screen("battle_overlay")
             while 1:
                 # We run events queued at the start of the turn first:
                 for event in self.start_turn_events[:]:
@@ -65,74 +89,117 @@ init -1 python: # Core classes:
                 # If the controller was killed off during the mid_turn_events:
                 if ev not in self.corpses:
                     if ev.controller != "player":
-                        # This character is not controled by the player so we call the controller:
+                        # This character is not controled by the player so we call the (AI) controller:
                         ev.controller()
                     else:
                         # Controller is the player:
                         # Call the skill choice screen:
-                        s = renpy.call_screen("pick_skill", ev)
-                        s.source = ev
-                        # Ok, so now we got the skll... so we call it.
-                        s()
+                        s = None
+                        t = None
+                        while not (s and t):
+                            s = renpy.call_screen("pick_skill", ev)
+                            s.source = ev
+                            
+                            # Unique check for Skip Skill:
+                            if isinstance(s, BE_Skip):
+                                break
+                            
+                            # Call the targeting screen:
+                            targets = s.get_targets()
+                            
+                            t = renpy.call_screen("target_practice", s, targets)
+                            
+                        s(t=t)
                 
-                renpy.hide_screen("pick_skill")
-                renpy.hide_screen("target_practice")
+                if not self.logical:
+                    renpy.hide_screen("pick_skill")
+                    renpy.hide_screen("target_practice")
                     
-                if config.developer:
-                    renpy.show_screen("be_test", ev) # If I need to know whats going on atm, I am using this in the dev mode...
+                # if config.developer:
+                    # renpy.show_screen("be_test", ev) # If I need to know whats going on atm, I am using this in the dev mode...
                 
                 # End turn events, Death (Usually) is added here for example.
                 for event in self.end_turn_events[:]:
                     if event():
                         self.end_turn_events.remove(event)
                 
-                # We check the conditions for terminating the game, this should prolly be end turn event as well, but I've added this before I've added events :)       
+                # We check the conditions for terminating the BE scenario, this should prolly be end turn event as well, but I've added this before I've added events :)       
                 if self.check_conditions():
                     break
             
             self.end_battle()
         
         def start_battle(self):
-            if self.music:
-                renpy.music.stop()
-                renpy.music.stop(channel="world")
-                renpy.music.play(self.music)
+            
+            self.prepear_teams()
+            
+            if not self.logical:
                 
-            # Show the BG:
-            renpy.scene()
-            renpy.show("bg", what=self.bg)
-            
-            # Consider using Screen for this as well?
-            
-            # Lets render the teammembers:
-            # First the left team:
-            
-            team = self.teams[0]
-            for i in team:
-                self.show_char(i, at_list=[Transform(pos=self.get_icp(team, i))])
+                renpy.maximum_framerate(30)
                 
-            team = self.teams[1]
-            for i in team:
-                self.show_char(i, at_list=[Transform(pos=self.get_icp(team, i))])
-             
-            # renpy.show_screen("be_test")
-            
+                if self.music:
+                    renpy.music.stop()
+                    renpy.music.stop(channel="world")
+                    renpy.music.play(self.music)
+                    
+                # Show the BG:
+                renpy.scene()
+                
+                # Lets render the teammembers:
+                # First the left team:
+                team = self.teams[0]
+                for i in team:
+                    self.show_char(i, at_list=[Transform(pos=self.get_icp(team, i))])
+                    
+                team = self.teams[1]
+                for i in team:
+                    self.show_char(i, at_list=[Transform(pos=self.get_icp(team, i))])
+                    
+                renpy.show("bg", what=self.bg)
+                renpy.show_screen("battle_overlay")
+                if self.start_sfx: # Special Effects:
+                    renpy.with_statement(self.start_sfx)
+                    
             # After we've set the whole thing up, we've launch the main loop:
             self.main_loop()
             
+        def prepear_teams(self):
+            # Plainly sets allegiance of chars to their teams. Allegiance may change during the fight (confusion skill for example once we have one).
+            # I've also included part of team/char positioning logic here. 
+            for team in self.teams:
+                team.position = "l" if not self.teams.index(team) else "r"
+                for char in team:
+                    # Position:
+                    char.beteampos = team.position
+                    char_index = team.members.index(char)
+                    if len(team) == 3 and char_index < 2:
+                        char_index = not int(bool(char_index))
+                    char.beinx = char_index
+                    if team.position == "l":
+                        char.row = int(char.front_row)
+                    else: # Case "r"
+                        char.row = 2 if char.front_row else 3
+                    
+                    # Allegiance:
+                    char.allegiance = team.name
+            
+            
         def end_battle(self):
+            """Ends the battle, trying to normalize any variables that may have been used during the battle.
             """
-            Ends the battle, trying to normalize any variables that may have been used during the battle.
-            """
-            # We'll have to reset any attributes of the charcters classes:
-            renpy.hide_screen("be_test")
-            renpy.hide_screen("target_practice")
-            renpy.hide_screen("pick_skill")
-            renpy.hide_screen("battle_overlay")
-            renpy.scene()
-
-            if self.music:
-                renpy.music.stop()
+            if not self.logical:
+                # We'll have to reset any attributes of the charcters classes:
+                renpy.hide_screen("be_test")
+                renpy.hide_screen("target_practice")
+                renpy.hide_screen("pick_skill")
+                renpy.hide_screen("battle_overlay")
+                renpy.scene()
+                if self.end_sfx:
+                    renpy.with_statement(self.end_sfx)
+    
+                if self.music:
+                    renpy.music.stop()
+                
             for team in self.teams:
                 for i in team:
                     i.betag = None
@@ -143,7 +210,7 @@ init -1 python: # Core classes:
             """
             Returns the next battle events to the game.
             (Re)Calculates the queue of events.
-            Currently we're calculating one turn where everyone get's to go once.
+            Currently we're calculating one turn where everyone gets to go once.
             Last index is the next in line.
             """
             if not self.queue:
@@ -154,26 +221,12 @@ init -1 python: # Core classes:
             return self.queue.pop()
             
         def get_icp(self, team, char):
-            """
-            Get Initial Character Position
+            """Get Initial Character Position
+            
             Basically this is what sets the characters up at the start of the battle-round.
             Returns inicial position of the character based on row/team!
             Positions should always be retrieved using this method or errors may occur.
             """
-            team_index = self.teams.index(team)
-            char_index = team.members.index(char)
-            
-            if len(team) == 3:
-                if char_index == 0:
-                    char_index = 1
-                elif char_index == 1:
-                    char_index = 0
-            
-            if team_index == 0:
-                team_index = "l"
-            else:
-                team_index = "r"
-                
             # We want different behavior for 3 member teams putting the leader in the middle:
             char.besk = dict()
             # Supplied to the show method.
@@ -181,12 +234,12 @@ init -1 python: # Core classes:
             # First, lets get correct sprites:
             sprite = char.show("battle_sprite", resize=char.get_sprite_size("battle_sprite"))
             char.besprite_size = sprite.true_size()
-            char.allegiance = team.name # Character always remains on the same team but allegiance may change with confusion skill for example.
-            # We'll assign ranges from 0 to 3 from left to right [0, 1, 3, 4] to help calculating attack ranges.
-            if team_index == "l":
-                char.row = int(char.front_row)
-                
-                if char.__class__ in [Mob]:
+            
+            # We'll assign "indexes" from 0 to 3 from left to right [0, 1, 3, 4] to help calculating attack ranges.
+            team_index = team.position
+            char_index = char.beinx
+            if team_index:
+                if char.__class__ == Mob:
                     char.besprite = im.Flip(sprite, horizontal=True)
                 else:
                     char.besprite = sprite
@@ -195,15 +248,9 @@ init -1 python: # Core classes:
                 # This makes more sense for all purposes:
                 char.dpos = self.row_pos[team_index + str(int(char.front_row))][char_index]
                 char.cpos = char.dpos
-                # Now the offset:
-                # xpos = pos[0] + char.besprite_size[0] / 2
-                # ypos = pos[1] + char.besprite_size[1]
-                # char.dpos = (xpos, pos[1])
                 
             if team_index == "r":
-                char.row = 2 if char.front_row else 3
-
-                if char.__class__ in [Player, Char, rChar, ArenaFighter]:
+                if char.__class__ != Mob:
                     char.besprite = im.Flip(sprite, horizontal=True)
                 else:
                     char.besprite = sprite
@@ -211,13 +258,12 @@ init -1 python: # Core classes:
                 pos = self.row_pos[team_index + str(int(char.front_row))][char_index]
                 # Now the offset:
                 xpos = pos[0] - char.besprite_size[0]
-                # ypos = pos[1] + char.besprite_size[1]
                 char.dpos = (xpos, pos[1])
                 char.cpos = char.dpos
                 
                 
             char.besk["what"] = char.besprite
-            # Zorder defaults to characters (index + 1) * 100 so we could theoretically show 100 extras with this design :)
+            # Zorder defaults to characters (index + 1) * 100
             char.besk["zorder"] = (char_index + 1) * 100
             
             # ---------------------------------------------------->>>
@@ -227,21 +273,21 @@ init -1 python: # Core classes:
             for key in char.besk:
                 if key not in kwargs: # We do not want to overwrite!
                     kwargs[key] = char.besk[key]
-            return renpy.show(char.betag, *args, **kwargs)
+            renpy.show(char.betag, *args, **kwargs)
             
         def move(self, char, pos, t, pause=True):
             """
             Move character to new position...
             """
             renpy.hide(char.betag)
-            renpy.show(char.betag, what=char.besprite, at_list=[move_bpwe(start_pos=char.cpos, end_pos=pos, t=t)], zorder=char.besk["zorder"])
+            renpy.show(char.betag, what=char.besprite, at_list=[move_from_to_pos_with_ease(start_pos=char.cpos, end_pos=pos, t=t)], zorder=char.besk["zorder"])
             char.cpos = pos
             if pause:
                 renpy.pause(t)
             
-        def get_cp(self, char, type="pos", xo=0, yo=0):
-            """
-            I am not sure how this is supposed to work yet in the grand scheme of things.
+        def get_cp(self, char, type="pos", xo=0, yo=0, override=False):
+            """I am not sure how this is supposed to work yet in the grand scheme of things.
+            
             Old Comment: For now it will report initial position + types:
             **Updated to using Current Position + Types.
             pos: Character position (pos)
@@ -253,33 +299,40 @@ init -1 python: # Core classes:
             xo = offset for x
             yo = offset for y
             """
-            if not char.cpos or not char.besprite_size:
-                raise Error([char.cpos, char.besprite_size])
-            if type == "pos":
-                xpos = char.cpos[0]
-                ypos = char.cpos[1] + yo
-            elif type == "center":
-                xpos = char.cpos[0] + char.besprite_size[0] / 2
-                ypos = char.cpos[1] + char.besprite_size[1] / 2 + yo
-            elif type == "tc":
-                xpos = char.cpos[0] + char.besprite_size[0] / 2
-                ypos = char.cpos[1] + yo
-            elif type == "bc":
-                xpos = char.cpos[0] + char.besprite_size[0] / 2
-                ypos = char.cpos[1] + char.besprite_size[1] + yo
-            elif type == "fc":
-                if char.row in [0, 1]:
-                    xpos = char.cpos[0] + char.besprite_size[0]
-                    ypos = char.cpos[1] + char.besprite_size[1] / 2 + yo
-                else:
+            if not override:
+                if not char.cpos or not char.besprite_size:
+                    raise Exception([char.cpos, char.besprite_size])
+                if type == "pos":
                     xpos = char.cpos[0]
+                    ypos = char.cpos[1] + yo
+                elif type == "center":
+                    xpos = char.cpos[0] + char.besprite_size[0] / 2
                     ypos = char.cpos[1] + char.besprite_size[1] / 2 + yo
-                    
-            # While yoffset is the same, x offset depends on the team position:
+                elif type == "tc":
+                    xpos = char.cpos[0] + char.besprite_size[0] / 2
+                    ypos = char.cpos[1] + yo
+                elif type == "bc":
+                    xpos = char.cpos[0] + char.besprite_size[0] / 2
+                    ypos = char.cpos[1] + char.besprite_size[1] + yo
+                elif type == "fc":
+                    if char.row in [0, 1]:
+                        xpos = char.cpos[0] + char.besprite_size[0]
+                        ypos = char.cpos[1] + char.besprite_size[1] / 2 + yo
+                    else:
+                        xpos = char.cpos[0]
+                        ypos = char.cpos[1] + char.besprite_size[1] / 2 + yo
+                        
+            # in case we do not care about position of a target/caster and just provide "overwrite" we should use instead:
+            else:
+                xpos, ypos = override
+                if yo:
+                    ypos = ypos + yo # Same as for comment below (Maybe I just forgot how offsets work and why...)
+                
+            # While yoffset is the same, x offset depends on the team position: @REVIEW: AM I TOO WASTED OR DOES THIS NOT MAKE ANY SENSE???
             if char.row in [0, 1]:
                 xpos = xpos + xo
             else:
-                xpos = xpos - xo
+                xpos = xpos - xo # Is this a reasonable approach instead of providing correct (negative/positive) offsets? Something to concider during the code review...
                     
             return xpos, ypos
                     
@@ -333,9 +386,11 @@ init -1 python: # Core classes:
                 self.apply_effects()
                 return self.kill()
                 
+        def __str__(self):
+            return str(self.name)
+                
         def check_conditions(self):
-            """
-            Should return True/False to allow event execution.
+            """Should return True/False to allow event execution.
             """
             pass
         
@@ -350,12 +405,20 @@ init -1 python: # Core classes:
             
         
     class BE_Action(BE_Event):
-        """
-        Basic action class that assumes that there will be targeting of some kind and followup logical and graphical effects.
+        """Basic action class that assumes that there will be targeting of some kind and followup logical and graphical effects.
         """
         def __init__(self, name, range=1, source=None, type="se", piercing=False, multiplier=1, true_pierce=False,
-                           menuname=None, menucat="Attacks", sfx=None, gfx=None, attributes=[], effect=0, zoom=None,
-                           add2skills=True, td_gfx=None, desc="", death_effect=None, **kwrags):
+                           menuname=None, critpower=0, menucat="Attacks", sfx=None, gfx=None, attributes=[], effect=0, zoom=None,
+                           add2skills=True, desc="", pause=0, target_state="alive", menu_pos=0,
+                           attacker_action={},
+                           attacker_effects={},
+                           main_effect={},
+                           dodge_effect={},
+                           target_sprite_damage_effect={},
+                           target_damage_effect={},
+                           target_death_effect={},
+                           bg_main_effect={},
+                           **kwrags):
             """
             range: range of the spell, 1 is minimum.
             damage_effect: None is default, character is dissolved with the death effect in gfx method in special cases
@@ -366,15 +429,19 @@ init -1 python: # Core classes:
             *se: Single enemy within range.
             *sa: Single ally within range.
             """
+            # Naming/Sorting:
             self.name = name
             if not menuname:
                 self.mn = self.name
             else:
                 self.mn = menuname
-            self.manucat = menucat    
+            self.manucat = menucat
+            
+            # Logic:
             self.range = range
             self.source = source
             self.type = type
+            self.critpower = critpower
             self.piercing = piercing
             self.true_pierce = true_pierce # Does full damage to back rows.
             self.attributes = attributes
@@ -382,40 +449,77 @@ init -1 python: # Core classes:
             self.multiplier = multiplier
             self.death_effect = death_effect
             self.desc = desc
-            
-            self.sfx = sfx # This is for really simple attacks.
-            self.gfx = gfx # This is for really simple attacks.
-            if td_gfx:
-                self.td_gfx = td_gfx # A list of pause --> kind of effect --> end of effect. **If this gets any more complicated, gfx method might have to become at/st funciton.
-            else:
-                self.td_gfx = [0.1] # This will be used to control damage bounce.
-            # Zoom:
-            # Zoom factors the size of the main displayable of the attack (if there is one). Use floats, 1.0 represents original size, -1 will invert (flip) the image.
-            self.zoom = zoom
+            self.target_state = target_state
+            self.menu_pos = menu_pos
             
             self.tags_to_hide = list() # BE effects tags of all kinds, will be hidden when the show gfx method runs it's cource and cleared for the next use.
             
             if add2skills:
                 battle_skills[self.name] = self
+                
+            # GFX/SFX + Dicts:
+            self.timestamps = {} # We keep all gfx effects here!
+            
+            self.attacker_action = attacker_action.copy()
+            self.attacker_effects = attacker_effects.copy()
+            self.attacker_effects["gfx"] = attacker_effects.get("gfx", None)
+            self.attacker_effects["sfx"] = attacker_effects.get("sfx", None)
+            
+            dp = deepcopy(main_effect)
+            self.main_effect = dp
+            self.main_effect["gfx"] = main_effect.get("gfx", None)
+            self.main_effect["sfx"] = main_effect.get("sfx", None)
+            self.main_effect["start_at"] = main_effect.get("start_at", 0)
+            self.main_effect["aim"] = dp.get("aim", {})
+            
+            self.dodge_effect = dodge_effect.copy()
+            self.dodge_effect["gfx"] = dodge_effect.get("gfx", True)
+            
+            self.target_sprite_damage_effect = target_sprite_damage_effect.copy()
+            self.target_sprite_damage_effect["gfx"] = target_sprite_damage_effect.get("gfx", None)
+            self.target_sprite_damage_effect["sfx"] = target_sprite_damage_effect.get("sfx", None)
+            
+            self.target_damage_effect = target_damage_effect.copy()
+            self.target_damage_effect["gfx"] = target_damage_effect.get("gfx", "battle_bounce")
+            self.target_damage_effect["sfx"] = target_damage_effect.get("sfx", None)
+            
+            self.target_death_effect = target_death_effect.copy()
+            self.target_death_effect["gfx"] = target_death_effect.get("gfx", "dissolve")
+            self.target_death_effect["sfx"] = target_death_effect.get("sfx", None)
+            
+            self.bg_main_effect = bg_main_effect.copy()
+            self.bg_main_effect["gfx"] = bg_main_effect.get("gfx", None)
+            if self.bg_main_effect["gfx"]:
+                self.bg_main_effect["initial_pause"] = self.bg_main_effect.get("initial_pause", self.main_effect["start_at"])
+                self.bg_main_effect["duration"] = self.bg_main_effect.get("duration", main_effect.get("duration", 0.4))
+            
+            if sfx:
+                self.main_effect["sfx"] = sfx # This is for really simple attacks. ==> Now declared differently for ALL NORMAL ATTACK TYPES!
+            if gfx:
+                # Zoom:
+                # Zoom factors the size of the main displayable of the attack (if there is one). Use floats, 1.0 represents original size, -1 will invert (flip) the image.
+                # I am reluctant of supporting this in the future as it can be plainly added to declaration with a Transform...
+                self.main_effect["gfx"] = Transform(gfx, zoom=zoom) if zoom else gfx # This is for really simple attacks. ==> Now declared differently for ALL NORMAL ATTACK TYPES!
+            if pause:
+                self.main_effect["duration"] = pause
+            
         
         def get_targets(self, source=None):
             """
             Gets tagets that can be hit with this action.
             Rows go [0, 1, 2, 3] from left to right of the battle-field.
             """
-            if source:
-                char = source
-            else:
-                char = self.source
-                
-            l = battle.get_fighters()
-            in_range = set()
+            char = source if source else self.source
+            
             # First figure out all targets within the range:
             # We calculate this by assigning.
-            for fighter in l:
-                if fighter.row in xrange(char.row - self.range, char.row + 1 + self.range):
-                    in_range.add(fighter)
-                    
+            target_rows = range(char.row - self.range, char.row + 1 + self.range)
+            all_targets = battle.get_fighters(self.target_state)
+            in_range = set(f for f in all_targets if f.row in target_rows)
+            
+            if any(t for t in in_range if isinstance(t, basestring)):
+                raise Exception(in_range)
+            
             # Lets handle the piercing (Or not piercing since piercing attacks incude everyone in range already):
             if not self.piercing:
                 if char.row in [0, 1]:
@@ -424,62 +528,59 @@ init -1 python: # Core classes:
                     if battle.get_fighters(rows=[2]):
                         # opfor has a defender:
                         # we need to remove everyone from the back row:
-                        for fighter in in_range.copy():
-                            if fighter.row == 3:
-                                in_range.remove(fighter)
+                        in_range = [f for f in in_range if f.row != 3]
                 else:
                     if battle.get_fighters(rows=[1]):
-                        for fighter in in_range.copy():
-                            if fighter.row == 0:
-                                in_range.remove(fighter)
-                                
-            # Another step is to allow any range > 1 backrow attack and any frontrow attack hitting backrow of the opfor...
-            # and... if there is noone if front row, allow longer reach fighters in backrow even if their range normally would not allow it.
-            if char.row == 0:
-                # Case: Fighter in backrow and no defenders on opfor.
-                if not battle.get_fighters(rows=[2]) and self.range > 1:
-                    # We add everyone in the back row for target practice :)
-                    in_range = in_range.union(battle.get_fighters(rows=[3]))
-                # Case: Fighter in backrow and there is no defender on own team,
-                if not battle.get_fighters(rows=[1]):
-                    # but there is at least one on the opfor:
-                    if battle.get_fighters(rows=[2]):
-                        in_range = in_range.union(battle.get_fighters(rows=[2]))
-                    # else, there is are no defenders at all anywhere...
-                    else:
-                        in_range = in_range.union(battle.get_fighters(rows=[3]))
-            elif char.row == 1:
-                if not battle.get_fighters(rows=[2]):
-                    # We add everyone in the back row for target practice :)
-                    in_range = in_range.union(battle.get_fighters(rows=[3]))
-            elif char.row == 2:
-                if not battle.get_fighters(rows=[1]):
-                    # We add everyone in the back row for target practice :)
-                    in_range = in_range.union(battle.get_fighters(rows=[0]))
-            elif char.row == 3:
-                if not battle.get_fighters(rows=[1]) and self.range > 1:
-                    # We add everyone in the back row for target practice :)
-                    in_range = in_range.union(battle.get_fighters(rows=[0]))
-                # Case: Fighter in backrow and there is no defender on own team,
-                if not battle.get_fighters(rows=[2]):
-                    # but there is at least one on the opfor:
-                    if battle.get_fighters(rows=[1]):
-                        in_range = in_range.union(battle.get_fighters(rows=[1]))
-                    # else, there is are no defenders at all anywhere...
-                    else:
-                        in_range = in_range.union(battle.get_fighters(rows=[0]))
-                
+                        in_range = [f for f in in_range if f.row != 0]
+                             
             # Now the type, we just care about friends and enemies:
             if self.type in ["all_enemies", "se"]:
-                for fighter in in_range.copy():
-                    if char.allegiance == fighter.allegiance:
-                        in_range.remove(fighter)
-            if self.type in ["all_allies", "sa"]:
-                for fighter in in_range.copy():
-                    if char.allegiance != fighter.allegiance:
-                        in_range.remove(fighter)
-                    
-            return list(in_range) # So we can support indexing...
+                in_range = set([f for f in in_range if char.allegiance != f.allegiance])
+            elif self.type in ["all_allies", "sa"]:
+                in_range = set([f for f in in_range if char.allegiance == f.allegiance])
+                
+            # In a perfect world, we're done, however we have to overwrite normal rules if no targets are found and backrow can hit over it's own range (for example):
+            if not in_range: # <== We need to run "frenemy code prior to this!"
+                # Another step is to allow any range > 1 backrow attack and any frontrow attack hitting backrow of the opfor...
+                # and... if there is noone if front row, allow longer reach fighters in backrow even if their range normally would not allow it.
+                if char.row == 0:
+                    # Case: Fighter in backrow and no defenders on opfor.
+                    if not battle.get_fighters(rows=[2]) and self.range > 1:
+                        # We add everyone in the back row for target practice :)
+                        in_range = in_range.union(battle.get_fighters(rows=[3])) # TODO: Union is prolly utterly useless here, confirm and remove!
+                    # Case: Fighter in backrow and there is no defender on own team,
+                    if not battle.get_fighters(rows=[1]):
+                        # but there is at least one on the opfor:
+                        if battle.get_fighters(rows=[2]):
+                            in_range = in_range.union(battle.get_fighters(rows=[2]))
+                        # else, there is are no defenders at all anywhere...
+                        else:
+                            in_range = in_range.union(battle.get_fighters(rows=[3]))
+                elif char.row == 1:
+                    if not battle.get_fighters(rows=[2]):
+                        # We add everyone in the back row for target practice :)
+                        in_range = in_range.union(battle.get_fighters(rows=[3]))
+                elif char.row == 2:
+                    if not battle.get_fighters(rows=[1]):
+                        # We add everyone in the back row for target practice :)
+                        in_range = in_range.union(battle.get_fighters(rows=[0]))
+                elif char.row == 3:
+                    if not battle.get_fighters(rows=[1]) and self.range > 1:
+                        # We add everyone in the back row for target practice :)
+                        in_range = in_range.union(battle.get_fighters(rows=[0]))
+                    # Case: Fighter in backrow and there is no defender on own team,
+                    if not battle.get_fighters(rows=[2]):
+                        # but there is at least one on the opfor:
+                        if battle.get_fighters(rows=[1]):
+                            in_range = in_range.union(battle.get_fighters(rows=[1]))
+                        # else, there is are no defenders at all anywhere...
+                        else:
+                            in_range = in_range.union(battle.get_fighters(rows=[0]))
+            
+            # And we need to check for dead people again... better code is needed to avoid cr@p like this in the future:
+            in_range = [i for i in in_range if i in all_targets]
+            
+            return in_range # List: So we can support indexing...
             
         def check_conditions(self, source=None):
             if source:
@@ -504,6 +605,7 @@ init -1 python: # Core classes:
             
             # Get the attack power:
             attack = self.get_attack()
+            name = self.name
             
             for t in targets:
                 # If character does NOT resists the attack:
@@ -512,7 +614,8 @@ init -1 python: # Core classes:
                     effects, multiplier = self.get_attributes_multiplier(t, attributes)
                     
                     # Get the damage:
-                    damage = self.default_damage_calculator(t, attack, multiplier)
+                    defense = self.get_defense(t)
+                    damage = self.default_damage_calculator(t, attack, defense, multiplier)
                     
                     # Rows Damage:
                     effects_append, damage = self.get_row_damage(t, damage)
@@ -521,7 +624,7 @@ init -1 python: # Core classes:
                     # Lets check the absobtion:
                     result = self.check_absorbtion(t)
                     if result:
-                        damage = damage * -1 * result
+                        damage = -damage * result
                         effects.append("absorbed")
                 else: # resisted
                     damage = 0
@@ -539,7 +642,7 @@ init -1 python: # Core classes:
                 
                 s = s + self.effects_for_string(t)
                 
-                battle.log.append("".join(s))
+                battle.log("".join(s))
         
         def effects_for_string(self, t, default_color="red"):
             # String for the log:
@@ -555,34 +658,35 @@ init -1 python: # Core classes:
                     s.append(" {color=[red]}ElDmg-! {/color}")
                 if "elemental_defence_bonus" in effects:
                     # Elemental Damage Bonus, means attacker caused extra damage due to a spell aligning (negatevely) with one or more if the defenders elements
-                    s.append(" {color=[lawngreen]}ElDef-! {/color}")
+                    s.append(" {color=[lawngreen]}ElDef- {/color}")
                 if "elemental_defence_penalty" in effects:
                     # The opposite of the above
-                    s.append(" {color=[red]}ElDef+! {/color}")
+                    s.append(" {color=[red]}ElDef+ {/color}")
                 if "backrow_penalty" in effects:
                     # Damage halved due to the target being in the back row!
                     s.append(" {color=[red]}1/2 DMG (Back-Row) {/color}")
                 if "critical_hit" in effects:
-                    s.append(" {color=[lawngreen]}Critical Hit!!! {/color}")
+                    s.append(" {color=[lawngreen]}Critical Hit {/color}")
+                if "missed_hit" in effects:
+                    s.append(" {color=[lawngreen]}Attack Missed {/color}")
                 if "absorbed" in effects:
-                    s.append(" {color=[lawngreen]}Absorbed DMG!{/color}")
+                    s.append(" {color=[lawngreen]}Absorbed DMG{/color}")
                     s.append(self.set_dmg_font_color(t, attributes, color="green"))
                 else:
                     s.append(self.set_dmg_font_color(t, attributes, color=default_color))    
             else: # If resisted:
-                s.append(" {color=[crimson]}Resisted the attack!{/color}")
+                s.append(" {color=[crimson]}Resisted the attack{/color}")
                 s.append(self.set_dmg_font_color(t, attributes, color="green"))
                 
             return s
                 
-        def default_damage_calculator(self, t, attack, multiplier):
+        def default_damage_calculator(self, t, attack, defense, multiplier):
             damage = 0
             # Calculate damage same as usual
-            if (t.defence < 1):
-                defence = 2 - t.defence
-                damage = attack * defence
+            if (defense < 1):
+                damage = attack * 1.5
             else:
-                damage = (attack/t.defence) + 0.5
+                damage = (attack/defense) + 0.5
                 
             # Get a random number between 0.8 and 1.2
             rand = (random.random() * 0.4) + 0.8
@@ -633,6 +737,18 @@ init -1 python: # Core classes:
             else:
                 attack = self.effect + 20
             return attack    
+            
+        def get_defense(self, target):
+            """
+            A method to get defence value vs current attack.
+            """
+            if any(list(i for i in ["melee", "ranged"] if i in self.attributes)):
+                defense = round(target.defence + target.constitution*0.2)
+            elif "magic" in self.attributes:
+                defense = round(target.magic*0.4 + target.defence*0.4 + target.constitution*0.2 + target.intelligence*0.2)
+            else:
+                defense = target.defence
+            return defense if defense != 0 else 1
                 
         def get_attributes_multiplier(self, t, attributes):
             """
@@ -641,13 +757,18 @@ init -1 python: # Core classes:
             multiplier = 1.0
             effects = list()
             a = self.source
-            # Critical hit:
-            if any(list(i for i in ["melee", "ranged"] if i in attributes)):
-                if dice(10):
-                    if (a.luck >= t.luck and dice(max(50, a.luck*2))) or dice(50):
-                        multiplier += 1.5
+            if any(list(i for i in ["melee", "ranged"] if i in attributes)): 
+                evasion_chance = round (0.5*t.level + t.agility - 0.5*a.level - a.agility)
+                if evasion_chance > 0: # evasion
+                    if evasion_chance > 90:
+                        evasion_chance = 90
+                    if dice(evasion_chance):
+                        multiplier = 0
+                        effects.append("missed_hit")
+                elif (a.luck >= t.luck): # Critical hit, cannot be done now on higher level or too agile targets
+                    if dice(round(((a.luck+50)-(t.luck+50))*0.35)):
+                        multiplier += 1.5 + self.critpower # different weapons have different power of crit
                         effects.append("critical_hit")
-                
             # Magic/Attribute alignment:
             for al in attributes:
                 # Damage first:
@@ -702,107 +823,543 @@ init -1 python: # Core classes:
             # Not 100% for that this will be required...
             # Here it is simple since we are only focusing on damaging health:
             # prepare the variables:
+            died = list()
+            
             if not isinstance(targets, (list, tuple, set)):
                 targets = [targets]
             for t in targets:
                 if t.health - t.beeffects[0] > 0:
-                    t.mod("health", t.beeffects[0] * -1)
+                    t.mod("health", -t.beeffects[0])
                 else:
-                    if t.can_die:
-                        t.health = 0
-                    else:
-                        t.health = 1
+                    died.append(t)
+                    # if t.can_die:
+                        # t.health = 0 # This prolly should be moved to end routine to prevent major fuckups with teams!:
+                    # else:
+                    t.health = 1
                     battle.end_turn_events.append(RPG_Death(t))
-            
-        def __call__(self):
-            # Call the targeting screen:
-            targets = self.get_targets()
-            t = renpy.call_screen("target_practice", self, targets)
-            self.show_gfx(t)
-            
-            for tag in self.tags_to_hide:
-                renpy.hide(tag)
-            self.tags_to_hide= list()
                     
-        def show_gfx(self):
-            """
-            All graphical effects for the action.
-            """
-            pass
-        
-        def show_gfx_td(self, target, t, type="shake"):
-            """
-            This is separated from the show gfx function... Maybe setup for the attack should be separated as well... TODO: Decide!
-            Target damage graphical effects.
-            t: Time
-            type: Which effect to apply.
-            """
-            if type == "shake":
-                renpy.show(target.betag, what=target.besprite, at_list=[damage_shake(0.05, (-10, 10))], zorder=target.besk["zorder"])
-        
-        def show_gfx_dmg(self, target, type="bb"):
-            """
-            Easy way to show damage like the bouncing damage effect.
-            """
-            if type == "bb":
-                bbtag = "bb" + str(random.random())
-                self.tags_to_hide.append(bbtag)
-                txt = Text("%s"%target.beeffects[0], style="content_label", color=getattr(store, target.dmg_font), size=15)
-                renpy.show(bbtag, what=txt, at_list=[battle_bounce(battle.get_cp(target, type="tc", yo=-10))], zorder=target.besk["zorder"]+2)
-                target.dmg_font = "red"
+            return died
+            
+        def __call__(self, ai=False, t=None):
+            self.effects_resolver(t)
+            died = self.apply_effects(t)
+            
+            if not isinstance(died, (list, set, tuple)):
+                died = list()
+            
+            if not battle.logical:
+                self.show_gfx(t, died)
+            
+                for tag in self.tags_to_hide:
+                    renpy.hide(tag)
+                self.tags_to_hide= list()
                 
         def get_element(self):
             # Returns (if any) an element bound to spell or attack:
             for t in traits:
                 if t.lower() in self.attributes and t.lower() not in ["magic", "melee", "ranged"]:
                     return traits[t]
-            # element = set(["fire", "air", "water", "earth", "darkness", "light", "neutral"]) & set(self.attributes)
-            # if element:
-                # return element.pop()
                 
+        # GFX/SFX:
+        def show_gfx(self, targets, died):
+            """Executes GFX part of an attack. Diregarded during logical combat.
+            
+            Usually, this has the following order:
+                - Intro (attacker sprite manipulation) + Effect (attacker_effects)
+                - Attack itself. (main_effects) = which is usually impact effect!
+                - Visual damage effect to the target(s) (sprites shaking for example). (target_sprite_gamage_effects)
+                - Some form of visual representation of damage amount (like battle bounce). (target_damage_effects)
+                - Events such as death (GFX Part, event itself can be handled later). (death_effect)
+                
+            Through complex system currently in design we handle showing gfx/hiding gfx and managing sfx (also here).
+            """
+            # Try to predict the images:
+            if self.attacker_effects["gfx"]:
+                renpy.start_predict(self.get_attackers_first_effect_gfx())
+            if self.main_effect["gfx"]:
+                renpy.start_predict(self.main_effect["gfx"])
+                
+            # Simple effects for the magic attack:
+            attacker = self.source
+            battle = store.battle
+            
+            if not isinstance(targets, (list, tuple, set)):
+                targets = [targets]
+            
+            # We need to build a dict of pause timespamp: func to call.
+            self.timestamps = {}
+            
+            if self.attacker_action["gfx"] or self.attacker_action["sfx"]:
+                delay = self.time_attackers_first_action(battle, attacker)
+            
+            # Next is the "casting effect":
+            # Here we need to start checking for overlapping time_stamps so we don't overwrite:
+            if self.attacker_effects["gfx"] or self.attacker_effects["sfx"]:
+                effects_delay = self.time_attackers_first_effect(battle, attacker)
+                    
+            # Next is the main GFX/SFX effect! ==> We calc the start in any case because we'll need it later...            
+            if "effects_delay" in locals(): # We start as effects gfx is finished.
+                start = effects_delay + self.main_effect.get("start_at", 0)
+            elif "delay" in locals(): # We start after atackers first action is finished.
+                start = delay + self.main_effect["start_at"]
+            else: # We plainly start at timestamp...
+                start = self.main_effect["start_at"]
+            
+            # Main Effects!:
+            if self.main_effect["gfx"] or self.main_effect["sfx"]:
+                self.time_main_gfx(battle, attacker, targets, start)
+                
+            # Dodging:
+            if self.dodge_effect["gfx"]: # <== Presently always True...
+                self.time_dodge_effect(targets, attacker, start)
+                
+            # Now the damage effects to targets (like shaking):
+            if self.target_sprite_damage_effect["gfx"] or self.target_sprite_damage_effect["sfx"]:
+                self.time_target_sprite_damage_effect(targets, died, start)
+                
+            # Damage effect (battle bounce type):
+            if self.target_damage_effect["gfx"] or self.target_damage_effect["sfx"]:
+                self.time_target_damage_effect(targets, died, start)
+                
+            # And Death Effect:
+            if died and (self.target_death_effect["gfx"] or self.target_death_effect["sfx"]):
+                self.time_target_death_effect(died, start)
+                
+            # And possible BG effects:
+            if self.bg_main_effect["gfx"]:
+                self.time_bg_main_effect(start)
+                
+            time_stamps = sorted(self.timestamps.keys())
+            for index, stamp in enumerate(time_stamps):
+                self.timestamps[stamp]()
+                try:
+                    pause = time_stamps[index + 1] - stamp
+                    # We do not want to pause for a super small period cause it will not work properly anyway...
+                    if pause > 0.02:
+                        renpy.pause(pause)
+                except: # If we run out of indexes I guess...
+                    pass
+                
+            self.timestamps = {}
+            # Try to predict the images:
+            if self.attacker_effects["gfx"]:
+                renpy.stop_predict(self.get_attackers_first_effect_gfx())
+            if self.main_effect["gfx"]:
+                renpy.stop_predict(self.main_effect["gfx"])
         
+        def time_attackers_first_action(self, battle, attacker):
+            # Lets start with the very first part (attacker_action):
+            self.timestamps[0] = renpy.curry(self.show_attackers_first_action)(battle, attacker)
+            delay = self.get_show_attackers_first_action_duration() + self.get_attackers_first_effect_pause(battle, attacker)
+            hide_first_action = delay + self.attacker_action.get("keep_alive_delay", 0)
+            self.timestamps[hide_first_action] = renpy.curry(self.hide_attackers_first_action)(battle, attacker)
+            return delay
                 
+        def show_attackers_first_action(self, battle, attacker):
+            if self.attacker_action["gfx"] == "step_forward":
+                battle.move(attacker, battle.get_cp(attacker, xo=50), 0.5, pause=False)
+            
+            sfx = self.attacker_action.get("sfx", None)
+            if sfx:
+                renpy.sound.play(sfx)
+                
+        def get_show_attackers_first_action_duration(self):
+            if self.attacker_action["gfx"] == "step_forward":
+                return 0.5
+            else:
+                return 0
+                
+        def hide_attackers_first_action(self, battle, attacker):
+            if self.attacker_action["gfx"] == "step_forward":
+                battle.move(attacker, attacker.dpos, 0.5, pause=False)
+            
+        def time_attackers_first_effect(self, battle, attacker):
+            start = self.get_show_attackers_first_action_duration()
+            if start in self.timestamps:
+                start = start + random.uniform(0.001, 0.002)
+            self.timestamps[start] = renpy.curry(self.show_attackers_first_effect)(battle, attacker)
+            
+            if self.attacker_effects["gfx"]:
+                effects_delay = start + self.get_attackers_first_effect_pause(battle, attacker)
+                if effects_delay in self.timestamps:
+                    effects_delay = effects_delay + random.uniform(0.001, 0.002)
+                self.timestamps[effects_delay] = renpy.curry(self.hide_attackers_first_effect)(battle, attacker)
+                return effects_delay
+                
+            return 0
+            
+        def get_attackers_first_effect_gfx(self):
+            gfx = self.attacker_effects["gfx"]
+            if gfx == "orb":
+                what=Transform("cast_orb_1", zoom=1.85)
+            elif gfx in ["dark_1", "light_1", "water_1", "air_1", "fire_1", "earth_1", "electricity_1", "ice_1"]:
+                what=Transform("cast_" + gfx, zoom=1.5)
+            elif gfx in ["dark_2", "light_2", "water_2", "air_2", "fire_2", "earth_2", "ice_2", "electricity_2"]:
+                what=Transform("cast_" + gfx, zoom=0.9)
+            elif gfx == "default_1":
+                what=Transform("cast_default_1", zoom=1.6)
+            elif gfx == "circle_1":
+                what=Transform("cast_circle_1", zoom=1.9)
+            elif gfx == "circle_2":
+                what=Transform("cast_circle_2", zoom=1.8)
+            elif gfx == "circle_3":
+                what=Transform("cast_circle_3", zoom=1.8)
+            elif gfx == "runes_1":
+                what=Transform("cast_runes_1", zoom=1.1)
+            else:
+                what=Null()
+                
+            return what
+            
+        def show_attackers_first_effect(self, battle, attacker):
+            gfx, sfx = self.attacker_effects["gfx"], self.attacker_effects["sfx"]
+            what = self.get_attackers_first_effect_gfx()
+            
+            if sfx == "default":
+                sfx="content/sfx/sound/be/casting_1.mp3"
+        
+            if gfx == "orb":
+                renpy.show("casting", what=what,  at_list=[Transform(pos=battle.get_cp(attacker, type="center"), align=(0.5, 0.5))], zorder=attacker.besk["zorder"]+1)
+            elif gfx in ["dark_1", "light_1", "water_1", "air_1", "fire_1", "earth_1", "electricity_1", "ice_1"]:
+                renpy.show("casting", what=what,  at_list=[Transform(pos=battle.get_cp(attacker, type="bc", yo=-75), align=(0.5, 0.5))], zorder=attacker.besk["zorder"]+1)
+            elif gfx in ["dark_2", "light_2", "water_2", "air_2", "fire_2", "earth_2", "ice_2", "electricity_2"]:
+                renpy.show("casting", what=what,  at_list=[Transform(pos=battle.get_cp(attacker, type="center"), align=(0.5, 0.5))], zorder=attacker.besk["zorder"]+1)
+            elif gfx == "default_1":
+                renpy.show("casting", what=what,  at_list=[Transform(pos=battle.get_cp(attacker, type="bc"), align=(0.5, 0.5))], zorder=attacker.besk["zorder"]-1)
+            elif gfx == "circle_1":
+                renpy.show("casting", what,  at_list=[Transform(pos=battle.get_cp(attacker, type="bc", yo=-10), align=(0.5, 0.5))], zorder=attacker.besk["zorder"]-1)
+            elif gfx == "circle_2":
+                renpy.show("casting", what=what,  at_list=[Transform(pos=battle.get_cp(attacker, type="bc", yo=-100), align=(0.5, 0.5))], zorder=attacker.besk["zorder"]+1)
+            elif gfx == "circle_3":
+                renpy.show("casting", what=what,  at_list=[Transform(pos=battle.get_cp(attacker, type="bc", yo=-100), align=(0.5, 0.5))], zorder=attacker.besk["zorder"]+1)
+            elif gfx == "runes_1":
+                renpy.show("casting", what=what,  at_list=[Transform(pos=battle.get_cp(attacker, type="bc", yo=-50), align=(0.5, 0.5))], zorder=attacker.besk["zorder"]-1)
+            
+            if sfx:
+                renpy.sound.play(sfx)
+        
+        def get_attackers_first_effect_pause(self, battle, attacker):
+            gfx = self.attacker_effects["gfx"]
+            if gfx == "orb":
+                pause = 0.84
+            elif gfx in ["dark_1", "light_1", "water_1", "air_1", "fire_1", "earth_1", "electricity_1", "ice_1"]:
+                pause = 0.84
+            elif gfx in ["dark_2", "light_2", "water_2", "air_2", "fire_2", "earth_2", "ice_2", "electricity_2"]:
+                pause = 1.4
+            elif gfx == "default_1":
+                pause = 1.12
+            elif gfx == "circle_1":
+                pause = 1.05
+            elif gfx == "circle_2":
+                pause = 1.1
+            elif gfx == "circle_3":
+                pause = 1.03
+            elif gfx == "runes_1":
+                pause = 0.75
+            else:
+                pause = 0
+                
+            return pause
+            
+        def hide_attackers_first_effect(self, battle, attacker):
+            # For now we just hide the tagged image here:
+            renpy.hide("casting")
+        
+        def time_main_gfx(self, battle, attacker, targets, start):
+            if start in self.timestamps:
+                start = start + random.uniform(0.001, 0.002)
+            self.timestamps[start] = renpy.curry(self.show_main_gfx)(battle, attacker, targets)
+            
+            pause = start + self.main_effect["duration"]
+            
+            if pause in self.timestamps:
+                pause = pause + random.uniform(0.001, 0.002)
+            self.timestamps[pause] = renpy.curry(self.hide_main_gfx)(targets)
+            
+        def show_main_gfx(self, battle, attacker, targets):
+            # Shows the MAIN part of the attack and handles appropriate sfx.
+            gfx = self.main_effect["gfx"]
+            sfx = self.main_effect["sfx"]
+            
+            # SFX:
+            sfx = choice(sfx) if isinstance(sfx, (list, tuple)) else sfx
+            if sfx:
+                renpy.sound.play(sfx)
+            
+            # GFX:
+            if gfx:
+                # Flip the attack image if required:
+                if self.main_effect.get("hflip", None):
+                    gfx = Transform(gfx, xzoom=-1) if battle.get_cp(attacker)[0] > battle.get_cp(targets[0])[0] else gfx
+                
+                aim = self.main_effect["aim"]
+                point = aim.get("point", "center")
+                anchor = aim.get("anchor", (0.5, 0.5))
+                xo = aim.get("xo", 0)
+                yo = aim.get("yo", 0)
+                
+                for index, target in enumerate(targets):
+                    gfxtag = "attack" + str(index)
+                    renpy.show(gfxtag, what=gfx, at_list=[Transform(pos=battle.get_cp(target, type=point, xo=xo, yo=yo), anchor=anchor)], zorder=target.besk["zorder"]+1)
+                
+        def hide_main_gfx(self, targets):
+            for i in xrange(len(targets)):
+                gfxtag = "attack" + str(i)
+                renpy.hide(gfxtag)
+            
+        def time_target_sprite_damage_effect(self, targets, died, start):
+            # We take previous start as baseppoint for execution:
+            damage_effect_start = start + self.target_sprite_damage_effect["initial_pause"]
+            
+            if damage_effect_start in self.timestamps:
+                damage_effect_start = damage_effect_start + random.uniform(0.001, 0.002)
+            self.timestamps[damage_effect_start] = renpy.curry(self.show_target_sprite_damage_effect)(targets)
+            
+            delay = damage_effect_start + self.target_sprite_damage_effect["duration"]
+            if delay in self.timestamps:
+                delay = delay + random.uniform(0.001, 0.002)
+            
+            self.timestamps[delay] = renpy.curry(self.hide_target_sprite_damage_effect)(targets, died)
+                
+        def show_target_sprite_damage_effect(self, targets):
+            """Target damage graphical effects.
+            """
+            type = self.target_sprite_damage_effect.get("gfx", "shake")
+            # We want to overwrite any damage to sprite in case of a miss!
+            
+            for target in targets:
+                if type == "shake":
+                    what = target.besprite
+                    at_list = [damage_shake(0.05, (-10, 10))]
+                elif type == "fly_away":
+                    what = target.besprite
+                    at_list = [fly_away]
+                elif type == "iced":
+                    child = Transform("content/gfx/be/frozen.jpg", size=target.besprite_size)
+                    mask = target.besprite
+                    what = AlphaMask(child, mask)
+                    at_list=[]
+                elif type == "frozen":
+                    size = (int(target.besprite_size[0]*1.5), int(target.besprite_size[1]*1.5))
+                    what = Fixed(target.besprite, Transform("content/gfx/be/frozen_2.png", size=size, offset=(-30, -50)))
+                    t = self.target_sprite_damage_effect.get("duration", 1)
+                    at_list=[fade_from_to_with_easeout(start_val=1.0, end_val=0.2, t=t)]
+                elif type == "burning":
+                    child = Transform("fire_mask", size=target.besprite_size)
+                    mask = target.besprite
+                    what = AlphaMask(child, mask)
+                    at_list=[]
+                elif type == "on_fire":
+                    size = (int(target.besprite_size[0]*1.1), int(target.besprite_size[1]*1.0))
+                    child = damage_color(im.MatrixColor(target.besprite, im.matrix.tint(0.9, 0.2, 0.2)))
+                    mask = Transform("flame_bm", size=size)
+                    what = AlphaMask(child, mask)
+                    at_list=[]
+                elif isinstance(type, basestring) and type.startswith("fire"):
+                    what = damage_color(im.MatrixColor(target.besprite, im.matrix.tint(0.9, 0.2, 0.2)))
+                    if type == "fire":
+                        at_list = []
+                    elif type == "fire_shake":
+                        at_list=[damage_shake(0.05, (-10, 10))]
+                
+                if "what" in locals() and not "missed_hit" in target.beeffects:
+                    renpy.show(target.betag, what=what, at_list=at_list, zorder=target.besk["zorder"])
+                    
+        def hide_target_sprite_damage_effect(self, targets, died):
+            # Hides damage effects applied to targets:
+            type = self.target_sprite_damage_effect.get("gfx", "shake")
+            if type == "frozen":
+                for target in targets:
+                    if target not in died:
+                        renpy.hide(target.betag)
+                        renpy.show(target.betag, what=target.besprite, at_list=[Transform(pos=target.cpos), fade_from_to(0.3, 1, 0.3)], zorder=target.besk["zorder"])
+            else:
+                for target in targets:
+                    if target not in died:
+                        renpy.hide(target.betag)
+                        renpy.show(target.betag, what=target.besprite, at_list=[Transform(pos=target.cpos)], zorder=target.besk["zorder"])
+            
+        def time_target_damage_effect(self, targets, died, start):
+            damage_effect_start = start + self.target_damage_effect.get("initial_pause", 0.2)
+            
+            if damage_effect_start in self.timestamps:
+                damage_effect_start = damage_effect_start + random.uniform(0.001, 0.002)
+            self.timestamps[damage_effect_start] = renpy.curry(self.show_target_damage_effect)(targets, died)
+            
+            delay = damage_effect_start + self.get_target_damage_effect_duration()
+            if delay in self.timestamps:
+                delay = delay + random.uniform(0.001, 0.002)
+            
+            self.timestamps[delay] = renpy.curry(self.hide_target_damage_effect)(targets, died)
+                    
+        def show_target_damage_effect(self, targets, died):
+            """Easy way to show damage like the bouncing damage effect.
+            """
+            type = self.target_damage_effect.get("gfx", "battle_bounce")
+            force = self.target_damage_effect.get("force", False)
+            if type == "battle_bounce":
+                for index, target in enumerate(targets):
+                    if target not in died or force:
+                        tag = "bb" + str(index)
+                        if "missed_hit" in target.beeffects:
+                            s = "Missed"
+                            color = getattr(store, target.dmg_font)
+                        else:
+                            s = "%s"%target.beeffects[0]
+                            if "critical_hit" in target.beeffects:
+                                s = "\n".join([s, "Critical hit!"])
+                            color = getattr(store, target.dmg_font)
+                        txt = Text(s, style="TisaOTM", min_width=200, text_align=0.5, color=color, size=18)
+                        renpy.show(tag, what=txt, at_list=[battle_bounce(battle.get_cp(target, type="tc", yo=-20))], zorder=target.besk["zorder"]+2)
+                        target.dmg_font = "red"
+            
+        def get_target_damage_effect_duration(self):
+            type = self.target_damage_effect.get("gfx", "battle_bounce")
+            if type == "battle_bounce":
+                delay = 1.5
+            else:
+                delay = 0
+                
+            return delay
+             
+        def hide_target_damage_effect(self, targets, died):
+            for index, target in enumerate(targets):
+                if target not in died:
+                    tag = "bb" + str(index)
+                    renpy.hide(tag)
+            
+        def time_target_death_effect(self, died, start):
+            death_effect_start = start + self.target_death_effect["initial_pause"]
+            
+            if death_effect_start in self.timestamps:
+                death_effect_start = death_effect_start + random.uniform(0.001, 0.002)
+            self.timestamps[death_effect_start] = renpy.curry(self.show_target_death_effect)(died)
+            
+            delay = death_effect_start + self.target_death_effect["duration"]
+            if delay in self.timestamps:
+                delay = delay + random.uniform(0.001, 0.002)
+            
+            self.timestamps[delay] = renpy.curry(self.hide_target_death_effect)(died)
+                    
+        def show_target_death_effect(self, died):
+            gfx = self.target_death_effect["gfx"]
+            sfx = self.target_death_effect["sfx"]
+            duration = self.target_death_effect["duration"]
+            
+            if sfx:
+                renpy.sound.play(sfx)
+                
+            if gfx == "dissolve":
+                for t in died:
+                    renpy.show(t.betag, what=t.besprite, at_list=[fade_from_to(start_val=1.0, end_val=0.0, t=duration)], zorder=t.besk["zorder"])
+            elif gfx == "shatter":
+                for target in died:
+                    renpy.show(target.betag, what=HitlerKaputt(target.besprite, 20), zorder=target.besk["zorder"])
+                
+        def hide_target_death_effect(self, died):
+            for target in died:
+                renpy.hide(target.betag)
+            
+        def time_bg_main_effect(self, start):
+            effect_start = start + self.bg_main_effect["initial_pause"]
+            
+            if effect_start in self.timestamps:
+                effect_start = effect_start + random.uniform(0.001, 0.002)
+            self.timestamps[effect_start] = self.show_bg_main_effect
+            
+            delay = effect_start + self.bg_main_effect["duration"]
+            if delay in self.timestamps:
+                delay = delay + random.uniform(0.001, 0.002)
+            
+            self.timestamps[delay] = self.hide_bg_main_effect
+                    
+        def show_bg_main_effect(self):
+            gfx = self.bg_main_effect["gfx"]
+            sfx = self.bg_main_effect.get("sfx", None)
+            
+            if sfx:
+                renpy.sound.play(sfx)
+                
+            if gfx in ["mirrage"]:
+                battle.bg.change(gfx)
+            if gfx in ["black"]:
+                renpy.with_statement(None)
+                renpy.show("bg", what=Solid("#000000"))
+                renpy.with_statement(dissolve)
+                # renpy.pause(0.5)
+                
+        def hide_bg_main_effect(self):
+            gfx = self.bg_main_effect["gfx"]
+            if gfx in ["mirrage"]:
+                battle.bg.change("default")
+            if gfx in ["black"]:
+                renpy.with_statement(None)
+                renpy.show("bg", what=battle.bg)
+                renpy.with_statement(dissolve)
+            
+            
+        def time_dodge_effect(self, targets, attacker, start):
+            effect_start = start - 0.3
+            if effect_start < 0:
+                effect_start = 0
+            
+            if effect_start in self.timestamps:
+                effect_start = effect_start + random.uniform(0.001, 0.002)
+            self.timestamps[effect_start] = renpy.curry(self.show_dodge_effect)(attacker, targets)
+            
+            # delay = effect_start + self.bg_main_effect["duration"]
+            # if delay in self.timestamps:
+                # delay = delay + random.uniform(0.001, 0.002)
+            
+            # self.timestamps[delay] = self.hide_bg_main_effect
+                    
+        def show_dodge_effect(self, attacker,  targets):
+            # gfx = self.dodge_effect["gfx"]
+            # sfx = self.dodge_effect.get("sfx", None)
+            
+            # if sfx:
+                # renpy.sound.play(sfx)
+                
+            for target in targets:
+                if "missed_hit" in target.beeffects:
+                    xoffset = -100 if battle.get_cp(attacker)[0] > battle.get_cp(target)[0] else 100
+                    renpy.show(target.betag, what=target.besprite, at_list=[be_dodge(xoffset)], zorder=target.besk["zorder"])
+                
+        def hide_dodge_effect(self):
+            pass
+            
+            
     class BE_AI(object):
         # Not sure this even needs to be a class...
-        def __init__(self, source=None):
+        def __init__(self, source):
             self.source = source
         
         def __call__(self):
             skills = self.get_skills()
             if skills:
                 skill = choice(skills)
-                # So we have a skill... not lets pick a taget(s):
+                # So we have a skill... now lets pick a taget(s):
                 skill.source = self.source
-                targets = skill.get_targets()
-                if "all" in skill.type:
-                    skill.show_gfx(targets)
-                else:
-                    skill.show_gfx(choice(targets))
+                targets = skill.get_targets() # Get all targets in range.
+                targets = targets if "all" in skill.type else choice(targets) # We get a correct amount of targets here.
+                
+                skill(ai=True, t=targets)
                 
             else:
                 skill = BE_Skip(source=self.source)
                 skill()
         
         def get_skills(self):
-            skills = self.source.attack_skills + self.source.magic_skills
-            # for skill in self.source.attack_skills:
-                # skills.append(skill)
-            # for skill in self.source.magic_skills:
-                # skills.append(skill)
-            # temp = list()    
-            # for i in skills:
-                # if i in battle_skills:
-                    # i = battle_skills[i]
-                    # temp.append(i)
-            # How that we have all the skills, lets see what we can acutally use.
-            temp = skills[:]
-            skills = list()
-            for skill in temp:
-                t = skill.get_targets(source=self.source)
-                if t:
-                    skills.append(skill)
-            for skill in skills[:]:
-                skill.source = self.source
-                if not skill.check_conditions():
-                    skills.remove(skill)
+            allskills = self.source.attack_skills + self.source.magic_skills
+            skills = [s for s in allskills if s.check_conditions(self.source)]
+            
+            # for skill in allskills:
+                # t = skill.get_targets(source=self.source)
+                # if t:
+                    # skills.append(skill)
+                     
+            # for skill in skills[:]:
+                # skill.source = self.source
+                # if not skill.check_conditions():
+                    # skills.remove(skill)
             return skills
