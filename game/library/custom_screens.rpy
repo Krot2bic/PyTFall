@@ -131,7 +131,7 @@ init: # Items:
                             xalign 0.5
                             spacing 25
                             use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_left.png', 40, 40), return_value=['control', "decrease_amount"], align=(0, 0.5))
-                            text ("{size=36}[amount]") align (0.5, 0.5) color ivory
+                            text ("{size=36}[amount]") align (0.5, 0.5) color ivory style "proper_stats_label_text"
                             use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_right.png', 40, 40), return_value=['control', "increase_amount"], align=(1.0, 0.5))
                         
                         button:
@@ -169,13 +169,13 @@ init: # Items:
                         xalign 0.5
                         xysize (440, 40)
                         background Frame("content/gfx/frame/p_frame7.png", 10, 10)
-                        label ('[item.id]') text_color gold xalign 0.5 text_size 20 text_outlines [(1, "#000000", 0, 0)] text_style "interactions_text"
+                        label '[item.id]' text_color gold xalign 0.5 text_size 20 text_outlines [(1, "#000000", 0, 0)] text_style "interactions_text"
                     vbox:
                         yfill True
                         align (0.5, 0.5)
                         #xmaximum (size[0]-15-175)
                         null height -15
-                        label ('{color=#ecc88a}_____________________________________') text_style "stats_value_text" align (0.5, 0.5)
+                        label ('{color=#ecc88a}_____________________________________') align (0.5, 0.5)
                         hbox:
                             align (0.5, 0.5)
                             xfill True
@@ -196,138 +196,107 @@ init: # Items:
                                     frame:
                                         xsize 195
                                         text ('Price:') color gold yalign 0.5
-                                        label ('{size=-3}{color=[gold]}[item.price]') style "stats_value_text" align (1.0, 0.5)
+                                        label ('{size=-3}{color=[gold]}[item.price]') align (1.0, 0.5)
                                     frame:
                                         xsize 195
                                         text ('Slot:') color ivory yalign 0.5
-                                        label ('{size=-3}%s'%item.slot.capitalize()) style "stats_value_text" align (1.0, 0.5)
+                                        label ('{size=-3}%s'%item.slot.capitalize()) align (1.0, 0.5)
                                     frame:
                                         xsize 195
                                         text ('Type:') color ivory yalign 0.5
-                                        label ('{size=-3}%s'%item.type.capitalize()) style "stats_value_text" xalign 1.0 align (1.0, 0.5)
+                                        label ('{size=-3}%s'%item.type.capitalize()) xalign 1.0 align (1.0, 0.5)
                                     frame:
                                         xsize 195
                                         text ('Sex:') color ivory yalign 0.5
-                                        if item.sex == 'male':
-                                            label ('{size=-3}{color=#FFA54F}%s'%item.sex.capitalize()) style "stats_value_text" xalign 1.0 align (1.0, 0.5)
-                                        if item.sex == 'female':
-                                            label ('{size=-3}{color=#FFAEB9}%s'%item.sex.capitalize()) style "stats_value_text" xalign 1.0 align (1.0, 0.5)
-                                        if item.sex == 'unisex':
-                                            label ('{size=-3}%s'%item.sex.capitalize()) style "stats_value_text" xalign 1.0 align (1.0, 0.5)
+                                        if item.slot in ["gift", "resources", "loot"]:
+                                            label "{size=-3}N/A" xalign 1.0 align (1.0, 0.5)
+                                        elif item.type == "food" and item.sex == 'unisex':
+                                            label "{size=-3}N/A" xalign 1.0 align (1.0, 0.5)
+                                        elif item.sex == 'male':
+                                            label ('{size=-3}{color=#FFA54F}%s'%item.sex.capitalize()) xalign 1.0 align (1.0, 0.5)
+                                        elif item.sex == 'female':
+                                            label ('{size=-3}{color=#FFAEB9}%s'%item.sex.capitalize()) xalign 1.0 align (1.0, 0.5)
+                                        elif item.sex == 'unisex':
+                                            label ('{size=-3}%s'%item.sex.capitalize()) xalign 1.0 align (1.0, 0.5)
                             frame:
-                                xysize (160, 130)
+                                xysize (165, 130)
                                 background Frame("content/gfx/frame/p_frame7.png", 5, 5)
-                                side "c r":
-                                    xalign 0.5
-                                    viewport id "item_info":
-                                        mousewheel True
-                                        has vbox
-                                        style_group "stats"
-                                        vbox:
-                                            spacing -7
-                                            null height 5
-                                            if item.mod:
-                                                label ('Stats:') text_size 18 text_color gold yalign 0.5 xpos 50
-                                                for stat, value in item.mod.items():
-                                                    vbox:
-                                                        xfill True
-                                                        frame:
-                                                            xsize 140
-                                                            text (u'%s' % stat.capitalize()) color ivory size 16 yalign 0.5
-                                                            label (u'{size=-4}[value]') style "stats_value_text" xalign 1.0 align (1.0, 0.5)
-                                            null height 10
-                                            if item.max:
-                                                label ('Max') text_size 16 text_color gold yalign 0.5 xpos 52
-                                                for stat, value in item.max.items():
-                                                    vbox:
-                                                        xfill True
-                                                        frame:
-                                                            xsize 140
-                                                            text (u'%s'%stat.capitalize()) color ivory size 16 yalign 0.5
-                                                            label (u'{size=-4}[value]') style "stats_value_text" xalign 1.0 align (1.0, 0.5)
-                                            null height 10
-                                            if item.min:
-                                                label ('Min') text_size 16 text_color gold yalign 0.5 xpos 53
-                                                for stat, value in item.min.items():
-                                                    if True:
-                                                        vbox:
-                                                            xfill True
-                                                            frame:
-                                                                xsize 140
-                                                                text(u'%s'%stat.capitalize()) color ivory size 16 yalign 0.5
-                                                                label (u'{size=-4}%d'%value) style "stats_value_text" xalign 1.0 align (1.0, 0.5)
-                                            null height 10
-                                            if not mc_mode and item.addtraits:
-                                                label ('Adds traits') text_size 16 text_color gold align (0.35, 0.5)
-                                                for trait in item.addtraits:
-                                                    vbox:
-                                                        xfill True
-                                                        frame:
-                                                            xsize 140
-                                                            text(u'%s'%trait.capitalize()) color ivory size 16 yalign 0.5
-                                            null height 10
-                                            if not mc_mode and item.removetraits:
-                                                label ('Removes traits') text_size 16 text_color gold align (0.3, 0.5)
-                                                for trait in item.removetraits:
-                                                    vbox:
-                                                        xfill True
-                                                        frame:
-                                                            xsize 140
-                                                            text(u'%s'%trait.capitalize()) color ivory size 16 yalign 0.5
-                                            null height 10
-                                            if item.add_be_spells:
-                                                label ('Adds Skills') text_size 16 text_color gold align (0.25, 0.5)
-                                                for skill in item.add_be_spells:
-                                                    vbox:
-                                                        xfill True
-                                                        frame:
-                                                            xsize 140
-                                                            text(u'%s'%skill.capitalize()) color ivory size 16 yalign 0.5
-                                            null height 10
-                                            if item.remove_be_spells:
-                                                label ('Removes Skills') text_size 16 text_color gold align (0.1, 0.5)
-                                                for skill in item.remove_be_spells:
-                                                    vbox:
-                                                        xfill True
-                                                        frame:
-                                                            xsize 140
-                                                            text(u'%s'%skill.capitalize()) color ivory size 16 yalign 0.5
-                                            null height 10
-                                            if not mc_mode and item.addeffects:
-                                                label ('Adds Effects') text_size 16 text_color gold align (0.32, 0.5)
-                                                for effect in item.addeffects:
-                                                    vbox:
-                                                        xfill True
-                                                        frame:
-                                                            xsize 140
-                                                            text(u'%s'%effect.capitalize()) color ivory size 16 yalign 0.5
-                                            null height 10
-                                            if not mc_mode and item.removeeffects:
-                                                label ('Removes Effects') text_size 16 text_color gold align (0.15, 0.5)
-                                                for effect in item.removeeffects:
-                                                    vbox:
-                                                        xfill True
-                                                        frame:
-                                                            xsize 140
-                                                            text(u'%s'%effect.capitalize()) color ivory size 16 yalign 0.5
+                                has viewport scrollbars "vertical" mousewheel True style_group "proper_stats" xysize (165, 125) child_size 160, 500
+                                vbox:
+                                    spacing 1
+                                    if item.mod:
+                                        label ('Stats:') text_size 18 text_color gold xpos 10
+                                        for stat, value in item.mod.items():
+                                            frame:
+                                                xysize 140, 20
+                                                text stat.capitalize() color ivory size 16 align (0.02, 0.5)
+                                                label (u'{size=-4}[value]') align (0.98, 0.5)
+                                        null height 2
+                                    if item.max:
+                                        label ('Max:') text_size 18 text_color gold xpos 10
+                                        for stat, value in item.max.items():
+                                            frame:
+                                                xysize 140, 20
+                                                text stat.capitalize() color ivory size 16 align (0.02, 0.5)
+                                                label u'{size=-4}[value]' align (0.98, 0.5)
+                                        null height 2
+                                    if item.min:
+                                        label ('Min:') text_size 18 text_color gold xpos 10
+                                        for stat, value in item.min.items():
+                                            frame:
+                                                xysize 140, 20
+                                                text stat.capitalize() color ivory size 16 align (0.02, 0.5)
+                                                label (u'{size=-4}%d'%value) align (0.98, 0.5)
+                                        null height 2
+                                    if item.addtraits:
+                                        label ('Adds Traits:') text_size 16 text_color gold xpos 10
+                                        for trait in item.addtraits:
+                                            frame:
+                                                xysize 140, 20
+                                                text(u'%s'%trait.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                        null height 2
+                                    if item.removetraits:
+                                        label ('Removes Traits:') text_size 16 text_color gold xpos 10
+                                        for trait in item.removetraits:
+                                            frame:
+                                                xysize 140, 20
+                                                text(u'%s'%trait.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                        null height 2
+                                    if item.add_be_spells:
+                                        label ('Adds Skills:') text_size 16 text_color gold xpos 10
+                                        for skill in item.add_be_spells:
+                                            frame:
+                                                xysize 140, 20
+                                                text(u'%s'%skill.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                        null height 2
+                                    if item.remove_be_spells:
+                                        label ('Removes Skills:') text_size 16 text_color gold xpos 10
+                                        for skill in item.remove_be_spells:
+                                            frame:
+                                                xysize 140, 20
+                                                text (u'%s'%skill.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                        null height 2
+                                    if item.addeffects:
+                                        label ('Adds Effects:') text_size 16 text_color gold xpos 10
+                                        for effect in item.addeffects:
+                                            frame:
+                                                xysize 140, 20
+                                                text(u'%s'%effect.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                        null height 2
+                                    if item.removeeffects:
+                                        label ('Removes Effects:') text_size 16 text_color gold xpos 10
+                                        for effect in item.removeeffects:
+                                            frame:
+                                                xysize 140, 20
+                                                text(u'%s'%effect.capitalize()) color ivory size 16 align (0.5, 0.5)
                                                 
-                                    vbar value YScrollValue("item_info")
                         null height -15
-                        label ('{color=#ecc88a}_____________________________________') text_style "stats_value_text" align (0.5, 0.5)
-                        hbox:
-                            align (0.5, 0.5)
-                            frame:
-                                xysize (460, 120)
-                                background Frame("content/gfx/frame/p_frame7.png", 10, 10)
-                                side "c r":
-                                    xalign 0.5
-                                    xysize (450, 110)
-                                    viewport:
-                                        id "item.desc"
-                                        mousewheel True
-                                        text ('[item.desc]') style "TisaOTMolxm" size 16
-                                        #text ('[item.desc]') color ivory
-                                    vbar value YScrollValue("item.desc")
+                        label ('{color=#ecc88a}_____________________________________') align (0.5, 0.5)
+                        frame:
+                            xalign .5
+                            background Frame("content/gfx/frame/p_frame7.png", 10, 10)
+                            has viewport mousewheel True xysize (460, 120)
+                            text '[item.desc]' style "TisaOTM" size 16 color gold
                                     
     # Equipment slot frame (of an item)
     screen equipment_slot(pos=(0.5, 0.5), name="", img=None, value=None):
@@ -459,8 +428,8 @@ init: # PyTFall:
         default align = (0, 0)
         imagebutton:
             align align
-            idle (img)
-            hover (im.MatrixColor(img, im.matrix.brightness(0.15)))
+            idle img
+            hover im.MatrixColor(img, im.matrix.brightness(0.15))
             action Return(return_value)
     
     screen rg_lightbutton:
@@ -480,6 +449,54 @@ init: # PyTFall:
             action Return(return_value)
             hovered tt.action(u"%s"%tooltip)
 
+    python:
+        def get_screens(*args):
+            """
+            Simple checks for active screens.
+            Returns True if at least one of the screens is shown and False if not.
+            """
+            for scr in args:
+                if renpy.get_screen(scr):
+                    return True
+            return False
+            
+    screen quest_notifications(q, type, align=None, autohide=2.5):
+        zorder 500
+        
+        fixed:
+            at slide(so1=(0, -600), eo1=(0, 40), t1=.4,
+                         so2=(0, 40), eo2=(0, -600), t2=.6)
+            # else:
+                # at slide(so1=(0, -600), eo1=(0, 0), t1=1.0,
+                             # so2=(0, 0), eo2=(0, -600), t2=1.0)
+            if align:
+                align align
+            else:
+                xalign .5
+            xysize (500, 200)
+            frame:
+                background Frame(Transform("content/gfx/frame/ink_box.png", alpha=0.65), 10, 10)
+                style_group "dropdown_gm2"
+                xysize (400, 150)
+                align .5, .5
+                text q align .5, .5 style "TisaOTM" size 25
+                
+                imagebutton:
+                    align 1.005, -.03
+                    idle "content/gfx/interface/buttons/close3.png"
+                    hover "content/gfx/interface/buttons/close3_h.png"
+                    action Hide("quest_notifications")
+                
+            add ProportionalScale(interfaceimages + "quest.png", 170, 120) pos (100, 0)
+            frame:
+                pos 400, 140 xanchor 1.0
+                xpadding 15
+                background Frame(Transform("content/gfx/frame/ink_box.png", alpha=0.45), 10, 10)
+                text type style "content_text" size 40 color gold
+    
+        if autohide:
+            timer autohide action Hide("quest_notifications")
+            
     screen top_stripe(show_return_button=True, use_hide_transform=False, normal_op=True):
         default tt = Tooltip("")
         if not normal_op:
@@ -490,7 +507,7 @@ init: # PyTFall:
                 unhovered SetField(pytfall, "city_dropdown", False)
     
         # Hotkeys:
-        if show_return_button and renpy.current_screen().tag not in ["girlslist", "hero_profile", "girl_interactions"]:
+        if show_return_button and not get_screens("girl_interactions", "building_management_leftframe_upgrades_mode"):
             key "mousedown_3" action Return(['control', 'return'])
         if renpy.current_screen().tag not in ["girl_interactions", "hero_profile", "quest_log"]:
             if global_flags.flag("visited_arena"):
@@ -559,21 +576,21 @@ init: # PyTFall:
                                 hovered tt.Action("Add [char.nickname] to player team!")
                   
                 # Girlslist paging buttons:
-                if renpy.current_screen().tag == "girlslist":
+                if renpy.current_screen().tag == "chars_list":
                     hbox:
                         style_group "basic"
                         align(0.3, 0.5)
                         spacing 3
                         
-                        $ gs = renpy.get_screen("girlslist").scope["_kwargs"]
+                        $ gs = renpy.get_screen("chars_list").scope["_kwargs"]
                         
                         textbutton "<--":
-                            action SensitiveIf(gs["page"] > 0), Show("girlslist", source=gs["source"], page=gs["page"] - 1, total_pages=gs["total_pages"])
+                            action SensitiveIf(gs["page"] > 0), Show("chars_list", source=gs["source"], page=gs["page"] - 1, total_pages=gs["total_pages"])
                         $ page_2_display = gs["page"] + 1
                         textbutton "[page_2_display]":
                             action NullAction()
                         textbutton "-->":
-                            action SensitiveIf(gs["page"] + 1 < gs["total_pages"]), Show("girlslist", source=gs["source"], page=gs["page"] + 1, total_pages=gs["total_pages"])
+                            action SensitiveIf(gs["page"] + 1 < gs["total_pages"]), Show("chars_list", source=gs["source"], page=gs["page"] + 1, total_pages=gs["total_pages"])
                     
                 # AP Frame/Next Day button:
                 if any([renpy.current_screen().tag == "next_day", hero.AP == 0]) and renpy.current_screen().tag not in ["mainscreen", "girl_interactions"]:
@@ -713,6 +730,28 @@ init: # PyTFall:
             hover im.MatrixColor(img, im.matrix.brightness(0.25))
             action Return(['control', 'return'])
             
+    screen dropdown(pos):
+        # Trying to create a drop down screen with choices of actions:
+        zorder 3
+        modal True
+        
+        key "mousedown_4" action NullAction()
+        key "mousedown_5" action NullAction()
+        
+        # Get mouse coords:
+        python:
+            x, y = pos
+            xval = 1.0 if x > config.screen_width/2 else .0
+            yval = 1.0 if y > config.screen_height/2 else .0
+            
+        frame:
+            style_prefix "dropdown_gm"
+            pos (x, y)
+            anchor (xval, yval)
+            has vbox
+            
+            transclude # Doesn't work as expected, no style passing to other screens, no modal, bull shit of a statement basically at this stage :(
+            
     screen set_action_dropdown(char, pos=()):
         # Trying to create a drop down screen with choices of actions:
         zorder 3
@@ -724,97 +763,93 @@ init: # PyTFall:
         # Get mouse coords:
         python:
             x, y = pos
-            if x > 1000:
-                xval = 1.0
-            else:
-                xval = 0.0
-            if y > 500:
-                yval = 1.0
-            else:
-                yval = 0.0
+            xval = 1.0 if x > config.screen_width/2 else .0
+            yval = 1.0 if y > config.screen_height/2 else .0
+            
         frame:
-            style_group "dropdown_gm"
+            style_prefix "dropdown_gm"
             pos (x, y)
             anchor (xval, yval)
-            vbox:
-                if isinstance(char.location, NewStyleUpgradableBuilding):
-                    # Jobs:
-                    $ jobs = char.location.get_valid_jobs(char)
-                    for i in jobs:
-                        textbutton "[i.id]":
-                            # Without Equipping for the job!
-                            action [Function(set_char_to_work, char, char.location, i), Hide("set_action_dropdown")]
-                            
-                # Buildings:
-                # TODO: This needs to be rewritten:
-                elif isinstance(char.location, Building):
-                    for entry in Building.ACTIONS:
-                        if entry == 'Stripper':
-                            if char.location.upgrades['stripclub']['1']['active']:
-                                textbutton "[entry]":
-                                    action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                        elif entry == 'Guard':
-                            if char.status != 'slave' and ("Warrior" in char.occupations or char.disposition <= 950): # The not inversion here seems wrong, so I removed it -Thewlis
-                                textbutton "[entry]":
-                                    action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                        else:
+            has vbox
+            
+            if isinstance(char.location, NewStyleUpgradableBuilding):
+                # Jobs:
+                $ jobs = char.location.get_valid_jobs(char)
+                for i in jobs:
+                    textbutton "[i.id]":
+                        # Without Equipping for the job!
+                        action [Function(set_char_to_work, char, char.location, i), Hide("set_action_dropdown")]
+                        
+            # Buildings:
+            # TODO: This needs to be rewritten:
+            elif isinstance(char.location, Building):
+                for entry in Building.ACTIONS:
+                    if entry == 'Stripper':
+                        if char.location.upgrades['stripclub']['1']['active']:
                             textbutton "[entry]":
                                 action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                
-                # Fighters Guild
-                elif isinstance(char.location, FighterGuild):
-                    for entry in FighterGuild.ACTIONS:
-                        if entry == 'Training':
-                            if char.status != "slave":
-                                textbutton "[entry]":
-                                    action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                        elif entry == 'ServiceGirl':
-                            if (char.status == "slave" or "Server" in char.occupations) and not list(g for g in fg.get_chars() if g.action == "ServiceGirl"):
-                                textbutton "[entry]":
-                                    action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                        elif entry == 'BarGirl':
-                            if fg.upgrades["bar"][0] and (char.status == "slave" or "Server" in char.occupations) and not list(g for g in fg.get_chars() if g.action == "BarGirl"):
-                                textbutton "[entry]":
-                                    action [SetField(char, "action", entry), Function(equip_for, char, "ServiceGirl"), Hide("set_action_dropdown")]
-                        elif entry == 'Rest':
+                    elif entry == 'Guard':
+                        if char.status != 'slave' and ("Warrior" in char.occupations or char.disposition <= 950): # The not inversion here seems wrong, so I removed it -Thewlis
                             textbutton "[entry]":
                                 action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                        else:
+                    else:
+                        textbutton "[entry]":
+                            action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+            
+            # Fighters Guild
+            elif isinstance(char.location, FighterGuild):
+                for entry in FighterGuild.ACTIONS:
+                    if entry == 'Training':
+                        if char.status != "slave":
                             textbutton "[entry]":
                                 action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                
-                # Other buildings
-                elif hasattr(char.location, "actions"):
-                    for entry in char.location.actions:
-                        if entry == "Guard":
-                            if char.status != "slave" and ("Warrior" in char.occupations or char.disposition <= 950):
-                                textbutton "[entry]":
-                                    action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                        
-                        elif entry == "Take Course":
+                    elif entry == 'ServiceGirl':
+                        if (char.status == "slave" or "Server" in char.occupations) and not list(g for g in fg.get_chars() if g.action == "ServiceGirl"):
                             textbutton "[entry]":
-                                action [Hide("set_action_dropdown"), Hide("charslist"), Hide("char_profile"), # Hide the dropdown screen, the chars list and char profile screens
-                                        SetField(store, "char", char, True), # Ensure that the global var char is set to the current char
-                                        Jump("char_training")] # Jump to the training screen
-                        
-                        else:
+                                action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+                    elif entry == 'BarGirl':
+                        if fg.upgrades["bar"][0] and (char.status == "slave" or "Server" in char.occupations) and not list(g for g in fg.get_chars() if g.action == "BarGirl"):
                             textbutton "[entry]":
-                                    action [SetField(char, "action", entry), Function(equip_for, char, entry), If(char_is_training(char), true=Function(stop_training, char)), Hide("set_action_dropdown")]
-                
-                # Prevent none action in schools
-                if not hasattr(char.location, "is_school") or not char.location.is_school:
-                    textbutton "None":
-                        action [SetField(char, "action", None), If(char_is_training(char), true=Function(stop_training, char)), Hide("set_action_dropdown")]
-                
-                textbutton "Rest":
-                    # TODO: Temporary way to set action to Rest, this needs to be rewritten completely.
-                    action [SetField(char, "action", Rest()), Hide("set_action_dropdown")]
-                        
-                textbutton "Close":
-                    action [Hide("set_action_dropdown")]
+                                action [SetField(char, "action", entry), Function(equip_for, char, "ServiceGirl"), Hide("set_action_dropdown")]
+                    elif entry == 'Rest':
+                        textbutton "[entry]":
+                            action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+                    else:
+                        textbutton "[entry]":
+                            action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+            
+            # Other buildings
+            elif hasattr(char.location, "actions"):
+                for entry in char.location.actions:
+                    if entry == "Guard":
+                        if char.status != "slave" and ("Warrior" in char.occupations or char.disposition <= 950):
+                            textbutton "[entry]":
+                                action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+                    
+                    elif entry == "Take Course":
+                        textbutton "[entry]":
+                            action [Hide("set_action_dropdown"), Hide("charslist"), Hide("char_profile"), # Hide the dropdown screen, the chars list and char profile screens
+                                    SetField(store, "char", char, True), # Ensure that the global var char is set to the current char
+                                    Jump("char_training")] # Jump to the training screen
+                    
+                    else:
+                        textbutton "[entry]":
+                                action [SetField(char, "action", entry), Function(equip_for, char, entry), If(char_is_training(char), true=Function(stop_training, char)), Hide("set_action_dropdown")]
+            
+            # Prevent none action in schools
+            if not hasattr(char.location, "is_school") or not char.location.is_school:
+                textbutton "None":
+                    action [SetField(char, "action", None), If(char_is_training(char), true=Function(stop_training, char)), Hide("set_action_dropdown")]
+            
+            textbutton "Rest":
+                # TODO: Temporary way to set action to Rest, this needs to be rewritten completely.
+                action [SetField(char, "action", Rest()), Hide("set_action_dropdown")]
+                    
+            textbutton "Close":
+                action [Hide("set_action_dropdown")]
                 
     screen set_location_dropdown(char, pos=()):
-        # Trying to create a drop down screen with choices of buildings:
+        # Trying to create a drop down screen with choices of actions:
         zorder 3
         modal True
         
@@ -824,59 +859,53 @@ init: # PyTFall:
         # Get mouse coords:
         python:
             x, y = pos
-            if x > config.screen_width/2:
-                xval = 1.0
-            else:
-                xval = 0.0
-            if y > config.screen_height/2:
-                yval = 1.0
-            else:
-                yval = 0.0
+            xval = 1.0 if x > config.screen_width/2 else .0
+            yval = 1.0 if y > config.screen_height/2 else .0
+            
         frame:
-            style_group "dropdown_gm"
+            style_prefix "dropdown_gm"
             pos (x, y)
             anchor (xval, yval)
-            
-            vbox:
-                # Updating to new code: *Ugly code atm, TODO: Fix IT!
-                for building in hero.buildings:
-                    if isinstance(building, NewStyleUpgradableBuilding):
-                        if char.action in building.jobs:
-                            $ can_keep_action = True
-                        else:
-                            $ can_keep_action = False
-                        if can_keep_action:
-                            textbutton "[building.name]":
-                                action [SelectedIf(char.location==building), If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, building), Hide("set_location_dropdown")]
-                        else:
-                            textbutton "[building.name]":
-                                action [SelectedIf(char.location==building), SetField(char, "action", None), If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, building), Hide("set_location_dropdown")]
-                    elif building.free_rooms():
+            has vbox
+            # Updating to new code: *Ugly code atm, TODO: Fix IT!
+            for building in hero.buildings:
+                if isinstance(building, NewStyleUpgradableBuilding):
+                    if char.action in building.jobs:
+                        $ can_keep_action = True
+                    else:
                         $ can_keep_action = False
-                        if isinstance(building, Building):
-                            if char.action in Building.ACTIONS:
-                                $ can_keep_action = True
-                        elif isinstance(building, FighterGuild):
-                            if char.action in FighterGuild.ACTIONS:
-                                $ can_keep_action = True
-                        elif hasattr(building, "actions"):
-                            if char.action in building.actions:
-                                $ can_keep_action = True
-                        if can_keep_action:
-                            textbutton "[building.name]":
-                                action [SelectedIf(char.location==building), If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, building), Hide("set_location_dropdown")]
-                        else:
-                            textbutton "[building.name]":
-                                action [SelectedIf(char.location==building), SetField(char, "action", None), If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, building), Hide("set_location_dropdown")]
-                
-                textbutton "Home":
-                    action [If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, char.home), Hide("set_location_dropdown")]
-                
-                textbutton "Close":
-                    action Hide("set_location_dropdown")
+                    if can_keep_action:
+                        textbutton "[building.name]":
+                            action [SelectedIf(char.location==building), If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, building), Hide("set_location_dropdown")]
+                    else:
+                        textbutton "[building.name]":
+                            action [SelectedIf(char.location==building), SetField(char, "action", None), If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, building), Hide("set_location_dropdown")]
+                elif building.free_rooms():
+                    $ can_keep_action = False
+                    if isinstance(building, Building):
+                        if char.action in Building.ACTIONS:
+                            $ can_keep_action = True
+                    elif isinstance(building, FighterGuild):
+                        if char.action in FighterGuild.ACTIONS:
+                            $ can_keep_action = True
+                    elif hasattr(building, "actions"):
+                        if char.action in building.actions:
+                            $ can_keep_action = True
+                    if can_keep_action:
+                        textbutton "[building.name]":
+                            action [SelectedIf(char.location==building), If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, building), Hide("set_location_dropdown")]
+                    else:
+                        textbutton "[building.name]":
+                            action [SelectedIf(char.location==building), SetField(char, "action", None), If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, building), Hide("set_location_dropdown")]
+            
+            textbutton "Home":
+                action [If(char_is_training(char), true=Function(stop_training, char)), Function(change_location, char, char.home), Hide("set_location_dropdown")]
+            
+            textbutton "Close":
+                action Hide("set_location_dropdown")
                     
     screen set_home_dropdown(char, pos=()):
-        # Trying to create a drop down screen with choices of buildings:
+        # Trying to create a drop down screen with choices of actions:
         zorder 3
         modal True
         
@@ -886,16 +915,11 @@ init: # PyTFall:
         # Get mouse coords:
         python:
             x, y = pos
-            if x > config.screen_width/2:
-                xval = 1.0
-            else:
-                xval = 0.0
-            if y > config.screen_height/2:
-                yval = 1.0
-            else:
-                yval = 0.0
+            xval = 1.0 if x > config.screen_width/2 else .0
+            yval = 1.0 if y > config.screen_height/2 else .0
+            
         frame:
-            style_group "dropdown_gm"
+            style_prefix "dropdown_gm"
             pos (x, y)
             anchor (xval, yval)
             has vbox
@@ -1075,7 +1099,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame(Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame(Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- Display -") style "TisaOTMolxm"
                             textbutton _("Window") action Preference("display", "window") xsize 150 xalign 0.5 text_size 16
                             textbutton _("Fullscreen") action Preference("display", "fullscreen") xsize 150 xalign 0.5 text_size 16
@@ -1089,7 +1113,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame (Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame (Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- Transitions -") style "TisaOTMolxm"
                             textbutton _("All") action Preference("transitions", "all") xsize 150 xalign 0.5 text_size 16
                             textbutton _("None") action Preference("transitions", "none") xsize 150 xalign 0.5 text_size 16
@@ -1103,7 +1127,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame (Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame (Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- Text Speed -") style "TisaOTMolxm"
                             null height 8
                             bar value Preference("text speed") align (0.5, 0.5)
@@ -1132,7 +1156,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame (Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame (Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- Skip -") style "TisaOTMolxm"
                             textbutton _("Seen Messages") action Preference("skip", "seen") xsize 150 xalign 0.5 text_size 16
                             textbutton _("All Messages") action Preference("skip", "all") xsize 150 xalign 0.5 text_size 16
@@ -1146,7 +1170,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame (Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame (Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- After Choices -") style "TisaOTMolxm"
                             textbutton _("Stop Skipping") action Preference("after choices", "stop") xsize 150 xalign 0.5 text_size 16
                             textbutton _("Keep Skipping") action Preference("after choices", "skip") xsize 150 xalign 0.5 text_size 16
@@ -1160,7 +1184,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame (Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame (Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- A-Forward Time -") style "TisaOTMolxm"
                             null height 8
                             bar value Preference("auto-forward time") align (0.5, 0.5)
@@ -1192,7 +1216,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame (Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame (Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- Mute -") style "TisaOTMolxm"
                             textbutton "Music" action Preference("music mute", "toggle") xsize 150 xalign 0.5 text_size 16
                             textbutton "Sound" action Preference("sound mute", "toggle") xsize 150 xalign 0.5 text_size 16
@@ -1206,7 +1230,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame (Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame (Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- Music Volume -") align (0.5, 0.0) style "TisaOTMolxm"
                             null height 8
                             bar value Preference("music volume") align (0.5, 0.5)
@@ -1220,7 +1244,7 @@ init: # Settings:
                             frame:
                                 xsize 184
                                 align (0.5, 0.5)
-                                background Frame (Transform("content/gfx/frame/stat_box.png", alpha=0.9), 10, 10)
+                                background Frame (Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
                                 text _("- Sound Volume -") style "TisaOTMolxm"
                             null height 8
                             bar value Preference("sound volume") align (0.5, 0.5)
@@ -1258,6 +1282,7 @@ init: # Settings:
             
                             $ file_name = FileSlotName(i, columns * rows)
                             $ file_time = FileTime(i, empty=_("Empty Slot"))
+                            # $ file_time = "0"
                             $ json_info = FileJson(i, empty= _(""))
                             $ save_name = FileSaveName(i)
             

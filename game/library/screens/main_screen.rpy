@@ -49,7 +49,7 @@ label mainscreen:
                 pytfall.arena.seen_report = True
                 jump(result[1])
                 
-        elif result[0] == "girls_list":
+        elif result[0] == "chars_list":
             stop world
             $ renpy.hide_screen("mainscreen")
             $ pytfall.arena.seen_report = True
@@ -99,12 +99,12 @@ screen mainscreen():
             ypos 305
             spacing 15
             textbutton "Girls":
-                action Stop("world"), Hide("mainscreen"), Show("girlslist", dissolve, source=GuiGirlsList(), page=0, total_pages=1), Jump("girls_list")
+                action Stop("world"), Hide("mainscreen"), Jump("chars_list")
                 hovered tt.Action('Here you can see a list of all girls you possess, their stats and characteristics.\nIt is also here you can change their equipment and sell them.')
             textbutton "Buildings":
                 action Return(["building_management"])
                 hovered tt.Action('Here you can see a list of all your buildings. \nIt is also here you can you can upgrade your building and advertice them.')
-            if fg in hero.buildings or config.developer:
+            if config.developer:
                 textbutton "Fighters Guild":
                     action Return(["fg_management"])
                     hovered tt.Action('Fighters Guild can be managed from here!')
@@ -116,8 +116,13 @@ screen mainscreen():
             
             textbutton "-Next Day-":
                 style "main_screen_4_button"
-                hovered tt.action("Begin New day and watch the results.")
-                action [Hide("mainscreen"), Jump("next_day")]
+                if day > 1:
+                    hovered tt.action("Begin New day and watch the results. Click RMB to review reports")
+                    action [Hide("mainscreen"), Jump("next_day")]
+                    alternate SetVariable("just_view_next_day", True), Hide("mainscreen"), Jump("next_day")
+                else:
+                    hovered tt.action("Begin New day and watch the results.")
+                    action [Hide("mainscreen"), Jump("next_day")]
            
     if config.developer:
         vbox:

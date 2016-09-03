@@ -1,7 +1,8 @@
 ﻿init -9 python:
-
-    def check_char(c):
-        """Checks whether the character is injured and sets her/him to auto rest.
+    def check_char(c, check_ap=True):
+        """Checks whether the character is injured/tired/has AP and sets her/him to auto rest.
+        
+        AP check is optional here, with True as default, there are cases where char might still have job points even though AP is 0. 
         """
         if c.health < c.get_max("health")*0.25:
             # self.txt.append("%s is injured and in need of medical attention! "%c.name)
@@ -19,7 +20,7 @@
                 c.action = AutoRest()
                 # self.txt.append("She's going to take few days off to recover her stamina. ")
             return
-        if c.AP <= 0:
+        if check_ap and c.AP <= 0:
             return
             
         return True
@@ -175,10 +176,10 @@
         
         def finish_job(self):
             """
-            Finish the job and adds it to NextDayList.
+            Finish the job and adds it to NextDayEvents.
             """
             self.finished = True
-            NextDayList.append(self.create_event())
+            NextDayEvents.append(self.create_event())
             
             # Reset all attrs:
             # Redundant?
@@ -323,9 +324,14 @@
             workers = A container with all the workers. (May not be useful anymore)
             """
             self.id = "Base Job"
+            self.type = None
             
+            # New teams:
+            self.team = None
+            self.worker = None # Default for single worker jobs.
             self.workermod = {} # Logging all stats/skills changed during the job.
             self.locmod = {}
+            self.flag = None # Flag we pass around from SimPy land to Jobs to carry over events/data.
             
             # Traits/Job-types associated with this job:
             self.occupations = list() # General Strings likes SIW, Warrior, Server...
@@ -334,7 +340,7 @@
             self.disposition_threshold = 650 # Any worker with disposition this high will be willing to do the job even without matched traits.
             
             self.txt = list()
-            self.img = ""
+            self.img = Null()
             self.flag_red = False
             self.flag_green = False
             
@@ -349,16 +355,27 @@
             return str(self.id)
             
         def reset(self):
+            # All flags starting with 'jobs' are reset here. All flags starting with '_jobs' are reset on end of ND.
             # New, we reset any flags that start with "job_" that a character might have.
-            for f in self.worker.flags.keys():
-                if f.startswith("jobs"):
-                    self.worker.del_flag(f)
+            if hasattr(self, "worker") and self.worker:
+                for f in self.worker.flags.keys():
+                    if f.startswith("jobs"):
+                        self.worker.del_flag(f)
+            if hasattr(self, "all_workers") and self.all_workers:
+                for w in self.all_workers:
+                    for f in w.flags.keys():
+                        if f.startswith("jobs"):
+                            w.del_flag(f)
+                            
             self.worker = None
+            self.all_workers = None
             self.loc = None
+            self.team = None
             self.client = None
             self.event_type = None
             self.txt = list()
-            self.img = ""
+            self.img = Null()
+            self.flags = Null()
             
             self.flag_red = False
             self.flag_green = False
@@ -409,6 +426,7 @@
                                       img=self.img,
                                       txt=self.txt,
                                       char=self.worker,
+                                      team=self.team,
                                       charmod=self.workermod,
                                       loc=self.loc,
                                       locmod=self.locmod,
@@ -433,36 +451,65 @@
         
         def finish_job(self):
             """
-            Finish the job and adds it to NextDayList.
+            Finish the job and adds it to NextDayEvents.
             """
-            NextDayList.append(self.create_event())
+            NextDayEvents.append(self.create_event())
             self.reset()
         
+        def vp_or_fixed(self, workers, show_args, show_kwargs, xmax=820):
+            """This will create a sidescrolling displayable to show off all portraits/images in team efforts if they don't fit on the screen in a straight line.
+            
+            We will attempt to detect a size of a single image and act accordingly. Spacing is 15 pixels between the images.
+            Dimensions of the whole displayable are: 820x705, default image size is 90x90.
+            xmax is used to determine the max size of the viewport/fixed returned from here
+            """
+            # See if we can get a required image size:
+            lenw = len(workers)
+            size = show_kwargs.get("resize", (90, 90))
+            xpos_offset = size[0] + 15
+            xsize = xpos_offset * lenw
+            ysize = size[1]
+            
+            if xsize < xmax:
+                d = Fixed(xysize=(xsize, ysize))
+                xpos = 0
+                for i in workers:
+                    _ = i.show(*show_args, **show_kwargs)
+                    d.add(Transform(_, xpos=xpos))
+                    xpos = xpos + xpos_offset
+                return d
+            else:
+                d = Fixed(xysize=(xsize, ysize))
+                xpos = 0
+                for i in workers:
+                    _ = i.show(*show_args, **show_kwargs)
+                    d.add(Transform(_, xpos=xpos))
+                    xpos = xpos + xpos_offset
+                    
+                c = Fixed(xysize=(xsize*2, ysize))
+                atd = At(d, mm_clouds(xsize, 0, 25))
+                atd2 = At(d, mm_clouds(0, -xsize, 25))
+                c.add(atd)
+                c.add(atd2)
+                vp = Viewport(child=c, xysize=(xmax, ysize))
+                return vp
+            
         def apply_stats(self):
             """
             Applies the stat changes generated by this job to the worker.
-            """
-            for stat in self.workermod:
-                if stat == "exp":
-                    self.workermod[stat] = self.worker.adjust_exp(self.workermod[stat])
-                    self.worker.exp += self.workermod[stat]
-                
-                # After a long conversation with Dark and CW, we've decided to prevent workers dieing during jobs
-                # I am leaving the code I wrote before that decision was reached in case
-                # we change our minds or add jobs like exploration where it makes more sense.
-                # On the other hand just ignoring it is bad, so let's at least reduce some stuff, pretending that she lost consciousness for example.
-                elif stat == 'health' and (self.worker.health + self.workermod[stat]) <= 0:
-                    self.worker.health = 1
-                    if self.worker.constitution > 5:
-                        self.worker.constitution -= 5
-                else:
-                    if self.worker.stats.is_stat(stat):
-                        self.worker.stats.mod(stat, self.workermod[stat])
-                        
-                    elif self.worker.stats.is_skill(stat):
-                        setattr(self.worker, stat, self.workermod[stat])
-                        # self.worker.stats.mod_skill(stat, self.workermod[stat])
             
+            Now adapted to work with teams...
+            """
+            # Worker Stats/Skills:
+            for k, v in self.workermod.iteritems():
+                # Normal single worker report is assumed:
+                if isinstance(k, basestring):
+                    self.apply_worker_stats(self.worker, self.workermod)
+                    break
+                else: # Team effort:
+                    self.apply_worker_stats(k, v)
+                    
+            # Building Stats:
             for stat in self.locmod:
                 if stat == 'fame':
                     self.loc.modfame(self.locmod[stat])
@@ -480,20 +527,53 @@
                 else:
                     raise Exception("Stat: {} does not exits for Brothels".format(stat))
         
-        def loggs(self, s, value):
-            # Logs workers stat/skill to a dict:
-            self.workermod[s] = self.workermod.get(s, 0) + value
+        def apply_worker_stats(self, worker, mods):
+            """Apply stats for a single worker.
+            
+            This is split from apply_stats to allow for a better readable code.
+            """
+            for key in mods:
+                if key == "exp":
+                    mods[key] = worker.adjust_exp(mods[key])
+                    worker.exp += mods[key]
+                # After a long conversation with Dark and CW, we've decided to prevent workers dieing during jobs
+                # I am leaving the code I wrote before that decision was reached in case
+                # we change our minds or add jobs like exploration where it makes more sense.
+                # On the other hand just ignoring it is bad, so let's at least reduce some stuff, pretending that she lost consciousness for example.
+                elif key == 'health' and (worker.health + mods[key]) <= 0:
+                    worker.health = 1
+                    if worker.constitution > 5:
+                        worker.constitution -= 5
+                else:
+                    if worker.stats.is_stat(key):
+                        worker.stats.mod(key, mods[key])
+                        
+                    elif worker.stats.is_skill(key):
+                        setattr(worker, key, mods[key])
+                    
+        def loggs(self, s, value, worker=None):
+            """Logs workers stat/skill to a dict:
+            
+            If worker argument is provided, we assume this reports a team effort and build the report accordingly.
+            """
+            if worker:
+                if not worker in self.workermod:
+                    self.workermod[worker] = dict()
+                self.workermod[worker][s] = self.workermod.get(s, 0) + value
+            else:
+                self.workermod[s] = self.workermod.get(s, 0) + value
             
         def logloc(self, s, value):
             # Logs a stat for the building:
             self.locmod[s] = self.workermod.get(s, 0) + value
+            
     ####################### Whore Job  ############################
     class WhoreJob(NewStyleJob):
         #Temporarily restored for reference!
         def __init__(self):
             super(WhoreJob, self).__init__()
             self.id = "Whore Job"
-            
+            self.type = "SIW"
             # Traits/Job-types associated with this job:
             self.occupations = list() # General Strings likes SIW, Warrior, Server...
             self.occupation_traits = [traits["Prostitute"]] # Corresponding traits...
@@ -1289,6 +1369,7 @@
         def __init__(self):
             super(StripJob, self).__init__()
             self.id = "Striptease Job"
+            self.type = "SIW"
             
             # Traits/Job-types associated with this job:
             self.occupations = ["SIW"] # General Strings likes SIW, Warrior, Server...
@@ -1527,6 +1608,7 @@
             """
             super(Rest, self).__init__()
             self.id = "Rest"
+            self.type = "Resting"
                 
         def __call__(self, char):
             self.worker = char
@@ -1643,7 +1725,6 @@
                 self.loggs('vitality', randint(35, 40))
                 self.loggs('mp', randint(1, 3))
                 self.loggs('joy', randint(1, 2))
-                self.loggs('libido', randint(1, 3))
                 self.worker.AP -= 1
             
             if not self.img:
@@ -1699,6 +1780,7 @@
         def __init__(self):
             super(Manager, self).__init__()
             self.id = "Manager"
+            self.type = "Management"
             
             # Traits/Job-types associated with this job:
             self.occupations = ["Manager"] # General Strings likes SIW, Warrior, Server...
@@ -1712,6 +1794,7 @@
         def __init__(self):
             super(TestingJob, self).__init__()
             self.id = "Testing Job"
+            self.type = "Service"
         
         def __call__(self, char, client):
             # Basic job that takes 1 AP of a girl, removes client from queue and adds random stats/skills.
@@ -1750,6 +1833,7 @@
         def __init__(self):
             super(Waiting, self).__init__()
             self.id = "Waiting Job"
+            self.type = "Service"
             
             # Traits/Job-types associated with this job:
             self.occupations = [] # General Strings likes SIW, Warrior, Server...
@@ -1863,6 +1947,7 @@
         def __init__(self):
             super(BarJob, self).__init__()
             self.id = "Bartending"
+            self.type = "Service"
             
             # Traits/Job-types associated with this job:
             self.occupations = ["Server"] # General Strings likes SIW, Warrior, Server...
@@ -2036,32 +2121,93 @@
             self.finish_job()
     
     
-    class Cleaning(NewStyleJob):
-        def cleaning_task(self):
+    class CleaningJob(NewStyleJob):
+        def __init__(self):
+            super(CleaningJob, self).__init__()
+            self.id = "Cleaning"
+            self.type = "Service"
+            
+            # Traits/Job-types associated with this job:
+            self.occupations = ["Service"] # General Strings likes SIW, Warrior, Server...
+            self.occupation_traits = [traits["Maid"]] # Corresponding traits...
+            
+            # Relevant skills and stats:
+            self.skills = ["cleaning"]
+            self.stats = ["agility"]
+            
+            self.workermod = {}
+            self.locmod = {}
+            
+        def __call__(self, cleaners_original, cleaners, building, dirt, dirt_cleaned):
+            self.all_workers = cleaners_original
+            self.workers = cleaners
+            self.loc = building
+            self.dirt, self.dirt_cleaned = dirt, dirt_cleaned
+            self.clean()
+            
+        def is_valid_for(self, char):
+            if "Service" in char.traits:
+                return True
+            if char.status == 'slave':
+                return True
+            
+            if char.disposition >= self.calculate_disposition_level(char):
+                return True
+            else:
+                return False
+                
+        def calculate_disposition_level(self, char): # calculating the needed level of disposition
+            # sub = check_submissivity(char)
+            # if "Shy" in char.traits:
+                # disposition = 800 + 50 * sub
+            # else:
+                # disposition = 700 + 50 * sub
+            # if cgochar(char, "SIW"):
+                # disposition -= 500
+            # if "Exhibitionist" in char.traits:
+                # disposition -= 200
+            # if "Nymphomaniac" in char.traits:
+                # disposition -= 50
+            # elif "Frigid" in char.traits:
+                # disposition += 50
+            # if check_lovers(char, hero):
+                # disposition -= 50
+            # elif check_friends(hero, char):
+                # disposition -= 25
+            # return disposition
+            return 500
+            
+        def check_occupation(self, char=None):
+            """Checks if the worker is willing to do this job.
             """
-            Solve the job as a cleaner.
+            return True # Don't want to mess with this atm.
+        
+        def clean(self):
+            """Build a report for cleaning team effort.
+            (Keep in mind that a single worker is also a posisbility here) <== Important when building texts.
+            
+            This one is simpler... it just logs the stats, picks an image and builds a report...
             """
-            if self.task == 'Cleaning':
-                # Stats checks
-                cleffect = int(round(self.APr * (12 + self.worker.serviceskill * 0.025 + self.worker.agility * 0.3)))
-                
-                if self.loc.dirt - cleffect <= 0:
-                    self.txt.append("She finished cleaning the building and took a break for the remaining time. \n")
-                    self.workermod['joy'] += choice([0, 0, 1])
-                
-                elif self.loc.dirt - cleffect > 0:
-                    self.txt.append("She spent a good amount of time cleaning the building so workers and customers would be happy. \n")
-                
-                self.img = self.worker.show("maid", "cleaning", exclude=["sex"], resize=(740, 685), type="any")
-                
-                # Stat mods
-                self.locmod['dirt'] -= cleffect
-                self.workermod['vitality'] -= randint(15, 25) * self.APr
-                self.workermod['exp'] += self.APr * randint(15, 25)
-                self.workermod['service'] += choice([0,0,1])
-                
-                self.apply_stats()
-                self.finish_job()
+            self.img = Fixed(xysize=(820, 705))
+            self.img.add(Transform(self.loc.img, size=(820, 705)))
+            vp = self.vp_or_fixed(self.all_workers, ["maid", "cleaning"], {"exclude": ["sex"], "resize": (150, 150), "type": "any"})
+            self.img.add(Transform(vp, align=(.5, .9)))
+            
+            self.team = self.all_workers
+            
+            self.txt = ["{} cleaned {} today!".format(", ".join([w.nickname for w in self.all_workers]), self.loc.name)]
+            
+            # Stat mods
+            self.logloc('dirt', -self.dirt_cleaned)
+            for w in self.all_workers:
+                self.loggs('vitality', -randint(15, 25), w)  # = ? What to do here?
+                self.loggs('exp', randint(15, 25), w) # = ? What to do here?
+                if dice(33):
+                    self.loggs('service', 1, w) # = ? What to do here?
+            # ... We prolly need to log how much dirt each individual worker is cleaning or how much wp is spent...
+            self.event_type = "jobreport" # Come up with a new type for team reports?
+            self.apply_stats()
+            self.finish_job()
     
 
     class ServiceJob(NewStyleJob):
@@ -2074,6 +2220,7 @@
             This is meant to pick a job that makes most sense out if Cleaning, Service and Bartending
             """
             super(ServiceJob, self).__init__()
+            self.type = "Service"
             
             # Traits/Job-types associated with this job:
             self.occupations = ["Server"] # General Strings likes SIW, Warrior, Server...
@@ -2247,33 +2394,93 @@
         
 
     class GuardJob(NewStyleJob):
-        """
-        The class that solve Building guard jobs.
-        """
-        def __init__(self, worker, loc, workers):
+        def __init__(self):
+            """Creates reports for GuardJob.
             """
-            Creates a new GuardJob.
-            girl = The girl the job is for.
-            loc = The brothel the girl is in.
-            workers = List of all relevant workers.
-            """
-            super(GuardJob, self).__init__(girl, workers, loc=loc)
+            super(GuardJob, self).__init__()
+            self.id = "Guarding"
+            self.type = "Combat"
             
-            self.check_life()
-            if not self.finished: self.get_events()
-            if not self.finished: self.check_injury()
-            if not self.finished: self.check_vitality()
-            if not self.finished: self.post_job_activities()
-            if not self.finished: self.check_vitality()
-            if not self.finished: self.finish_job()
-            self.apply_stats()
+            # Traits/Job-types associated with this job:
+            self.occupations = ["Warrior"] # General Strings likes SIW, Warrior, Server...
+            self.occupation_traits = [traits["Warrior"], traits["Mage"], traits["Defender"], traits["Shooter"], traits["Battle Mage"]] # Corresponding traits...
             
-            try:
-                self.workers.remove(self.worker)
+            # Relevant skills and stats:
+            self.skills = ["cleaning"]
+            self.stats = ["agility"]
             
-            except:
-                dialog.warning("Silent error during GuardJob.__init__, guard was already removed!")
+            self.workermod = {}
+            self.locmod = {}
         
+        def __call__(self, workers_original, workers, location, action, flag=None):
+            self.all_workers = workers_original
+            self.workers = workers
+            self.loc = location
+            self.flag = flag
+            
+            if action == "patrol":
+                self.patrol()
+            elif action == "intercept":
+                self.intercept()
+            
+        def patrol(self):
+            """Builds ND event for Guard Job.
+            
+            This one is simpler... it just logs the stats, picks an image and builds a report...
+            """
+            self.img = Fixed(xysize=(820, 705))
+            self.img.add(Transform(self.loc.img, size=(820, 705)))
+            vp = self.vp_or_fixed(self.all_workers, ["fighting"], {"exclude": ["sex"], "resize": (150, 150)}, xmax=820)
+            self.img.add(Transform(vp, align=(.5, .9)))
+            
+            self.team = self.all_workers
+            
+            self.txt = ["{} intercepted {} today!".format(", ".join([w.nickname for w in self.all_workers]), self.loc.name)]
+            
+            # Stat mods
+            self.logloc('dirt', 25 * len(self.all_workers)) # 25 per guard? Should prolly be resolved in SimPy land...
+            for w in self.all_workers:
+                self.loggs('vitality', -randint(15, 25), w)  # = ? What to do here?
+                self.loggs('exp', randint(15, 25), w) # = ? What to do here?
+                for stat in ['attack', 'defence', 'magic', 'joy']:
+                    if dice(20):
+                        self.loggs(stat, 1, w)
+                        
+            self.event_type = "jobreport" # Come up with a new type for team reports?
+            self.apply_stats()
+            self.finish_job()
+            
+        def intercept(self):
+            """Builds ND event for Guard Job.
+            
+            This one is simpler... it just logs the stats, picks an image and builds a report...
+            """
+            self.img = Fixed(xysize=(820, 705))
+            self.img.add(Transform(self.loc.img, size=(820, 705)))
+            vp = self.vp_or_fixed(self.all_workers, ["fighting"], {"exclude": ["sex"], "resize": (150, 150)}, xmax=820)
+            self.img.add(Transform(vp, align=(.5, .9)))
+            
+            self.team = self.all_workers
+            
+            self.txt = ["{} intercepted a bunch of drunk miscreants in {}! ".format(", ".join([w.nickname for w in self.all_workers]), self.loc.name)]
+            if self.flag.flag("result"):
+                self.txt.append("They managed to subdue them!")
+            else:
+                self.txt.append("They failed to subdue them, that will cause you some issues with your clients and {} reputation will suffer!".format(self.loc.name))
+            
+            # Stat mods (Should be moved/split here).
+            self.logloc('dirt', 25 * len(self.all_workers)) # 25 per guard? Should prolly be resolved in SimPy land...
+            for w in self.all_workers:
+                self.loggs('vitality', -randint(15, 25), w)  # = ? What to do here?
+                self.loggs('exp', randint(15, 25), w) # = ? What to do here?
+                for stat in ['attack', 'defence', 'magic', 'joy']:
+                    if dice(20):
+                        self.loggs(stat, 1, w)
+                        
+            self.event_type = "jobreport" # Come up with a new type for team reports?
+            self.apply_stats()
+            self.finish_job()
+                
         def get_events(self):
             """
             Get the guard events this girl will respond to.
@@ -2321,7 +2528,7 @@
             else:
                 gbu = self.loc.get_upgrade_mod("guards")
                 if gbu == 3:
-                    guardlist = [girl for girl in hero.girls if girl.location == self.loc and girl.action == 'Guard' and girl.health > 60]
+                    guardlist = [girl for girl in hero.chars if girl.location == self.loc and girl.action == 'Guard' and girl.health > 60]
                     guards = len(guardlist)
                     
                     if guards > 0:
@@ -2395,7 +2602,7 @@
                         self.workermod['vitality'] = self.workermod.get('vitality', 0) - randint(15, 20)
                         self.worker.AP = 0
                 
-                else:   
+                else:
                     if dice(50):
                         self.txt.append("She spent time relaxing. \n")
                         
@@ -2415,4 +2622,133 @@
                         self.workermod['exp'] = self.workermod.get('exp', 0) +  randint(8, 15)
                         self.workermod['vitality'] = self.workermod.get('vitality', 0) - randint(15, 20)
                         self.worker.AP = 0
-
+                        
+                        
+    class ExplorationData(NewStyleJob):
+        def __init__(self):
+            """Creates a new GuardJob.
+            """
+            super(GuardJob, self).__init__()
+            self.id = "Guarding"
+            self.type = "Combat"
+            
+            # Traits/Job-types associated with this job:
+            self.occupations = ["Warrior"] # General Strings likes SIW, Warrior, Server...
+            self.occupation_traits = [traits["Warrior"], traits["Mage"], traits["Defender"], traits["Shooter"], traits["Battle Mage"]] # Corresponding traits...
+            
+            # Relevant skills and stats:
+            self.skills = ["cleaning"]
+            self.stats = ["agility"]
+            
+            self.workermod = {}
+            self.locmod = {}
+            
+        def __call__(self):
+            pass
+        
+        def explore(self):
+            """Makes a ND report of the Exploration run.
+            """
+            # Create a dict of characters to enable im.Sepia (=dead)) when constructing the image.
+            # False for alive and True for dead.
+            characters = {c: False for c in self.team}
+            dead = 0
+            
+            for char in self.team:
+                if char.location != "After Life":
+                    char.action = None
+                    char.location = char.flag("loc_backup")
+                    char.del_flag("loc_backup")
+                    
+                    for stat in self.stats:
+                        if stat == "exp":
+                            self.stats[stat] = char.adjust_exp(self.stats[stat])
+                            char.exp += self.stats[stat]
+                        else:
+                            char.mod(stat, self.stats[stat])
+                
+                else:
+                    characters[char] = True
+                    dead = dead + 1
+            
+            # Handle the dead chars:
+            skip_rewards = False
+            
+            if dead:
+                if len(self.team) == dead:
+                    self.txt.append("\n{color=[red]}The entire party was wiped out (Those poor girlz...)! This can't be good for your reputation (and you obviously not getting any rewards))!{/color}\n")
+                    hero.reputation -= 30
+                    skip_rewards = True
+                
+                else:
+                    self.txt.append("\n{color=[red]}You get reputation penalty as %d of your girls never returned from the expedition!\n{/color}" % dead)
+                    hero.reputation -= 7*dead
+            
+            if not skip_rewards:
+                # Rewards + logging in global area
+                cash = sum(self.cash)
+                hero.add_money(cash, "Fighters Guild")
+                fg.fin.log_work_income(cash, "Fighters Guild")
+                
+                for item in self.items:
+                    hero.inventory.append(items[item])
+                
+                self.cash = sum(self.cash)
+                if self.captured_girl:
+                    # We place the girl in slave pens (general jail of pytfall)
+                    jail.add_prisoner(self.captured_girl, flag="SE_capture")
+                    self.txt.append("{color=[green]}\nThe team has captured a girl, she's been sent to City Jail for 'safekeeping'!{/color}\n")
+                
+                area = fg_areas[self.area.id]
+                area.known_items |= set(self.found_items)
+                area.cash_earned += self.cash
+                area.known_mobs |= self.area.known_mobs
+                
+                for key in area.unlocks.keys():
+                    area.unlocks[key] += randrange(1, int(max(self.day, (self.day * self.risk/25), 2)))
+                    
+                    if dice(area.unlocks[key]):
+                        if key in fg_areas:
+                            fg_areas[key].unlocked = True
+                            self.txt.append("\n {color=[blue]}Team found Area: %s, it is now unlocked!!!{/color}" % key)
+                        
+                        del area.unlocks[key]
+            
+            fg.exploring.remove(self)
+            
+            if not self.flag_red:
+                self.flag_green = True
+                fg.flag_green = True
+            
+            if self.flag_red:
+                fg.flag_red = True
+            
+            # Create the event:
+            evt = NDEvent()
+            evt.red_flag = self.flag_red
+            evt.green_flag = self.flag_green
+            evt.charmod = self.stats
+            evt.type = 'exploration_report'
+            evt.char = None
+            self.loc = fg
+            
+            # New style:
+            args = list()
+            for g in characters:
+                if characters[g]:
+                    # Dead:
+                    args.append(im.Sepia(g.show("battle_sprite", resize=(200, 200), cache=True)))
+                
+                else:
+                    # Alive!
+                    args.append(g.show("battle_sprite", resize=(200, 200), cache=True))
+            
+            # args = list(g.show("battle_sprite", resize=(200, 200), cache=True) for g in self.team)
+            img = Fixed(ProportionalScale(self.area.img, 820, 705, align=(0.5, 0.5)),
+                        Text("%s"%self.team.name, style="agrevue", outlines=[ (1, crimson, 3, 3) ], antialias=True, size=30, color=red, align=(0.5, 0)),
+                        HBox(*args, spacing=10, align=(0.5, 1.0)),
+                        xysize=(820, 705))
+            
+            evt.img = img
+            evt.txt = "".join(self.txt)
+            NextDayEvents.append(evt)

@@ -7,7 +7,7 @@ init -1 python:
         inside = False
     
         p1x, p1y = poly[0]
-        for i in range(n+1):
+        for i in xrange(n+1):
             p2x, p2y = poly[i % n]
             if y > min(p1y, p2y):
                 if y <= max(p1y, p2y):
@@ -23,7 +23,7 @@ init -1 python:
         
     class GuiGirlsList(_object):
         """
-        Used for sorting girls in the list and maybe in profile screen in the future
+        Used for sorting girls in the list and maybe in profile screen in the future.
         """
         STATUS_GROUP = 'status'
         OCCUPATION_GROUP = 'occupation'
@@ -31,7 +31,7 @@ init -1 python:
         BUILDING_GROUP = 'building'
 
         def __init__(self):
-            self.sorted = list(girl for girl in hero.girls if girl.action != "Exploring")
+            self.sorted = list(girl for girl in hero.chars if girl.action != "Exploring")
             self.init_display_filters()
             self.init_active_filters()
             
@@ -74,7 +74,7 @@ init -1 python:
             }
 
         def clear(self):
-            self.sorted = copy.copy(hero.girls)
+            self.sorted = copy.copy(hero.chars)
             self.init_active_filters()
             renpy.restart_interaction()
 
@@ -131,7 +131,7 @@ init -1 python:
             
             self.girl = None
             
-            self.girls_list = None
+            self.chars_list = None
             self.blue_girls = dict() # Girls (SE captured) blue is training for you.
             self.restock_day = randint(2, 3)
         
@@ -161,15 +161,15 @@ init -1 python:
             """
             return self.girl.fin
         
-        def populate_girls_list(self):
+        def populate_chars_list(self):
             """
             Populates the list of girls that are available.
             """
-            girls_list = self.get_girls()
-            self.girls_list = list()
+            chars_list = self.get_girls()
+            self.chars_list = list()
             for i in range(randint(6, 8)):
-                if girls_list:
-                    self.girls_list.append(girls_list.pop())
+                if chars_list:
+                    self.chars_list.append(chars_list.pop())
                     
         def buy_girl(self):
             """
@@ -178,12 +178,12 @@ init -1 python:
             if hero.take_ap(1):
                 if hero.take_money(self.girl.fin.get_price(), reason="Slave Purchase"):
                     renpy.play("content/sfx/sound/world/purchase_1.ogg")
-                    hero.add_girl(self.girl)
-                    self.girls_list.remove(self.girl)
+                    hero.add_char(self.girl)
+                    self.chars_list.remove(self.girl)
                     
-                    if self.girls_list:
-                        self.girl = choice(self.girls_list)
-                        self.index = self.girls_list.index(self.girl)
+                    if self.chars_list:
+                        self.girl = choice(self.chars_list)
+                        self.index = self.chars_list.index(self.girl)
                     
                     else:
                         self.girl = None
@@ -194,7 +194,7 @@ init -1 python:
             else:
                 renpy.call_screen('message_screen', "You don't have enough AP left for this action!!")
             
-            if not self.girls_list:
+            if not self.chars_list:
                 renpy.hide_screen("slave_shopping")
         
         def next_day(self):
@@ -202,13 +202,13 @@ init -1 python:
             Solves the next day logic.
             """
             if self.restock_day == day:
-                self.populate_girls_list()
+                self.populate_chars_list()
                 self.restock_day += randint(2, 3)
                 
             for g in self.blue_girls.keys():
                 self.blue_girls[g] += 1
                 if self.blue_girls[g] == 30:
-                    hero.add_girl(g)
+                    hero.add_char(g)
                     del self.blue_girls[g]
                     pytfall.temp_text.append("Blue has finished training %s! The girl has been delivered to you!" % chars[g].name)
             
@@ -216,33 +216,33 @@ init -1 python:
             """
             Sets the focus to the next girl.
             """
-            if self.girls_list:
-                index = self.girls_list.index(self.girl)
-                index = (index + 1) % len(self.girls_list)
-                self.girl = self.girls_list[index]
+            if self.chars_list:
+                index = self.chars_list.index(self.girl)
+                index = (index + 1) % len(self.chars_list)
+                self.girl = self.chars_list[index]
                 
         def previous_index(self):
             """
             Sets the focus to the previous girl.
             """
-            if self.girls_list:
-                index = self.girls_list.index(self.girl)
-                index = (index - 1) % len(self.girls_list)
-                self.girl = self.girls_list[index]
+            if self.chars_list:
+                index = self.chars_list.index(self.girl)
+                index = (index - 1) % len(self.chars_list)
+                self.girl = self.chars_list[index]
         
         def set_index(self):
             """
             Sets the focus to a random girl.
             """
-            if self.girls_list:
-                self.girl = choice(self.girls_list)
+            if self.chars_list:
+                self.girl = choice(self.chars_list)
         
         def set_girl(self, girl):
             """
             Sets the focus to the given girl.
             girl = The girl to set the focus to.
             """
-            if self.girls_list and girl in self.girls_list:
+            if self.chars_list and girl in self.chars_list:
                 self.girl = girl
         
     
@@ -424,3 +424,135 @@ init -1 python:
             renpy.hide(tag)
             renpy.show_screen("gallery")
             renpy.with_statement(dissolve)
+            
+            
+    class CoordsForPaging(_object):
+        """ This class setups up x, y coordinates for items in content list.
+        
+        We use this in DragAndDrop.
+        Might be I'll just use this in the future to handle the whole thing.
+        For now, this will be used in combination with screen language.
+        *Adaptation of Roman's Inv code!
+        """
+        def __init__(self, content, columns=2, rows=6, size=(100, 100), xspacing=10, yspacing=10, init_pos=(0, 0)):
+            # Should be changes to location in the future:    
+            self.content = content
+            self.page = 0
+            self.page_size = columns*rows
+
+            self.pos = list()
+            x = init_pos[0]
+            for c in xrange(columns):
+                y = init_pos[1]
+                for r in xrange(rows):
+                    self.pos.append((x, y))
+                    y = y + size[1] + yspacing
+                x = x + size[0] + xspacing
+                    
+        def __len__(self):
+            return len(self.content)
+            
+        def __iter__(self):
+            # We return a list of tuples of [(item, pos), (item, pos), ...] for self.page
+            page = self.page_content
+            pos = self.pos[:len(page)]
+            return iter(zip(page, pos))
+            
+        def __getitem__(self, index):
+            # Minding the page we're on!
+            return self.content[self.page * self.page_size + index]
+            
+        def get_pos(self, item):
+            # retruns a pos of an item on current page.
+            return self.pos[self.page_content.index(item)]
+            
+        def __nonzero__(self):
+            return bool(self.content)
+                
+        # Next page
+        def next_page(self):
+            if self.page < self.max_page:
+                self.page += 1
+
+        def last_page(self):
+            self.page = self.max_page
+                
+        # Previous page
+        def prev_page(self):
+            if self.page > 0:
+                self.page -= 1
+                
+        def first_page(self):
+            self.page = 0
+                
+        @property
+        def max_page(self):
+            return len(self.content) / self.page_size if len(self.content) % self.page_size not in [0, self.page_size] else (len(self.content) - 1) / self.page_size
+                
+        @property
+        def page_content(self):
+            start = self.page * self.page_size
+            end = (self.page+1) * self.page_size
+            return self.content[start:end]
+            
+        # group of methods realizing the interface of common listing
+        # remove and add an element
+        # with recalc of current page
+        def add(self, item):
+            if item not in self.content:
+                self.content.append(item)
+
+        def remove(self, item):
+            if item in self.content:
+                self.content.remove(item)
+                
+    def dragged(drags, drop):
+        # Simple func we use to manage drag and drop in team setups and maybe moar in the future.
+        drag = drags[0]
+        char = drags[0].drag_name
+        x, y = workers.get_pos(char)
+        
+        if not drop:
+            drags[0].snap(x, y, delay=0.2)
+            renpy.restart_interaction()
+            return
+            
+        team = drop.drag_name
+
+        if char.status == "slave":
+            drags[0].snap(x, y, delay=0.2)
+            renpy.show_screen("message_screen", "Slaves are not allowed to participate in combat!")
+            renpy.restart_interaction()
+            return
+
+        # for t in fg.teams:
+            # if t and t[0] == char:
+                # drags[0].snap(x, y, delay=0.2)
+                # renpy.show_screen("message_screen", "%s is already a leader of %s!" % (char.nickname, t.name))
+                # renpy.restart_interaction()
+                # return
+            # if not team:
+                # for girl in t:
+                    # if girl == char:
+                        # drags[0].snap(x, y, delay=0.2)
+                        # renpy.show_screen("message_screen", "%s cannot lead %s as she's already on %s!" % (char.nickname, team.name, t.name))
+                        # renpy.restart_interaction()
+                        # return
+                        
+        # for girl in team:
+            # if girl == char:
+                # drags[0].snap(x, y, delay=0.2)
+                # renpy.show_screen("message_screen", "%s is already on %s!" % (char.nickname, team.name))
+                # renpy.restart_interaction()
+                # return
+                
+        if len(team) == 3:
+            drags[0].snap(x, y, delay=0.2)
+            renpy.restart_interaction()
+            return
+        else:
+            team.add(char)
+            workers.remove(char)
+            drags[0].snap(x, y)
+
+        return True

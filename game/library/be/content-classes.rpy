@@ -1,5 +1,154 @@
 init python:
+    class MyTimer(renpy.display.layout.Null):
+        """
+        To Be Moved to appropriate file and vastly improved later!
+        Ren'Py's original timer failed completely for chaining sounds in BE, this seems to be working fine.
+        """
+        def __init__(self, delay, action=None, repeat=False, args=(), kwargs={}, replaces=None, **properties):
+            super(MyTimer, self).__init__(**properties)
+    
+            if action is None:
+                raise Exception("A timer must have an action supplied.")
+    
+            if delay <= 0:
+                raise Exception("A timer's delay must be > 0.")
+    
+            self.started = None
+                
+            # The delay.
+            self.delay = delay
+    
+            # Should we repeat the event?
+            self.repeat = repeat
+    
+            # The time the next event should occur.
+            self.next_event = None
+    
+            # The function and its arguments.
+            self.function = action
+            self.args = args
+            self.kwargs = kwargs
+    
+            # Did we start the timer?
+            self.started = False
+    
+            # if replaces is not None:
+                # self.state = replaces.state
+            # else:
+                # self.state = TimerState()
+    
+    
+        def render(self, width, height, st, at):
+            if self.started is None:
+                self.started = st
+                renpy.redraw(self, self.delay)
+                return renpy.Render(0, 0)
+            
+            self.function()
+            return renpy.Render(0, 0)
+            
+    class ChainedAttack(renpy.Displayable):
+        """
+        Going to try and chain gfx/sfx for simple BE attacks using a UDD.
+        """
+        def __init__(self, gfx, sfx, chain_sfx=True, times=2, delay=.3, **properties):
+            """
+            chain_sfx: Do we play the sound and do we chain it?
+                True = Play and Chain.
+                False = Play once and don't play again.
+                None = Do not play SFX at all.
+            times = how many times we run the animation in a sequence.
+            delay = interval between the two runs.
+            """
+            super(ChainedAttack, self).__init__(**properties)
+            
+            self.gfx = gfx
+            self.sfx = sfx
+            self.chain_sfx = chain_sfx
+            self.times = times
+            self.delay = delay
+            self.count = 0
+            self.size = get_size(self.gfx)
+            self.last_flip = None # This is meant to make sure that we don't get two exactly same flips in the row!
+            
+            # Timing controls:
+            self.next = 0
+            self.displayable = [] # List of dict bindings if (D, st) to kill.
+            
+        def render(self, width, height, st, at):
+            if self.count > self.times:
+                return renpy.Render(0, 0)
+                
+            if self.count < self.times and st >= self.next:
+                # Prep the data:
+                
+                # get the "flip":
+                flips = [{"zoom": 1}, {"xzoom": -1}, {"yzoom": -1}, {"zoom": -1}]
+                
+                if self.last_flip is None:
+                    flip = choice(flips)
+                    self.last_flip = flip
+                else:
+                    flips.remove(self.last_flip)
+                    flip = choice(flips)
+                    self.last_flip = flip
+                    
+                # Offset:
+                # offx, offy = choice(range(-30, -15) + range(15, 30)), choice(range(-30, -15) + range(15, 30))
+                
+                # Adjusting to UDD feature that I do not completely understand...
+                offx, offy = choice(range(0, 15) + range(30, 60)), choice(range(0, 15) + range(30, 60))
+                
+                # GFX:
+                gfx = Transform(self.gfx, **flip)
+                gfx = multi_strike(gfx, (offx, offy), st)
+                
+                # Calc when we add the next gfx and remove the old one from the list. Right now it's a steady stream of ds but I'll prolly change it in the future.
+                self.next = st + random.uniform(self.delay*.5, self.delay)
+                self.count += 1
+                self.displayable.append((gfx, self.next))
+                
+                # We can just play the sound here:
+                if self.chain_sfx is None:
+                    pass
+                elif self.chain_sfx is False and self.count == 0 and len(self.displayable) == 1:
+                    renpy.play(self.sfx, channel="audio")
+                else:
+                    renpy.play(self.sfx, channel="audio")
+                
+            # Render everything else:
+            render = renpy.Render(self.size[0] + 60, self.size[1] + 60)
+            for d, t in self.displayable[:]:
+                if st <= t:
+                    render.place(d, st=st)
+                else: # Remove if we're done with this displayable:
+                    self.displayable.remove((d, t))
+                    
+            renpy.redraw(self, 0)
+            return render
+    
+    
     # Plain Events:
+    class RunQuotes(BE_Event):
+        """
+        Anything that happens in the BE.
+        Can be executed in RT or added to queues where it will be called.
+        This is just to show off the structure...
+        """
+        def __init__(self, team):
+            self.team = team
+            
+        def check_conditions(self):
+            # We want to run this no matter the f*ck what or we'll have fighting corpses on our hands :)
+            return True
+            
+        def kill(self):
+            return True
+            
+        def apply_effects(self):
+            interactions_prebattle_line(self.team)
+            
+    
     class BE_Skip(BE_Event):
         """
         Simplest possible class that just skips the turn for the player and logs that fact.
@@ -9,10 +158,20 @@ init python:
             self.source = source
         
         def __call__(self, *args, **kwargs):
-            msg = "{} skips a turn!".format(self.source.nickname)
+            msg = "{} skips a turn.".format(self.source.nickname)
             battle.log(msg)
             
-
+    class Slave_BE_Skip(BE_Event):
+        """
+        Skipping for slaves. So far only with different message, but there might be more differences in the future.
+        """
+        def __init__(self, source=None):
+            self.source = source
+        
+        def __call__(self, *args, **kwargs):
+            msg = "{} stands still.".format(self.source.nickname)
+            battle.log(msg)
+            
     class RPG_Death(BE_Event):
         """
         Used to instantiate death and kill off a player at the end of any turn...
@@ -107,7 +266,7 @@ init python:
         
         @Review: This will be the base for all attacks from here on out and accept all default properties relevant to Attack Skills! 
         """
-        def __init__(self, name,
+        def __init__(self, name, mp_cost=0, health_cost=0, vitality_cost=0,
                            attacker_action={},
                            attacker_effects={},
                            main_effect={}, # Start @ is not working atm.
@@ -137,23 +296,167 @@ init python:
             self.target_sprite_damage_effect["duration"] = self.target_sprite_damage_effect.get("duration", self.main_effect["duration"])
             
             self.target_damage_effect["gfx"] = self.target_damage_effect.get("gfx", "battle_bounce")
-            self.target_damage_effect["initial_pause"] = self.target_damage_effect.get("initial_pause", 0.1)
+            # self.target_damage_effect["initial_pause"] = self.target_damage_effect.get("initial_pause", 0.1)
             
             self.target_death_effect["gfx"] = self.target_death_effect.get("gfx", "dissolve")
             self.target_death_effect["initial_pause"] = self.target_death_effect.get("initial_pause", 0.2)
             self.target_death_effect["duration"] = self.target_death_effect.get("duration", 0.5)
             
+            self.dodge_effect["gfx"] = "dodge"
             
+            # Cost of the attack:
+            self.mp_cost = mp_cost
+            if not(isinstance(health_cost, int)) and health_cost > 0.9:
+                self.health_cost = 0.9
+            else:
+                self.health_cost = health_cost
+            self.vitality_cost = vitality_cost
+            
+            
+    class MultiAttack(SimpleAttack):
+        """
+        Base class for multi attack skills, which basically show the same displayable and play sounds (conditioned),
+        """
+        def __init__(self, name, **kwargs):
+            super(MultiAttack, self).__init__(name, **kwargs)
+            
+        def show_main_gfx(self, battle, attacker, targets):
+            # Shows the MAIN part of the attack and handles appropriate sfx.
+            gfx = self.main_effect["gfx"]
+            sfx = self.main_effect["sfx"]
+            times = self.main_effect.get("times", 2)
+            interval = self.main_effect.get("interval", .3)
+            
+            # GFX:
+            if gfx:
+                # Flip the attack image if required:
+                if self.main_effect.get("hflip", None):
+                    gfx = Transform(gfx, xzoom=-1) if battle.get_cp(attacker)[0] > battle.get_cp(targets[0])[0] else gfx
+                
+                # Posional properties:
+                aim = self.main_effect["aim"]
+                point = aim.get("point", "center")
+                anchor = aim.get("anchor", (.5, .5))
+                xo = aim.get("xo", 0)
+                yo = aim.get("yo", 0)
+                
+                # Create a UDD:
+                gfx = ChainedAttack(gfx, sfx, chain_sfx=True, times=times, delay=interval)
+                
+                for index, target in enumerate(targets):
+                    gfxtag = "attack" + str(index)
+                    renpy.show(gfxtag, what=gfx, at_list=[Transform(pos=battle.get_cp(target, type=point, xo=xo, yo=yo), anchor=anchor)], zorder=target.besk["zorder"]+1)
+            
+            
+    class SimpleAttack2X(SimpleAttack):
+        """
+        Standard dual-attack.
+        """
+        def __init__(self, name, **kwargs):
+            super(SimpleAttack2X, self).__init__(name, **kwargs)
+            
+        def show_main_gfx(self, battle, attacker, targets):
+            # Shows the MAIN part of the attack and handles appropriate sfx.
+            gfx = self.main_effect["gfx"]
+            sfx = self.main_effect["sfx"]
+            
+            # SFX:
+            sfx = choice(sfx) if isinstance(sfx, (list, tuple)) else sfx
+            if sfx:
+                renpy.play(sfx, channel="audio")
+                temp = MyTimer(.3, Play("audio", sfx))
+                renpy.show("_tag", what=temp) # Hide this later! TODO:
+            
+            # GFX:
+            if gfx:
+                # Flip the attack image if required:
+                if self.main_effect.get("hflip", None):
+                    gfx = Transform(gfx, xzoom=-1) if battle.get_cp(attacker)[0] > battle.get_cp(targets[0])[0] else gfx
+                
+                # Posional properties:
+                aim = self.main_effect["aim"]
+                point = aim.get("point", "center")
+                anchor = aim.get("anchor", (0.5, 0.5))
+                xo = aim.get("xo", 0)
+                yo = aim.get("yo", 0)
+                
+                # Now the "2X" part, we need to run the image/animation twice and at slightly different positions from one another...
+                # We can do that by adjusting xo/yo:
+                offx, offy = choice(range(-30, -15) + range(15, 30)), choice(range(-30, -15) + range(15, 30))
+                
+                # Flip the second sprite:
+                gfx2 = Transform(gfx, xzoom=-1)
+                
+                # Create ATL Transform to show to player:
+                gfx = double_strike(gfx, gfx2, (offx, offy), .3)
+                
+                for index, target in enumerate(targets):
+                    gfxtag = "attack" + str(index)
+                    renpy.show(gfxtag, what=gfx, at_list=[Transform(pos=battle.get_cp(target, type=point, xo=xo, yo=yo), anchor=anchor)], zorder=target.besk["zorder"]+1)
+                    
+                    
+    class SimpleAttack3X(SimpleAttack):
+        """
+        Standard tripple-attack.
+        """
+        def __init__(self, name, **kwargs):
+            super(SimpleAttack3X, self).__init__(name, **kwargs)
+            
+        def show_main_gfx(self, battle, attacker, targets):
+            # Shows the MAIN part of the attack and handles appropriate sfx.
+            gfx = self.main_effect["gfx"]
+            sfx = self.main_effect["sfx"]
+            
+            # SFX:
+            sfx = choice(sfx) if isinstance(sfx, (list, tuple)) else sfx
+            if sfx:
+                renpy.play(sfx, channel="audio")
+                temp = MyTimer(.6, Play("audio", sfx))
+                renpy.show("_tag", what=temp) # Hide this later! TODO:
+                temp = MyTimer(.9, Play("audio", sfx))
+                renpy.show("_tag2", what=temp) # Hide this later! TODO:
+            
+            # GFX:
+            if gfx:
+                # Flip the attack image if required:
+                if self.main_effect.get("hflip", None):
+                    gfx = Transform(gfx, xzoom=-1) if battle.get_cp(attacker)[0] > battle.get_cp(targets[0])[0] else gfx
+                
+                # Posional properties:
+                aim = self.main_effect["aim"]
+                point = aim.get("point", "center")
+                anchor = aim.get("anchor", (0.5, 0.5))
+                xo = aim.get("xo", 0)
+                yo = aim.get("yo", 0)
+                
+                # Now the "2X" part, we need to run the image/animation twice and at slightly different positions from one another...
+                # We can do that by adjusting xo/yo:
+                offx, offy = choice(range(-30, -15) + range(15, 30)), choice(range(-30, -15) + range(15, 30))
+                offx2, offy2 = choice(range(-30, -15) + range(15, 30)), choice(range(-30, -15) + range(15, 30))
+                
+                # Flip the second sprite:
+                gfx2 = Transform(gfx, xzoom=-1)
+                gfx3 = Transform(gfx, yzoom=-1)
+                
+                # Create ATL Transform to show to player:
+                gfx = triple_strike(gfx, gfx2, gfx3, (offx, offy), (offx2, offy2), .3)
+                
+                for index, target in enumerate(targets):
+                    gfxtag = "attack" + str(index)
+                    renpy.show(gfxtag, what=gfx, at_list=[Transform(pos=battle.get_cp(target, type=point, xo=xo, yo=yo), anchor=anchor)], zorder=target.besk["zorder"]+1)
+                    
+                    
     class SimpleMagicalAttack(BE_Action):
         """Simplest attack, usually simple magic.
         """
-        def __init__(self, name, cost=5,
+        def __init__(self, name, mp_cost=0, health_cost=0, vitality_cost=0,
                            attacker_action={},
                            attacker_effects={},
                            main_effect={},
                            target_sprite_damage_effect={},
                            target_damage_effect={},
                            target_death_effect={},
+                           dodge_effect={},
                            sfx=None, gfx=None, zoom=None, aim=None, xo=0, yo=0, pause=None, anchor=None, casting_effects=None, target_damage_gfx=None, # <=== These should die off in time!
                            **kwargs):
             super(SimpleMagicalAttack, self).__init__(name,
@@ -162,7 +465,7 @@ init python:
                                                                                main_effect=main_effect,
                                                                                target_sprite_damage_effect=target_sprite_damage_effect,
                                                                                target_damage_effect=target_damage_effect,
-                                                                               target_death_effect=target_death_effect,
+                                                                               target_death_effect=target_death_effect, dodge_effect=dodge_effect,
                                                                                sfx=sfx, gfx=gfx, pause=pause, zoom=zoom,
                                                                                **kwargs)
             
@@ -184,8 +487,12 @@ init python:
                 self.target_sprite_damage_effect["duration"] = target_damage_gfx[2]
                 
             # Rest:
-            self.cost = cost
-            
+            self.mp_cost = mp_cost
+            if not(isinstance(health_cost, int)) and health_cost > 0.9:
+                self.health_cost = 0.9
+            else:
+                self.health_cost = health_cost
+            self.vitality_cost = vitality_cost
             self.attacker_action["gfx"] = self.attacker_action.get("gfx", "step_forward")
             self.attacker_action["sfx"] = self.attacker_action.get("sfx", None)
             
@@ -201,35 +508,8 @@ init python:
             self.target_death_effect["gfx"] = self.target_death_effect.get("gfx", "dissolve")
             self.target_death_effect["initial_pause"] = self.target_death_effect.get("initial_pause", self.target_sprite_damage_effect["initial_pause"] + 0.1)
             self.target_death_effect["duration"] = self.target_death_effect.get("duration", 0.5)
-
-        def check_conditions(self, source=None):
-            if source:
-                char = source
-            else:
-                char = self.source
-                
-            # We need to make sure that we have enought mp for this one:
-            if char.mp - self.cost >= 0:
-                if self.get_targets(char):
-                    return True
-                    
-        def apply_effects(self, targets):
-            # Not 100% for that this will be required...
-            # Here it is simple since we are only focusing on damaging health:
-            # prepare the variables:
-            died = list()
-            if not isinstance(targets, (list, tuple, set)):
-                targets = [targets]
-            for t in targets:
-                if t.health - t.beeffects[0] > 0:
-                    t.mod("health", -t.beeffects[0])
-                else:
-                    battle.end_turn_events.append(RPG_Death(t))
-                    died.append(t)
-                    
-            # Here we need to take of MP:
-            self.source.mp -= self.cost
-            return died
+            
+            self.dodge_effect["gfx"] = "magic_shield"
             
             
     class ArealMagicalAttack(SimpleMagicalAttack):
@@ -333,7 +613,7 @@ init python:
             for i in xrange(len(targets)):
                 gfxtag = "attack" + str(i)
                 renpy.hide(gfxtag)
-            
+                
                 
     class P2P_ArealMagicalAttack(P2P_MagicAttack):
         """ ==> @Review: There may not be a good reason for this to be a magical attack instead of any attack at all!
@@ -526,7 +806,7 @@ init python:
             for t in targets:
                 if not self.check_resistance(t):
                     # We get the multi and any effects that those may bring.
-                    effects, multiplier = self.get_attributes_multiplier(t, attributes)
+                    effects, multiplier = self.get_multiplier(t, attributes)
                     restore = int(restore*multiplier)
                 else: # resisted
                     damage = 0
@@ -540,7 +820,7 @@ init python:
                 s = list()
                 s.append("%s used %s to restore HP of %s!" % (char.nickname, self.name, t.name))
                 
-                s = s + self.effects_for_string(t, default_color="green")
+                s = s + self.effects_to_string(t, default_color="green")
                 
                 battle.log("".join(s))
             
@@ -584,7 +864,7 @@ init python:
                         t.beeffects = [0]
                         break
                 else: # Damage Calculations:
-                    effects, multiplier = self.get_attributes_multiplier(t, self.attributes)
+                    effects, multiplier = self.get_multiplier(t, self.attributes)
                     
                     damage = t.get_max("health") * (self.effect/1000.0)
                     damage = max(randint(15, 20), int(damage) + randint(-4, 4))
@@ -603,7 +883,7 @@ init python:
                     s = list()
                     s.append("{color=[teal]}%s{/color} poisoned %s!" % (a.nickname, t.nickname))
                     
-                    s = s + self.effects_for_string(t)
+                    s = s + self.effects_to_string(t)
                     
                     battle.log("".join(s))
                     
@@ -612,12 +892,28 @@ init python:
         def __init__(self, name, **kwargs):
             super(ReviveSpell, self).__init__(name, **kwargs)
             
+
         def check_conditions(self, source=None):
-            char = source if source else self.source
-            if char.mp - self.cost >= 0:
+            if source:
+                char = source
+            else:
+                char = self.source
+            if not(isinstance(self.mp_cost, int)):
+                mp_cost = int(char.get_max("mp")*self.mp_cost)
+            else:
+                mp_cost = self.mp_cost
+            if not(isinstance(self.health_cost, int)):
+                health_cost = int(char.get_max("health")*self.health_cost)
+            else:
+                health_cost = self.health_cost
+            if not(isinstance(self.vitality_cost, int)):
+                vitality_cost = int(char.get_max("vitality")*self.vitality_cost)
+            else:
+                vitality_cost = self.vitality_cost
+            if (char.mp - mp_cost >= 0) and (char.health - health_cost >= 0) and (char.vitality - vitality_cost >= 0):
                 if self.get_targets(char):
-                    return True
-                
+                    return True   
+                    
         def effects_resolver(self, targets):
             if not isinstance(targets, (list, tuple, set)):
                 targets = [targets]
@@ -625,7 +921,7 @@ init python:
             attributes = self.attributes
             
             for t in targets:
-                minh, maxh = int(t.get_max("health")*0.3), int(t.get_max("health")*0.5)
+                minh, maxh = int(t.get_max("health")*0.1), int(t.get_max("health")*0.3)
                 revive = randint(minh, maxh)
                 
                 effects = list()
@@ -636,7 +932,7 @@ init python:
                 s = list()
                 s.append("%s brings %s back!" % (char.nickname, t.name))
                 
-                s = s + self.effects_for_string(t, default_color="green")
+                s = s + self.effects_to_string(t, default_color="green")
                 
                 battle.log("".join(s))
                 
@@ -646,8 +942,24 @@ init python:
                 
             for t in targets:
                 battle.corpses.remove(t)
-                minh, maxh = int(t.get_max("health")*0.3), int(t.get_max("health")*0.5)
+                minh, maxh = int(t.get_max("health")*0.1), int(t.get_max("health")*0.3)
                 t.health = t.beeffects[0]
+            if not(isinstance(self.mp_cost, int)):
+                mp_cost = int(self.source.get_max("mp")*self.mp_cost)
+            else:
+                mp_cost = self.mp_cost
+            if not(isinstance(self.health_cost, int)):
+                health_cost = int(self.source.get_max("health")*self.health_cost)
+            else:
+                health_cost = self.health_cost
+            if not(isinstance(self.vitality_cost, int)):
+                vitality_cost = int(self.source.get_max("vitality")*self.vitality_cost)
+            else:
+                vitality_cost = self.vitality_cost
+            self.source.mp -= mp_cost
+            self.source.health -= health_cost
+            self.source.vitality -= vitality_cost
+
             return []
             
         def show_main_gfx(self, battle, attacker, targets):

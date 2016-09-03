@@ -1,6 +1,46 @@
+init -3 python:
+    # We create a font group to resolve rare characters in pretty fonts so we can use both at the same time.
+    tisa_otm_adv = FontGroup().add("fonts/Hosohuwafont.ttf", 0x2E80, 0xFE4F).add("fonts/DejaVuSans.ttf", 0x00A0, 0xE007F).add("fonts/TisaOTM.otf", 0x0020, 0x007f)
+    # tisa_otb_adv = FontGroup().add("fonts/", 0x00A0, 0xE007F).add("fonts/TisaOTB.otf", 0x0020, 0x007f)
+
 # Well... better late than never :)
 # My first ever style is created here!
 # Neow!
+init -3:
+    # Style resets:
+    style say_label:
+        clear
+     
+    # style window:
+        # clear
+         
+    # style frame:
+        # clear
+     
+    # style say_vbox:
+        # clear
+     
+    # style say_who_window:
+        # clear
+     
+    # style say_two_window_vbox:
+        # clear
+     
+    # style menu_choice:
+        # clear
+     
+    # style input:
+        # clear
+     
+    # style hyperlink_text:
+        # clear
+     
+    # style button:
+        # clear
+     
+    # style button_text:
+        # clear
+
 init -2: # Base Styles like Texts and Buttons just with the basic properties.
     # ----------------------------------- Buttons:
     style flashing:
@@ -11,6 +51,32 @@ init -2: # Base Styles like Texts and Buttons just with the basic properties.
         insensitive_background None
         hover_background flashing("#0390fc")
         selected_hover_background flashing("#0390fc")
+        
+    # Paging buttons:
+    style paging_green_button_left:
+        clear
+        xysize (29, 43)
+        background Frame(interfacebuttons + "arrow_left.png")
+        hover_background im.MatrixColor(interfacebuttons + "arrow_left.png", im.matrix.brightness(0.10))
+        insensitive_background im.Sepia(interfacebuttons + "arrow_left.png")
+    style paging_green_button_left2x:
+        clear
+        xysize (43, 43)
+        background Frame(interfacebuttons + "arrow_left2x.png")
+        hover_background im.MatrixColor(interfacebuttons + "arrow_left2x.png", im.matrix.brightness(0.10))
+        insensitive_background im.Sepia(interfacebuttons + "arrow_left2x.png")
+    style paging_green_button_right:
+        clear
+        xysize (29, 43)
+        background Frame(interfacebuttons + "arrow_right.png")
+        hover_background im.MatrixColor(interfacebuttons + "arrow_right.png", im.matrix.brightness(0.10))
+        insensitive_background im.Sepia(interfacebuttons + "arrow_right.png")
+    style paging_green_button_right2x:
+        clear
+        xysize (43, 43)
+        background Frame(interfacebuttons + "arrow_right2x.png")
+        hover_background im.MatrixColor(interfacebuttons + "arrow_right2x.png", im.matrix.brightness(0.10))
+        insensitive_background im.Sepia(interfacebuttons + "arrow_right2x.png")
         
     # Simple button we use to call the dropdowns:
     # This is a really basic, stipped down button.
@@ -148,7 +214,7 @@ init -2: # Base Styles like Texts and Buttons just with the basic properties.
         
     style TisaOTM:
         is text
-        font "fonts/TisaOTM.otf"
+        font tisa_otm_adv
         
     style della_respira:
         is text
@@ -230,7 +296,7 @@ init 2: # Advanced style that can carry a lot of properies to be used in screens
         drop_shadow [(1, 1)]
         drop_shadow_color black
         color "#EEE8CD"
-        insensitive_color "#808069" # warmgrey
+        insensitive_color "#808069"
         size 16
         outlines [(1, "#3a3a3a", 0, 0)]
         selected_outlines [(1, "#8B3E2F", 0, 0)]
@@ -303,46 +369,44 @@ init 2: # Advanced style that can carry a lot of properies to be used in screens
         bottom_padding 1
         xmargin 0
         ymargin 0
-    
-    style stats_frame:
+        
+    style proper_stats_frame:
         is frame
-        xysize (307, 31)
-        background Frame("content/gfx/frame/stat_box.png", 1, 1)
-    style stats_text:
+        background Frame("content/gfx/frame/stat_box_proper.png")
+        padding (0, 0)
+        margin (0, 0)
+    style proper_stats_frame:
+        is vbox
+        spacing 1
+    style proper_stats_main_frame:
+        is frame
+        background Frame(Transform("content/gfx/frame/p_frame4.png", alpha=0.6), 10, 10)
+        padding (12, 12)
+        margin (0, 0)
+    style proper_stats_text:
         is garamond
         color ivory
         outlines [(1, "#3a3a3a", 0, 0)]
         size 18
-    style stats_label_text:
+    style proper_stats_label_text:
         is della_respira
         outlines [(2, "#424242", 0, 0)]
         size 19
         color ivory
-    style stats_value_text:
+    style proper_stats_value_text:
         is della_respira
         outlines [(1, "#3a3a3a", 0, 0)]
         size 14
         color ivory
-        
-    style proper_stats_frame:
-        is frame
-        xpadding 0
-        ypadding 0
-        xmargin 0
-        ymargin 0
-        background Frame("content/gfx/frame/stat_box_proper.png", 5, 5)
-    style proper_stats_text:
-        is stats_text
-    style proper_stats_label_text:
-        is stats_label_text
-    style proper_stats_value_text:
-        is stats_value_text
+        yoffset 4
+        xalign 1.0
     
     # Style for profile buttons "pb"
     # Pretty and advanced style used in Heros Profile:
     style pb_button:
         is hframe_button
-        xysize (60, 30)
+        padding (6, 5)
+        
     style pb_button_text:
         font "fonts/rubius.ttf"
         size 17
@@ -351,7 +415,6 @@ init 2: # Advanced style that can carry a lot of properies to be used in screens
         selected_idle_color "#CDAD00"
         selected_hover_color "#CDAD00"
         xalign 0.5
-        ypos 15
     
     # Notifications:
     style notify_bubble:
@@ -484,6 +547,14 @@ init 2: # Advanced style that can carry a lot of properies to be used in screens
         size 12
         bold True
         color black
+        
+    style arena_header_text:
+        is garamond
+        color red
+        size 35
+        outlines [(3, "#3a3a3a", 1, 1)]
+        drop_shadow [(2, 3)]
+        drop_shadow_color black
 
 init: # Ren'Py Styles (Or replacements):
     ## FRAMEWORK FOR DIALOGUE

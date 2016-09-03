@@ -8,32 +8,28 @@ label tavern_town:
             pytfall.world_actions.look_around()
             pytfall.world_actions.finish()
     
-    scene bg tavern
+    scene bg tavern_town
     with dissolve
     show screen tavern_town
         
     $ pytfall.world_quests.run_quests("auto")
     $ pytfall.world_events.run_events("auto")
     
-    python:
+    while 1:
 
-        while True:
+        $ result = ui.interact()
 
-            result = ui.interact()
-
-            if result[0] == 'jump':
-                gm.start_gm(result[1])
-            if result[0] == 'control':
-                if result[1] == 'return':
-                    break
-            elif result[0] == 'location':
-                renpy.music.stop(channel="world")
-                jump(result[1])        
-                    
-    hide screen tavern_town
-    jump city
-    
-                
+        if result[0] == 'jump':
+            $ gm.start_gm(result[1])
+        if result[0] == 'control':
+            if result[1] == 'return':
+                hide screen tavern_town
+                jump city
+        elif result[0] == 'location':
+            $ renpy.music.stop(channel="world")
+            $ jump(result[1])
+            
+            
 screen tavern_town():
 
     use top_stripe(True)
@@ -48,7 +44,7 @@ screen tavern_town():
             align(0.5, 0.3)
             spacing 70
             for entry in gm.display_girls():
-                use rg_lightbutton(img=entry.show("girlmeets",  exclude=["swimsuit", "wildness", "beach", "pool","onsen", "indoors"], type="first_default", label_cache=True, resize=(300, 400)), return_value=['jump', entry])
+                use rg_lightbutton(img=entry.show("girlmeets",  exclude=["swimsuit", "wildness", "beach", "pool","onsen", "indoors", "formal", "indoor"], type="first_default", label_cache=True, resize=(300, 400)), return_value=['jump', entry])
 
     for key in pytfall.maps("pytfall_tavern"):
         if not key.get("hidden", False):

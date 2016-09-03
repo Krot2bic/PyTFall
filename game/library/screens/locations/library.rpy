@@ -114,11 +114,15 @@ init python:
         return books
         
 label academy_town:
+    
     $ gm.enter_location(goodtraits=["Nerd", "Dandere", "Impersonal", "Serious"], badtraits=["Aggressive", "Adventurer", "Ill-mannered", "Slime", "Monster", "Elf"], curious_priority=True)
+    
     if not "library" in ilists.world_music:
         $ ilists.world_music["library"] = [track for track in os.listdir(content_path("sfx/music/world")) if track.startswith("library")]
+        
     if not global_flags.has_flag("keep_playing_music"):
         play world choice(ilists.world_music["library"]) fadein 0.5
+        
     $ global_flags.del_flag("keep_playing_music")
     
     python:
@@ -130,25 +134,24 @@ label academy_town:
             
     scene bg academy_town
     with dissolve
-    show screen academy_town_entrance
-    python:
-
-        while True:
-
-            result = ui.interact()
-
-            if result[0] == 'jump':
-                gm.start_gm(result[1])
-            if result[0] == 'control':
-                renpy.hide_screen("academy_town_entrance")
-                if result[1] == 'return':
-                    break
-
-    $ renpy.music.stop(channel="world")
-    hide screen cemetery_entrance
-    jump city
+    show screen academy_town
     
-screen academy_town_entrance():
+    while 1:
+
+        $ result = ui.interact()
+
+        if result[0] == 'jump':
+            $ gm.start_gm(result[1])
+            
+        if result[0] == 'control':
+            hide screen academy_town
+            if result[1] == 'return':
+                $ renpy.music.stop(channel="world")
+                hide screen cemetery_entrance
+                jump city
+                
+                
+screen academy_town():
 
     use top_stripe(True)
     
@@ -162,10 +165,10 @@ screen academy_town_entrance():
             align(0.5, 0.3)
             spacing 70
             for entry in gm.display_girls():
-                use rg_lightbutton(img=entry.show("girlmeets", "indoors", "schoolgirl", exclude=["swimsuit", "wildness", "beach", "pool", "urban", "stage","onsen"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry])
+                use rg_lightbutton(img=entry.show("girlmeets", "indoors", "schoolgirl", exclude=["swimsuit", "wildness", "beach", "pool", "urban", "stage", "onsen", "indoor"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry])
                 
 label library_read_matrix:
-    hide screen academy_town_entrance
+    hide screen academy_town
     scene bg academy_town
     
     if not hasattr(store, "lib_books"):

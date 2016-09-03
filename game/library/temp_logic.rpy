@@ -1,4 +1,12 @@
 init python:
+    def list_files_test():
+        t = time.time()
+        c = 0
+        for fn in renpy.list_files():
+            if "content" in fn:
+                c = c + 1
+        return time.time() - t, c
+    
     def set_font_color(s, color):
         """
         @param: color: should be supplied as a string! Not as a variable!
@@ -327,123 +335,161 @@ screen testing_image_quality():
     add Transform("water_combined", zoom=-1) pos (400, 400)
     # Adding for testing and tweaking:
     # add "thunder_storm_3" align (0.5, 0.5)
+    
+init: # Robert's test:
+    transform battle_bounce_normal(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein 0.3 yoffset -250
+        easeout 0.3 yoffset 0
+        easein 0.3 yoffset -150
+        easeout 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_quad(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_quad 0.3 yoffset -250
+        easeout_quad 0.3 yoffset 0
+        easein_quad 0.3 yoffset -150
+        easeout_quad 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_cubic(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_cubic 0.3 yoffset -250
+        easeout_cubic 0.3 yoffset 0
+        easein_cubic 0.3 yoffset -150
+        easeout_cubic 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_quart(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_quart 0.3 yoffset -250
+        easeout_quart 0.3 yoffset 0
+        easein_quart 0.3 yoffset -150
+        easeout_quart 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_quint(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_quint 0.3 yoffset -250
+        easeout_quint 0.3 yoffset 0
+        easein_quint 0.3 yoffset -150
+        easeout_quint 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_expo(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_expo 0.3 yoffset -250
+        easeout_expo 0.3 yoffset 0
+        easein_expo 0.3 yoffset -150
+        easeout_expo 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_circ(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_circ 0.3 yoffset -250
+        easeout_circ 0.3 yoffset 0
+        easein_circ 0.3 yoffset -150
+        easeout_circ 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_back(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_back 0.3 yoffset -250
+        easeout_back 0.3 yoffset 0
+        easein_back 0.3 yoffset -150
+        easeout_back 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_elasctic(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_elastic 0.3 yoffset -250
+        easeout_elastic 0.3 yoffset 0
+        easein_elastic 0.3 yoffset -150
+        easeout_elastic 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    transform battle_bounce_bounce(pos):
+        alpha 1
+        pos pos # Initial position.
+        xanchor 0.5
+        easein_bounce 0.3 yoffset -250
+        easeout_bounce 0.3 yoffset 0
+        easein_bounce 0.3 yoffset -150
+        easeout_bounce 0.3 yoffset 0
+        linear 0.5 alpha 0
+        repeat
+            
+    screen test_penners_easing():
+        $ x = 60
+        for i in [battle_bounce_normal, battle_bounce_quad, battle_bounce_cubic, battle_bounce_quart, battle_bounce_quint, 
+                    battle_bounce_expo, battle_bounce_circ, battle_bounce_back, battle_bounce_elasctic, battle_bounce_bounce]:
+            text "100" color "F00" size 50 at i((x, 400))
+            $ x = x + 110
+        textbutton "All Done":
+            align (0.5, 0.9)
+            action Return()
         
-transform battle_bounce_normal(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein 0.3 yoffset -250
-    easeout 0.3 yoffset 0
-    easein 0.3 yoffset -150
-    easeout 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
+label testing_chain_udd:
+    # Testing under simpler conditions than the BE:
+    while 1:
+        $ gfx = ChainedAttack(ProportionalScale("content/gfx/be/swords.png", 150, 150), "content/sfx/sound/be/sword.mp3", chain_sfx=True, times=5, delay=.3)
+        $ renpy.show("_tag", what=gfx, at_list=[Transform(align=(.5, .5))])
+        pause 2.5
+        $ renpy.hide("_tag")
         
-transform battle_bounce_quad(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_quad 0.3 yoffset -250
-    easeout_quad 0.3 yoffset 0
-    easein_quad 0.3 yoffset -150
-    easeout_quad 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
+        menu:
+            "Try Again?"
+            
+            "Yes":
+                $ pass
+            "No":
+                return
+                
+                
+image wemb_test:
+    MovieLooped(channel="main_gfx_attacks", loops=2, play="content/gfx/be/webm/moz_movie.webm", mask="content/gfx/be/webm/moz_mask.webm")
+    pause 3.4
+    yoffset 100
+    pause 3.4
+    
+label test_webm:
+    while 1:
+        show wemb_test
+        pause 10
+        hide wemb_test
         
-transform battle_bounce_cubic(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_cubic 0.3 yoffset -250
-    easeout_cubic 0.3 yoffset 0
-    easein_cubic 0.3 yoffset -150
-    easeout_cubic 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
-        
-transform battle_bounce_quart(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_quart 0.3 yoffset -250
-    easeout_quart 0.3 yoffset 0
-    easein_quart 0.3 yoffset -150
-    easeout_quart 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
-        
-transform battle_bounce_quint(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_quint 0.3 yoffset -250
-    easeout_quint 0.3 yoffset 0
-    easein_quint 0.3 yoffset -150
-    easeout_quint 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
-        
-transform battle_bounce_expo(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_expo 0.3 yoffset -250
-    easeout_expo 0.3 yoffset 0
-    easein_expo 0.3 yoffset -150
-    easeout_expo 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
-        
-transform battle_bounce_circ(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_circ 0.3 yoffset -250
-    easeout_circ 0.3 yoffset 0
-    easein_circ 0.3 yoffset -150
-    easeout_circ 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
-        
-transform battle_bounce_back(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_back 0.3 yoffset -250
-    easeout_back 0.3 yoffset 0
-    easein_back 0.3 yoffset -150
-    easeout_back 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
-        
-transform battle_bounce_elasctic(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_elastic 0.3 yoffset -250
-    easeout_elastic 0.3 yoffset 0
-    easein_elastic 0.3 yoffset -150
-    easeout_elastic 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
-        
-transform battle_bounce_bounce(pos):
-    alpha 1
-    pos pos # Initial position.
-    xanchor 0.5
-    easein_bounce 0.3 yoffset -250
-    easeout_bounce 0.3 yoffset 0
-    easein_bounce 0.3 yoffset -150
-    easeout_bounce 0.3 yoffset 0
-    linear 0.5 alpha 0
-    repeat
-        
-screen test_penners_easing():
-    $ x = 60
-    for i in [battle_bounce_normal, battle_bounce_quad, battle_bounce_cubic, battle_bounce_quart, battle_bounce_quint, 
-                battle_bounce_expo, battle_bounce_circ, battle_bounce_back, battle_bounce_elasctic, battle_bounce_bounce]:
-        text "100" color "F00" size 50 at i((x, 400))
-        $ x = x + 110
-    textbutton "All Done":
-        align (0.5, 0.9)
-        action Return()
+        menu:
+            "Try Again?"
+            
+            "Yes":
+                $ pass
+            "No":
+                return

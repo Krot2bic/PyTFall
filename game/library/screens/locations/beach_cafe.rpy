@@ -17,28 +17,24 @@ label city_beach_cafe:
     $ pytfall.world_quests.run_quests("auto")
     $ pytfall.world_events.run_events("auto")
         
-    python:
+    while 1:
 
-        while True:
+        $ result = ui.interact()
 
-            result = ui.interact()
-
-            if result[0] == 'jump':
-                gm.start_gm(result[1])
-            
-            if result[0] == 'control':
-                if result[1] == 'return':
-                    break
-                    
-    hide screen city_beach_cafe
-    jump city_beach_cafe_main
-    
+        if result[0] == 'jump':
+            $ gm.start_gm(result[1])
+        
+        if result[0] == 'control':
+            if result[1] == 'return':
+                hide screen city_beach_cafe
+                jump city_beach_cafe_main
+                
                 
 screen city_beach_cafe:
 
     use top_stripe(True)
     
-    $img = im.Scale("content/gfx/interface/buttons/blue_arrow.png", 80, 80)
+    $ img = im.Scale("content/gfx/interface/buttons/blue_arrow.png", 80, 80)
     imagebutton:
         align (0.99, 0.5)
         idle (img)
@@ -56,4 +52,4 @@ screen city_beach_cafe:
             spacing 70
             
             for entry in gm.display_girls():
-                use rg_lightbutton(img=entry.show("girlmeets", "swimsuit", "beach", exclude=["urban", "wildness", "suburb", "nature", "winter", "night"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry]) 
+                use rg_lightbutton(img=entry.show("girlmeets", "swimsuit", "beach", exclude=["urban", "wildness", "suburb", "nature", "winter", "night", "formal", "indoor"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry]) 

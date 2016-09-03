@@ -25,11 +25,19 @@ init -999 python:
     sys.path.append(renpy.loader.transfn("library")) # May fail if we ever post to Android, there is now a new python folder for imports in newer Ren'Py version that can be used instead. SimPy.__init__ may have to be adjusted.
     import simpy
     import cPickle as pickle
+    import bisect
                 
     ############## Settings and other useful stuff ###############
     # absolute path to the pytfall/game directory, which is formatted according
     # to the conventions of the local OS
     gamedir = os.path.normpath(config.gamedir)
+    
+    # Binding for easy access to major gfx folders.
+    gfxpath = "content/gfx/"
+    gfxframes = "content/gfx/frame/"
+    gfximages = "content/gfx/images/"
+    interfaceimages = "content/gfx/interface/images/"
+    interfacebuttons = "content/gfx/interface/buttons/"
     
     def content_path(path):
         '''Returns proper path for a file in the content directory *To be used with os module.'''
@@ -299,30 +307,37 @@ init -999 python:
     # Backrounds are automatically registered in the game and set to width/height of the default screen
     # displayed by "show bg <filename>" or similar commands
     # file name without the extention
+    # for fname in os.listdir(gamedir + '/content/gfx/be/webm'):
+        # if fname.endswith(".webm") and not "mask" in fname:
+            # tag = fname[:-5]
+            # image = 'content/gfx/bg/' + fname
+            # renpy.image(tag, im.Scale(image, config.screen_width,
+                        # config.screen_height))
+    
     for fname in os.listdir(gamedir + '/content/gfx/bg'):
-        if fname.endswith('.jpg') or fname.endswith(".png"):
-            tag = 'bg ' + fname[:-4]
+        if fname.lower().endswith((".jpg", ".png", ".jpeg")):
+            tag = 'bg ' + fname.rsplit(".", 1)[0]
             image = 'content/gfx/bg/' + fname
             renpy.image(tag, im.Scale(image, config.screen_width,
                         config.screen_height))
     
     for fname in os.listdir(gamedir + '/content/gfx/bg/locations'):
-        if fname.endswith('.jpg') or fname.endswith(".png"):
-            tag = 'bg ' + fname[:-4]
+        if fname.lower().endswith((".jpg", ".png", ".jpeg")):
+            tag = 'bg ' + fname.rsplit(".", 1)[0]
             image = 'content/gfx/bg/locations/' + fname
             renpy.image(tag, im.Scale(image, config.screen_width,
                         config.screen_height))
             
     for fname in os.listdir(gamedir + '/content/gfx/bg/story'):
-        if fname.endswith(('.jpg', ".png")):
-            tag = 'bg ' + "story " + fname[:-4]
+        if fname.lower().endswith((".jpg", ".png", ".jpeg")):
+            tag = 'bg ' + 'story ' + fname.rsplit(".", 1)[0]
             image = 'content/gfx/bg/story/' + fname
             renpy.image(tag, im.Scale(image, config.screen_width,
                         config.screen_height))
            
     for fname in os.listdir(gamedir + '/content/gfx/bg/be'):
-        if fname.endswith('.jpg'):
-            tag = 'bg ' + fname[:-4]
+        if fname.lower().endswith((".jpg", ".png", ".jpeg")):
+            tag = 'bg ' + fname.rsplit(".", 1)[0]
             image = 'content/gfx/bg/be/' + fname
             renpy.image(tag, im.Scale(image, config.screen_width,
                         config.screen_height))
@@ -380,7 +395,7 @@ init -999 python:
 # X - Instant Exit
 # R - Recompilation of the game
 # Shows mouse coordinates
-screen debugTools():
+screen debug_tools():
     zorder 5
     vbox:
         align (0.02, 0.98)
@@ -415,6 +430,11 @@ init -1 python: # Constants:
 init:
     default SKILLS_MAX = {k:5000 for k in PytCharacter.SKILLS}
     default SKILLS_THRESHOLD = {k:2000 for k in PytCharacter.SKILLS} # Must be exceeded before skills becomes harder to gain.
+    default just_view_next_day = False
+    default char = None
+    default char_equip = None
+    default girls = None
+    default reset_building_management = True
     
 init 999 python:
     # ensure that all initialization debug messages have been written to disk

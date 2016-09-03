@@ -17,30 +17,26 @@ label city_park:
     
     show screen city_park
     
-    python:
-        while True:
-            
-            result = ui.interact()
-            
-            if result[0] == 'jump':
-                gm.start_gm(result[1])
-            
-            if result[0] == 'control':
-                if result[1] == 'jumpgates':
-                    global_flags.set_flag("keep_playing_music")
-                    hs()
+    while 1:
+        
+        $ result = ui.interact()
+        
+        if result[0] == 'jump':
+            $ gm.start_gm(result[1])
+        
+        if result[0] == 'control':
+            if result[1] == 'jumpgates':
+                $ global_flags.set_flag("keep_playing_music")
+                $ hs()
+                $ jump('city_parkgates')
 
-                    jump('city_parkgates')
-
-                if result[1] == 'return':
-                    break
-                    
-    $ global_flags.set_flag("keep_music_playing")
-    hide screen city_park
-    jump city_parkgates
-    
-
-screen city_park:
+            if result[1] == 'return':
+                $ global_flags.set_flag("keep_music_playing")
+                hide screen city_park
+                jump city_parkgates
+                
+                
+screen city_park():
     
     use top_stripe(True)
     
@@ -66,5 +62,5 @@ screen city_park:
             
             for entry in gm.display_girls():
 
-                    use rg_lightbutton(img=entry.show("girlmeets", "outdoors", "nature", "urban", exclude=["swimsuit", "wildness", "indoors", "stage", "beach", "pool", "onsen"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry])
+                    use rg_lightbutton(img=entry.show("girlmeets", "outdoors", "nature", "urban", exclude=["swimsuit", "wildness", "indoors", "stage", "beach", "pool", "onsen", "indoor"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry])
                         

@@ -22,7 +22,7 @@ init -1 python:
             self.girls = list()
             
             # Get available girls and check occupation
-            choices = list(i for i in chars.values() if i not in hero.girls and not i.arena_active and i.location in ["city", "girl_meets_quest"] and i not in gm.get_all_girls())
+            choices = list(i for i in chars.values() if i not in hero.chars and not i.arena_active and i.location in ["city", "girl_meets_quest"] and i not in gm.get_all_girls())
             # We remove all chars with badtraits:
             if badtraits:
                 choices = list(i for i in choices if not any(trait in badtraits for trait in i.traits))
@@ -156,7 +156,7 @@ init -1 python:
                 return self.girlcells[self.label_cache]
             
             else:
-                return list()    
+                return list()
         
         def get_all_girls(self):
             """
@@ -179,28 +179,11 @@ init -1 python:
                     cell.girls.remove(char)
         
         # Image Controls:
-        def generate_img(self, *args, **kwargs):
-            """
-            Generates a new image for the girl.
-            *Used upon first entering a location! This writes to cache so we know what image to fall back upon!
-            """
-            self.img_cache = self.img
-            kwargs["resize"] = kwargs.get("resize", self.img_size)
-            self.img = self.char.show(*args, **kwargs)
-            
         def set_img(self, *args, **kwargs):
-            """Sets the image, bypassing the image cache.
+            """Sets the image, leaving the image cache untouched.
             """
             kwargs["resize"] = kwargs.get("resize", self.img_size)
             self.img = self.char.show(*args, **kwargs)
-        
-        def change_img(self, img):
-            """Changes the image AND writes to cache!
-            
-            img = The image to change to.
-            """
-            self.img_cache = self.img
-            self.img = img
             
         def restore_img(self): 
             """Restores the image to the cached one.
@@ -283,6 +266,8 @@ init -1 python:
             self.mode = mode
             self.char = girl
             
+            hs() # Kill the current screen...
+            
             if exit is not None:
                 self.label_cache = exit
                 self.bg_cache = "bg " + (bg or exit)
@@ -290,17 +275,16 @@ init -1 python:
             elif bg is not None:
                 self.bg_cache = "bg " + bg
             
+            # Routine to get the correct image for this interaction:
             if img is None:
                 self.img = self.char.get_img_from_cache(str(last_label))
-                
-                if self.img == "":
+                if not self.img:
                     self.img = self.char.show("profile", resize=self.img_size, exclude=["nude", "bikini", "swimsuit", "beach", "angry", "scared", "ecstatic"])
-            
             else:
                 self.img = img
+            self.img_cache = self.img
             
-            global char
-            char = girl
+            store.char = girl
             
             if mode in self.USE_GI:
                 jump("girl_interactions")
@@ -315,6 +299,9 @@ init -1 python:
             exit = The exit label to use. Use to override enter_location function.
             bg = The background to use. Use to override enter_location function.
             """
+            if girl.flag("_day_countdown_interactions_blowoff"):
+                renpy.call("interactions_blowoff", char=girl, exit=last_label)
+            
             if girl.location == "girl_meets_quest":
                 self.start(girl.id, girl, img, exit, bg)
             else:
@@ -328,19 +315,10 @@ init -1 python:
             exit = The exit label to use. Defaults to "char_profile".
             bg = The background to use. Defaults to "gallery".
             """
-            self.start("girl_interactions", girl, img, exit, bg)
-        
-        def start_int_or_tr(self, girl, **kwargs):
-            """
-            Starts either the interaction or training scenario based on whether the girl is in a training/schooling location or not.
-            girl = The girl to use.
-            kwargs = Arguments to pass to the start_int or start_tr function.
-            """
-            if in_training_location(girl):
-                self.start_tr(girl, **kwargs)
+            if girl.flag("_day_countdown_interactions_blowoff"):
+                renpy.call("interactions_blowoff", char=girl, exit=last_label)
             
-            else:
-                self.start_int(girl, **kwargs)
+            self.start("girl_interactions", girl, img, exit, bg)
         
         def start_tr(self, girl, img=None, exit="char_profile", bg="sex_dungeon_1"):
             """
@@ -377,6 +355,7 @@ init -1 python:
             if not safe:
                 renpy.jump(self.label_cache)
     
+                
     class GMJump(Action):
         """
         Class to handle the jump logic for GM as an action.

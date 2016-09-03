@@ -1,5 +1,17 @@
+init python:
+    def appearing_for_city_map(mode="hide"):
+        for key in pytfall.maps("pytfall"):
+            if not key.get("hidden", False):
+                if "appearing" in key and key["appearing"]:
+                    idle_img = "".join([pytfall.map_pattern, key["id"], ".png"])
+                    appearing_img = Appearing(idle_img, 50, 200, start_alpha=.1)
+                    pos = key["pos"]
+                    if mode == "show":
+                        renpy.show(idle_img, what=appearing_img, at_list=[Transform(pos=pos)], layer="screens", zorder=2)
+                    if mode == "hide":
+                        renpy.hide(idle_img, layer="screens")
+
 label city:
-    
     # Music related:
     if not "pytfall" in ilists.world_music:
         $ ilists.world_music["pytfall"] = [track for track in os.listdir(content_path("sfx/music/world")) if track.startswith("pytfall")]
@@ -26,6 +38,10 @@ label city:
                 
             
 screen city_screen():
+    on "show":
+        action Function(appearing_for_city_map, "show")
+    on "hide":
+        action Function(appearing_for_city_map, "hide")
     
     # Keybind as we don't use the topstripe here anymore:
     key "mousedown_3" action Return(['control', 'return'])
@@ -38,9 +54,23 @@ screen city_screen():
     
     for key in pytfall.maps("pytfall"):
         if not key.get("hidden", False):
-            imagebutton:
-                idle "".join([pytfall.map_pattern, key["id"], ".png"])
-                hover "".join([pytfall.map_pattern, key["id"], "_hover.png"])
+            # Resolve images + Add Appearing where appropriate:
+            $ idle_img = "".join([pytfall.map_pattern, key["id"], ".png"])
+            $ hover_img = "".join([pytfall.map_pattern, key["id"], "_hover.png"])
+            $ pos = 0, 0
+            if "appearing" in key and key["appearing"]:
+                $ hover_img = im.MatrixColor(idle_img, im.matrix.brightness(0.08))
+                $ pos = key["pos"]
+                
+            button:
+                style 'image_button'
+                pos pos
+                if not("appearing" in key and key["appearing"]):
+                    idle_background idle_img
+                    hover_background hover_img
+                else:
+                    idle_background Transform(idle_img, alpha=.01)
+                    hover_background hover_img
                 focus_mask True
                 hovered tt.action(key['name'])
                 action Return(['location', key["id"]])

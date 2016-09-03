@@ -7,8 +7,11 @@ init -9 python:
     
     def register_quest(*args, **kwargs):
         """
-        Registers a new quest in an init block.
+        Registers a new quest in an init block (and now in labels as well!).
         """
+        if hasattr(store, "pytfall"):
+            return register_quest_in_label(*args, **kwargs)
+            
         q = WorldQuest(*args, **kwargs)
         world_quests.append(q)
         return q
@@ -70,6 +73,7 @@ init -9 python:
             if quest in self.quests: self.failed.append(quest)
             if quest in self.active: self.active.remove(quest)
             if quest in self.complete: self.complete.remove(quest)
+
         
         def first_day(self):
             """
@@ -152,15 +156,14 @@ init -9 python:
             
             # Find incomplete quests with no existing events
             for i in self.active:
-                for j in pytfall.world_events.events_cache:
-                    if j.quest == i.name:
-                        break
-                
-                else:
-                    if not i.manual: garbage.append(i)
+                if not i.manual:
+                    for j in pytfall.world_events.events_cache:
+                        if j.quest == i.name:
+                            garbage.append(i)
+                            break
             
-            while len(garbage) > 0:
-                devlog.warning("Garbage Quest found! \"%s\" was failed."%garbage[0].name)
+            while garbage:
+                devlog.warning("Garbage Quest found! \"%s\" was failed."%garbage[-1].name)
                 self.fail_quest(garbage.pop())
         
         def run_quests(self, param=None):
@@ -188,7 +191,7 @@ init -9 python:
         """
         Class to hold the current status of a quest.
         """
-        def __init__(self, name, auto=None, manual=None):
+        def __init__(self, name, auto=None, manual=True):
             """
             Creates a new Quest.
             name = The name of the quest. Use to refer to this quest, and shows up in the Quest log.
@@ -279,12 +282,31 @@ init -9 python:
             
             devlog.info("Quest Complete: %s"%self.name)
             
+            if renpy.get_screen("quest_notifications"):
+                renpy.hide_screen("quest_notifications")
+            
             if USE_QUEST_POPUP:
-                if "in_label" not in kwargs: renpy.show_screen("message_screen", "Quest Complete:\n%s"%self.name)
-                else: renpy.call_screen("message_screen", "Quest Complete:\n%s"%self.name, use_return=True)
+                renpy.show_screen("quest_notifications", self.name, "Complete")
+                # if "in_label" not in kwargs: renpy.show_screen("message_screen", "Quest Complete:\n%s"%self.name)
+                # else: renpy.call_screen("message_screen", "Quest Complete:\n%s"%self.name, use_return=True)
                 
                 # No squelch, as only works on active quests
         
+        def fail(self, prompt, *flags, **kwargs):
+            """
+            Fails the quest while making a note about it in the quest log.
+            prompt = Prompt to add to the Quest log.
+            """
+            if not self.failed: pytfall.world_quests.fail_quest(self)
+            self.prompts.append(prompt)
+            devlog.info("Quest Failed: %s"%self.name)
+            
+            if renpy.get_screen("quest_notifications"):
+                renpy.hide_screen("quest_notifications")
+            
+            if USE_QUEST_POPUP:
+                renpy.show_screen("quest_notifications", self.name, "Failed")
+                
         def finish_in_label(self, *args, **kwargs):
             """
             Finishes the quest in labels.
@@ -315,16 +337,21 @@ init -9 python:
             
             devlog.info("Update Quest: %s to %s"%(self.name, str(self.stage)))
             
+            if renpy.get_screen("quest_notifications"):
+                renpy.hide_screen("quest_notifications")
+            
             if USE_QUEST_POPUP:
                 if len(self.prompts) == 1:
-                    if "in_label" not in kwargs: renpy.show_screen("message_screen", "New Quest:\n%s"%self.name)
-                    else: renpy.call_screen("message_screen", "New Quest:\n%s"%self.name, use_return=True)
-                
+                    renpy.show_screen("quest_notifications", self.name, "New")
+                    # if "in_label" not in kwargs: renpy.show_screen("message_screen", "New Quest:\n%s"%self.name)
+                    # else: renpy.call_screen("message_screen", "New Quest:\n%s"%self.name, use_return=True)
+                 
                 elif not self.squelched:
-                    if "in_label" not in kwargs: renpy.show_screen("message_screen", "Quest Updated:\n%s"%self.name)
-                    else: renpy.call_screen("message_screen", "Quest Updated:\n%s"%self.name, use_return=True)
-                
-                pytfall.world_quests.squelch_quest(self)
+                    renpy.show_screen("quest_notifications", self.name, "Updated")
+                    # if "in_label" not in kwargs: renpy.show_screen("message_screen", "Quest Updated:\n%s"%self.name)
+                    # else: renpy.call_screen("message_screen", "Quest Updated:\n%s"%self.name, use_return=True)
+                 
+                # pytfall.world_quests.squelch_quest(self)
         
         def next_in_label(self, *args, **kwargs):
             """
@@ -365,9 +392,13 @@ init -9 python:
             
             devlog.info("Auto-Start Quest: %s"%self.name)
             
+            if renpy.get_screen("quest_notifications"):
+                renpy.hide_screen("quest_notifications")
+            
             if USE_QUEST_POPUP:
                 # Called in mainscreen, show works
-                renpy.show_screen("message_screen", "New Quest:\n%s"%self.name, use_return=True)
-                pytfall.world_quests.squelch_quest(self)
+                renpy.show_screen("quest_notifications", self.name, "New")
+                # renpy.show_screen("message_screen", "New Quest:\n%s"%self.name, use_return=True)
+                # pytfall.world_quests.squelch_quest(self)
         
     

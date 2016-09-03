@@ -220,166 +220,6 @@ init -9 python:
         def show(self, *tags, **kwargs):
             return ProportionalScale(self.img, 205, 205)
         
-    
-    class FighterGuild(DirtyBuilding):
-        """
-        The Fighters Guild building.
-        """
-        
-        ACTIONS = ["Rest", "Training", "ServiceGirl", "BarGirl"]
-        
-        def __init__(self):
-            """
-            Creates a new Fighters Guild.
-            """
-            super(FighterGuild, self).__init__()
-            self.fin = Finances(self)
-            
-            # Related to exploration code:
-            self.exploring = list()
-            self.focus_team = None
-            
-            # Building related:
-            self.upgrades = OrderedDict()
-            self.upgrades["bar"] = [False, "content/buildings/upgrades/bar.jpg", 5000]
-            self.upgrades["healing onsen"] = [False, "content/buildings/upgrades/onsen.jpg", 10000]
-            self.upgrades["sparring quarters"] = [False, "content/buildings/upgrades/sparring_qt.jpg", 20000]
-            
-            self.manager = None # Manager of the FG
-            self.managers = dict() # Managers tracker (days counter)
-            
-            self.capture_girls = False
-        
-        def get_exp_chars(self):
-            """
-            Returns a list of all exploring girls
-            """
-            pass
-        
-        def get_team_price(self):
-            """
-            Gets the price for all the teams.
-            """
-            bp = 20000
-            if len(self.teams):
-                bp = bp + bp * self.multi * len(self.teams)
-            
-            return bp
-        
-        def next_day(self):
-            """
-            Solve the next day logic.
-            """
-            # Early reset:
-            self.flag_red = False
-            self.flag_green = False
-            sg = None # Service Girl
-            bg = None # Bar Girl
-            
-            stats = dict()
-            txt = list()
-            
-            txt.append("Fighters Guild Reporting:\n\n")
-            
-            _girls = len(list(g for g in self.get_girls() if g.action == "Exploring"))
-            girls = list(g for g in self.get_girls() if g.action != "Exploring")
-            
-            if _girls:
-                txt.append("You currently have %d %s on Explorating!\n\n" % (_girls, plural("girl", _girls)))
-            
-            if girls:
-                txt.append("There are %d %s in the guild!\n\n" % (len(girls), plural("girl", len(girls))))
-            
-            if not _girls and not girls:
-                txt.append("There is nothing to report...")
-            
-            for g in girls:
-                if g.action == "ServiceGirl":
-                    if g.health < 60 or g.vitality < 35:
-                        g.previousaction = g.action
-                        g.action = "Rest"
-                        girls.append(g)
-                    
-                    else:
-                        cleffect = int(round(self.APr * (12 + g.serviceskill * 0.25 + g.agility * 0.3)))
-                        self.clean(cleffect)
-                        sg = g
-                        
-                        evt = NDEvent()
-                        evt.type = 'fg_job'
-                        evt.char = g
-                        self.loc = fg
-                        evt.img = g.show("maid", "cleaning", exclude=["sex"], resize=(740, 685), type="any")
-                        evt.txt = choice(["[g.name] is taking care of the girls in the Guild.", "[g.nickname] keeping the Guild running, clean and happy :)"])
-                        NextDayList.append(evt)
-                
-                elif g.action == "BarGirl":
-                    if g.health < 60 or g.vitality < 35:
-                        g.previousaction = g.action
-                        g.action = "Rest"
-                        girls.append(g)
-                    
-                    else:
-                        cleffect = int(round(self.APr * (12 + g.serviceskill * 0.25 + g.agility * 0.3)))/2
-                        self.clean(cleffect)
-                        sg = g
-                        
-                        evt = NDEvent()
-                        evt.type = 'fg_job'
-                        evt.char = g
-                        self.loc = fg
-                        evt.img = g.show("waitress", "maid", exclude=["sex"], resize=(740, 685), type="any")
-                        evt.txt = choice(["[g.name] took care of the Bar and the guild, making sure all of the members were happy.", "[g.nickname] keeping the Bar running and the Guild clean and happy :)"])
-                        NextDayList.append(evt)
-                
-                elif g.action == "Training":
-                    if g.health < 60 or g.vitality < 35:
-                        g.previousaction = g.action
-                        g.action = "Rest"
-                        girls.append(g)
-                    
-                    else:
-                        FG_CombatTraining(g)
-                
-                elif g.action == "Rest":
-                    FG_Rest(g)
-                
-                else:
-                    # In all other cases we set girl trianing or rest for slaves:
-                    if g.action != "slave":
-                        g.previousaction = None
-                        g.action = "Training"
-                        girls.append(g)
-                    
-                    else:
-                        g.previousaction = None
-                        g.action = "Rest"
-                        girls.append(g)
-            
-            # Exploration Jobs:
-            for i in self.exploring:
-                i.next_day()
-            
-            # Create the event:
-            evt = NDEvent()
-            evt.red_flag = self.flag_red
-            evt.green_flag = self.flag_green
-            #evt.girlmod = stats
-            evt.type = 'fg_report'
-            evt.char = None
-            self.loc = fg
-            evt.img = self.img
-            if isinstance(txt, (list, tuple)):
-                try:
-                    evt.txt = "".join(txt)
-                except TypeError:
-                    evt.txt = "".join(str(i) for i in txt)
-            # evt.txt = "".join(txt)
-            NextDayList.append(evt)
-            
-            self.fin.next_day()
-        
-    
     class Building(NewStyleUpgradableBuilding, DirtyBuilding, FamousBuilding):
         """
         The building that represents Business Buildings.
@@ -632,8 +472,8 @@ init -9 python:
             type = 'buildingreport'
             img = self.img
             
-            txt = self.txt
-            txt = txt + "\n".join(self.nd_events_report)
+            # txt = self.txt # We no longer store any data previous to the reports list and use vbox + interation instead of one huge text.
+            txt = self.nd_events_report
             
             evtlist = []
             char = None
@@ -659,7 +499,7 @@ init -9 python:
             if self.security_rating < 0: self.security_rating = 0
             if self.security_rating > 1000: self.security_rating = 1000
             
-            txt += "Security Rating in now %d out of 1000, you currently have %d guards on duty with security presence of %d %%. \n\n"% (self.security_rating, len(guardslist), self.security_presence)  
+            txt.append("Security Rating in now %d out of 1000, you currently have %d guards on duty with security presence of %d %%. \n\n"% (self.security_rating, len(guardslist), self.security_presence))  
             
             # Effects from upgrades:
             # TODO: Upgrade to new style!
@@ -728,16 +568,16 @@ init -9 python:
                 
                 spentcash = spentcash + 5000
                 
-                txt += "A celebrity came into your brothel, raising it's reputation by %d and fame by %d\n" % (modrcel,modfcel)
+                txt.append("A celebrity came into your brothel, raising it's reputation by %d and fame by %d\n" % (modrcel,modfcel))
                 
                 self.adverts['celeb']['active'] = False
             
-            txt += "In total you got a bill of %d Gold in advertising fees, reputation was increased through advertising by %d, fame by %d." % (spentcash, tmodfame, tmodrep)
+            txt.append("In total you got a bill of %d Gold in advertising fees, reputation was increased through advertising by %d, fame by %d." % (spentcash, tmodfame, tmodrep))
             
             if spentcash and not hero.take_money(spentcash, reason="Building Ads"):
                 rep_hit = max(10, spentcash/10)
                 self.modrep(-rep_hit)
-                txt += "{color=[red]}And yet, you did not have enought money to pay your advertisers! They rook it out on you by promoting %s as a shitty dump...{/color}" % self.name
+                txt.append("{color=[red]}And yet, you did not have enought money to pay your advertisers! They rook it out on you by promoting %s as a shitty dump...{/color}" % self.name)
                 self.flag_red = True
             
             self.fin.log_expense(spentcash, "Ads")
@@ -749,7 +589,7 @@ init -9 python:
             evt.char = char
             evt.img = img
             evt.txt = txt
-            NextDayList.append(evt)
+            NextDayEvents.append(evt)
             
             # Resetting all logs and relays:
             # Relay resets:
@@ -1023,14 +863,14 @@ init -9 python:
             
             # Do one off events
             while self.one_off_events:
-                NextDayList.append(self.one_off_events.pop())
+                NextDayEvents.append(self.one_off_events.pop())
             
             evt = NDEvent()
             evt.type = type
             evt.char = char
             evt.img = img
             evt.txt = txt
-            NextDayList.append(evt)
+            NextDayEvents.append(evt)
         
     
     class School(BaseBuilding):
@@ -1148,7 +988,7 @@ init -9 python:
             evtlist = []
             char = None
             
-            girls = [girl for girl in hero.girls if girl.location == self.name]
+            girls = [girl for girl in hero.chars if girl.location == self.name]
             
             if not girls:
                 txt += "Exellent courses are availible today! Remember our Motto: Education is Gold! \n"
@@ -1235,11 +1075,11 @@ init -9 python:
             
             # Do one off events
             while self.one_off_events:
-                NextDayList.append(self.one_off_events.pop())
+                NextDayEvents.append(self.one_off_events.pop())
             
             evt = NDEvent()
             evt.type = type
             evt.char = char
             evt.img = img
             evt.txt = txt
-            NextDayList.append(evt)
+            NextDayEvents.append(evt)

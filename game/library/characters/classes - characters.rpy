@@ -1,6 +1,18 @@
 # Characters classes and methods:
 init -9 python:
     ###### Character Helpers ######
+    def kill_char(char):
+        # Attempts to remove a character from the game world.
+        # This happens automatiaclly if char.health goes 0 or below.
+        char._location = "After Life"
+        char.alive = False
+        if char in hero.chars:
+            hero.corpses.append(char)
+            hero.remove_char(char)
+        if char in hero.team:
+            hero.team.remove(char)
+        gm.remove_girl(char)
+    
     class SmartTracker(_list):
         """
         Basically a smart list that tracks anything that can be added by items and events/game.
@@ -93,6 +105,7 @@ init -9 python:
                 trait = store.traits[trait]
             char = self.instance
             
+            # All the checks required to make sure we can even apply this fucking trait: ======================>>
             if trait.sex not in ["unisex", char.gender]:
                 return
             
@@ -138,6 +151,8 @@ init -9 python:
             if not super(Traits, self).append(trait, truetrait):
                 return
             
+            # If we got here... we can apply the effect? Maybe? Please? Just maybe? I am seriouslly pissed at this system right now... ===========>>>
+                
             stats = self.instance.stats
             # If the trait is a basetrait:
             if trait in self.basetraits:
@@ -171,6 +186,11 @@ init -9 python:
                         msg = "'%s' trait tried to apply unknown init skillt: %s!"
                         devlog.warning(str(msg % (trait.id, skill)))
                 
+            # Only for body traits:
+            if trait.body:
+                if trait.mod_ap:
+                    self.instance.baseAP += trait.mod_ap
+                        
             for key in trait.max:
                 if key in stats.max:
                    stats.max[key] += trait.max[key]
@@ -203,6 +223,10 @@ init -9 python:
                     char.disposition += trait.mod[key]
                 elif key == 'upkeep':
                     char.upkeep += trait.mod[key]
+                elif key == 'evasion':
+                    char.evasion += trait.mod[key]
+                elif key == 'resistance':
+                    char.resistance += trait.mod[key]
                 for level in xrange(char.level+1):
                     char.stats.apply_traits_mod_on_levelup()
                 
@@ -212,6 +236,10 @@ init -9 python:
                     char.disposition += trait.mod_stats[key][0]
                 elif key == 'upkeep':
                     char.upkeep += trait.mod_stats[key][0]
+                elif key == 'evasion':
+                    char.evasion += trait.mod_stats[key][0]
+                elif key == 'resistance':
+                    char.resistance += trait.mod_stats[key][0]
                 for level in xrange(char.level+1):
                     char.stats.apply_traits_mod_on_levelup()
                     
@@ -302,7 +330,10 @@ init -9 python:
                     stats -= trait.mod[key]
                 elif key == 'upkeep':
                     char.upkeep -= trait.mod[key]
-                
+                elif key == 'evasion':
+                    char.evasion -= trait.mod[key]
+                elif key == 'resistance':
+                    char.resistance -= trait.mod[key]
                 for level in xrange(char.level+1):
                    char.stats.apply_traits_mod_on_levelup(reverse=True)
 
@@ -559,7 +590,7 @@ init -9 python:
  
             # else:
                 # for stat in char.stats:
-                    # if stat not in ["disposition", "libido", "joy", "health", "vitality", "mood"]:
+                    # if stat not in ["disposition", "joy", "health", "vitality", "mood"]:
                         # wage += getattr(char, stat)
                 # wage = wage/2
  
@@ -655,7 +686,7 @@ init -9 python:
                     # bp = 3000 # Base Price
                     # sp = 0
                     # for stat in char.stats:
-                        # if stat not in ["disposition", "libido", "joy", "health", "vitality", "mood"]:
+                        # if stat not in ["disposition", "joy", "health", "vitality", "mood"]:
                             # sp += getattr(char, stat)
                      
                     # if sp > 1200:
@@ -701,7 +732,7 @@ init -9 python:
                     # bu = 20
                     # su = 0 # Stats Upkeep
                     # for stat in char.stats:
-                        # if stat not in ["disposition", "libido", "joy", "health", "vitality", "mood"]:
+                        # if stat not in ["disposition", "joy", "health", "vitality", "mood"]:
                             # su += getattr(char, stat)
  
                     # return int(bu + su + char.upkeep)
@@ -713,7 +744,7 @@ init -9 python:
                 # bu = 50
                 # su = 0 # Stats Upkeep
                 # for stat in char.stats:
-                    # if stat not in ["disposition", "libido", "joy", "health", "vitality", "mood"]:
+                    # if stat not in ["disposition", "joy", "health", "vitality", "mood"]:
                         # su += getattr(char, stat)
  
                 # return int(bu + su + char.upkeep)
@@ -748,10 +779,10 @@ init -9 python:
         Some of it's methods assume input from self.instance__setattr__ and do extra calculations!
         @ TODO: Recode to avoid extra calculations in the future???
         """
-        FIXED_MAX = set(['libido', 'joy', 'mood', 'disposition', 'vitality', 'luck', 'alignment'])
+        FIXED_MAX = set(['joy', 'mood', 'disposition', 'vitality', 'luck', 'alignment', 'evasion', 'resistance'])
         
         # Stats:
-        # alignment, charisma, constitution, fame, health, intelligence, libido, reputation, vitality
+        # alignment, charisma, constitution, fame, health, intelligence, reputation, vitality
         # alignment might not be on girls?
         
         # Other Stats:
@@ -847,7 +878,7 @@ init -9 python:
                 val = self.min[key]
                 
             # Normalize for displaying (if less than 0):
-            if key not in ["disposition", "luck"]:
+            if key not in ["disposition", "luck", "evasion", "resistance"]:
                 if val < 0:
                     val = 0
                 
@@ -915,12 +946,13 @@ init -9 python:
                         self.lvl_max[stat] += 5
                         self.max[stat] += 2
                         
-                        # This may need to be reviced:
-                        if self.level > 50:
-                            val = self.level / 20.0 + self.stats["luck"] / 10.0
+                        # Chance to increase max stats permanently based on level
+                        if self.level >= 20:
+                            val = self.level / 20.0
+                            if dice(val):
+                                self.lvl_max[stat] +=1
                             if dice(val):
                                 self.max[stat] +=1
-                        
                 # Super Bonuses from Base Traits:
                 if hasattr(self.instance, "traits"):
                     traits = self.instance.traits.basetraits
@@ -957,13 +989,13 @@ init -9 python:
             if hasattr(self.instance, "traits"):
                 for trait in self.instance.traits:
                     for key in trait.mod: # This needs to be removed:
-                        if key not in ["disposition", "upkeep"]:
+                        if key not in ["disposition", "upkeep", "evasion", "resistance"]:
                             if not self.level%5:
                                 mod_value = int(round(trait.mod[key]*0.05))
                                 self.mod(key, mod_value) if not reverse else self.mod(key, -mod_value)
                                 
                     for key in trait.mod_stats:
-                        if key not in ["disposition", "upkeep"]:
+                        if key not in ["disposition", "upkeep", "evasion", "resistance"]:
                             if not self.level%trait.mod_stats[key][1]:
                                 self.mod(key, trait.mod_stats[key][0]) if not reverse else self.mod(key, -trait.mod_stats[key][0])
                 
@@ -980,14 +1012,8 @@ init -9 python:
                         jump("game_over")
                         return
                     elif isinstance(self.instance, Char):
-                        girl = self.instance
-                        girl._location = "After Life"
-                        girl.alive = False
-                        if girl in hero.girls:
-                            hero.corpses.append(girl)
-                            hero.remove_girl(girl)
-                        if girl in hero.team:
-                            hero.team.remove(girl)
+                        char = self.instance
+                        kill_char(char)
                         return
                         
                 maxval = self.get_max(key)
@@ -1070,6 +1096,7 @@ init -9 python:
             self.name = ""
             self.fullname = ""
             self.nickname = ""
+            self._mc_ref = None # This is how characters refer to MC (hero). May depend on case per case basis and is accessed through obj.mc_ref property.
             self.height = "average"
             self.full_race = ""
             self.gender = "female"
@@ -1136,7 +1163,6 @@ init -9 python:
                 
             # Stat support Dicts:
             stats = {
-                'libido': [0, 0, 100, 100],
                 'constitution': [0, 0, 100, 100],
                 'reputation': [0, 0, 100, 100],
                 'health': [100, 0, 100, 200],
@@ -1152,7 +1178,9 @@ init -9 python:
                 'magic': [0, 0, 100, 100],
                 'defence': [0, 0, 100, 100],
                 'agility': [0, 0, 100, 100],
-                'mp': [0, 0, 30, 30]
+                'mp': [0, 0, 30, 30],
+                'evasion': [0, -100, 100, 100],
+                'resistance': [0, -100, 100, 100]
             }
             self.stats = Stats(self, stats=stats)
             self.STATS = set(self.stats.stats.keys())
@@ -1229,9 +1257,87 @@ init -9 python:
             self.gold += amount
             
         # Game assist methods:
+        def set_status(self, s):
+            if s not in ["slave", "free"]:
+                raise Exception("{} status is not valid for {} with an id: {}".format(s, self.__class__, self.id))
+            self.status = s
+            
         # Properties:
         @property
+        def mc_ref(self):
+            if self._mc_ref is None:
+                if self.status == "slave":
+                    return "Master"
+                else:
+                    return hero.name
+            else:
+                return self._mc_ref
+                
+        @property
+        def p(self):
+            # Subject pronoun (he/she/it): (prolly most used so we don't call it 'sp'):
+            if self.gender == "female":
+                return "she"
+            elif self.gender == "male":
+                return "he"
+            else:
+                return "it"
+                
+        @property
+        def pC(self):
+            # Subject pronoun (he/she/it) capitalized:
+            return self.p.capitalize()
+                
+        @property
+        def op(self):
+            # Object pronoun (him, her, it):
+            if self.gender == "female":
+                return "her"
+            elif self.gender == "male":
+                return "him"
+            else:
+                return "it"
+                
+        @property
+        def opC(self):
+            # Object pronoun (him, her, it) capitalized:
+            return self.op.capitalize()
+            
+        @property
+        def pp(self):
+            # Possessive pronoun (his, hers, its):
+            # This may 'gramatically' incorrect, cause things (it) cannot possess/own anything but knowing PyTFall :D
+            if self.gender == "female":
+                return "hers"
+            elif self.gender == "male":
+                return "his"
+            else:
+                return "its"
+                
+        @property
+        def ppC(self):
+            # Possessive pronoun (his, hers, its) capitalized::
+            return self.pp.capitalize()
+            
+        @property
+        def hs(self):
+            if self.gender == "female":
+                return "sister"
+            else:
+                return "brother"
+                
+        @property
+        def hss(self):
+            if self.gender == "female":
+                return "sis"
+            else:
+                return "bro"
+              
+        @property
         def is_available(self):
+            # So we already have this property!
+            # This needs to be expanded to cover the guild.
+            # Is this enought or should there be separate tracker properties for gameworld and player actions? This will prolly do for now.
             if not self.alive:
                 return False
             return self._available
@@ -1432,8 +1538,7 @@ init -9 python:
             if self.AP - value >= 0:
                 self.AP -= value
                 return True
-            else:
-                return False
+            return False
                 
         def auto_training(self, kind):
             """
@@ -1479,7 +1584,14 @@ init -9 python:
             self.stats.log["level"] = self.level
             
         # -------------------------------------------------------------------------------->
-        # Equipment Methods (They assume a character has an inventory)
+        # Equipment Methods (They often assume a character has an inventory)
+        def eq_items(self):
+            """Returns a list of all equiped items."""
+            if hasattr(self, "eqslots"):
+                return self.eqslots.values()
+            else:
+                return []
+            
         def add_item(self, item, amount=1):
             self.inventory.append(item, amount=amount)
         
@@ -2131,8 +2243,15 @@ init -9 python:
                     if self.effects[entry]['active']:
                         self.disable_effect(entry)
                         
-            if item.jump_to_label:
-                jump(item.jump_to_label)
+            # Jump away from equipment screen if appropriate:
+            if hasattr(store, "dummy") and not dummy:
+                if item.jump_to_label:
+                    renpy.scene(layer="screens")
+                    global_flags.del_flag("hero_equip")
+                    eqtarget.inventory.set_page_size(15)
+                    hero.inventory.set_page_size(15)
+                    
+                    jump(item.jump_to_label)
                 
         def remove_item_effects(self, item):
             # Attacks/Magic:
@@ -2298,12 +2417,15 @@ init -9 python:
             
         def next_day(self):
             # Day counter flags:
-            for flag in self.flags.iterkeys():
+            for flag in self.flags.keys():
                 if flag.startswith("_day_countdown"):
                     self.down_counter(flag, value=1, min=0, delete=True)
+                # Deleting _jobs flags once all jobs are complete.
+                elif flag.startswith("_jobs"):
+                    self.del_flag(flag)
             
             # Log stats to display changes on the next day (Only for chars to whom it's useful):
-            if self in hero.girls:
+            if self in hero.chars:
                 self.log_stats()
 
             
@@ -2379,9 +2501,6 @@ init -9 python:
             self.combat_img = ""
             
             self.controller = BE_AI(self)
-            
-            # Monster is revealed in bestiary after it's been deafeated once!
-            self.defeated = False
    
         def show(self, what, resize=(None, None), cache=True):
             if what == "battle":
@@ -2443,11 +2562,10 @@ init -9 python:
             self.gender = "male"
             
             # Player only...
-            self.corpses = list() # Dead bodies go here until disposed off.
-
-            self._brothels = list()
+            self.corpses = list() # Dead bodies go here until disposed off. Why the fuck here??? There gotta be a better place for dead chars than MC's class. We're not really using this atm anyway....
+            
             self._buildings = list()
-            self._girls = list()
+            self._chars = list()
             
             self.guard_relay = {"bar_event": {"count": 0, "helped": list(), "stats": dict(), "won": 0, "lost": 0},
                                            "whore_event": {"count": 0, "helped": list(), "stats": dict(), "won": 0, "lost": 0},
@@ -2460,17 +2578,9 @@ init -9 python:
             self.fin = Finances(self)
             
             # Team:
-            self.team = Team(implicit = [self])
+            self.team = Team(implicit=[self])
             self.team.name = "Player Team"
             
-            
-        # def __setattr__(self, key, value):
-            # if key == 'health' and value <= 0:
-                # jump("game_over")
-                # return
-            # else:
-                # super(Player, self).__setattr__(key, value)
-                
         # Fin Methods:
         def take_money(self, value, reason="Other"):
             return self.fin.take_money(value, reason)
@@ -2510,59 +2620,30 @@ init -9 python:
         def add_building(self, building):
             if building not in self._buildings:
                 self._buildings.append(building)
-            
-            # if isinstance(building, Brothel):
-                # if building not in self._brothels:
-                    # self._brothels.append(building)
         
         def remove_building(self, building):
-            # if building in self._brothels:
-                # self._brothels.remove(building)
-            
             if building in self._buildings:
                 self._buildings.remove(building)
-            
             else:
                 raise Exception, "This building does not belong to the player!!!"
-        
-        # @property
-        # def brothels(self):
-            # """List of owned brothels
-            # :returns: list
- 
-            # """
-            # return self._brothels
-
-        # def add_brothel(self, brothel):
-            # if brothel not in self.brothels:
-                # self._brothels.append(brothel)
-            # if brothel not in self._buildings:
-                # self.add_building(brothel)
-            
-        # def remove_brothel(self, brothel):
-            # if brothel in self._brothels:
-                # self._brothels.remove(brothel)
-            # if brothel in self._buildings:
-                # self._buildings.remove(brothel)
-            # else:
-                # raise Exception, "This brothel does not belong to the player!!!"
             
         @property
-        def girls(self):
+        def chars(self):
             """List of owned girls
             :returns: @todo
             """
-            return self._girls
+            return self._chars
 
-        def add_girl(self, girl):
-            if girl not in self._girls:
-                self._girls.append(girl)
+        def add_char(self, char):
+            if char not in self._chars:
+                self._chars.append(char)
 
-        def remove_girl(self, girl):
-            if girl in self._girls:
-                self._girls.remove(girl)
+        def remove_char(self, char):
+            if char in self._chars:
+                self._chars.remove(char)
             else:
-                raise Exception, "This girl (ID: %s) is not in service to the player!!!" % self.id
+                raise Exception, "This char (ID: %s) is not in service to the player!!!" % self.id
+                
         # ----------------------------------------------------------------------------------
         # Show to mimic girls method behaviour:
         def has_image(self, *tags):
@@ -2756,7 +2837,7 @@ init -9 python:
                 if total_debt > 50000:
                     txt += " {color=[red]}... And... your're pretty much screwed because it is above 50000!{/color} Your property will now be confiscated :("
                     all_properties = list()    
-                    for girl in hero.girls:
+                    for girl in hero.chars:
                         if girl.status == "slave":
                             all_properties.append(girl)
                     for b in businesses:
@@ -2776,7 +2857,7 @@ init -9 python:
                             self.remove_brothel(confiscate)
                         elif isinstance(confiscate, Char):
                             price = confiscate.fin.get_price()
-                            hero.remove_girl(confiscate)
+                            hero.remove_char(confiscate)
                             confiscate.location = 'slavemarket'
                             if confiscate in self.team:
                                 self.team.remove(confiscate)
@@ -2882,7 +2963,7 @@ init -9 python:
             evt.char = self
             evt.img = img
             evt.txt = txt
-            NextDayList.append(evt)
+            NextDayEvents.append(evt)
             
             # -------------
             self.cache = list()
@@ -2915,6 +2996,7 @@ init -9 python:
             # }
         RANKS = {}
         MOOD_TAGS = set(["angry", "confident", "defiant", "ecstatic", "happy", "indifferent", "provocative", "sad", "scared", "shy", "tired", "uncertain"])
+        UNIQUE_SAY_SCREEN_PORTRAIT_OVERLAYS = ["zoom_fast", "zoom_slow", "test_case"]
         def __init__(self):
             super(Char, self).__init__(arena=True, inventory=True)
             # Game mechanics assets
@@ -3010,10 +3092,9 @@ init -9 python:
             # self.action = None # Moved to parent class
             self.previousaction = ''
             
-            ### Stats:
+            ### Stats:    <--------- Dark: we already have the same dict (with a bit different numbers) in PytCharacter class. I wonder if we need both dicts.
             stats = {
-                'charisma': [0, 0, 100, 60],
-                'libido': [0, 0, 100, 100],
+                'charisma': [0, 0, 100, 60],          # means [stat, min, max, lvl_max]
                 'constitution': [0, 0, 60, 40],
                 'joy': [0, 0, 100, 200],
                 'character': [0, 0, 100, 60],
@@ -3022,7 +3103,7 @@ init -9 python:
                 'fame': [0, 0, 100, 60],
                 'mood': [0, 0, 1000, 1000],
                 'disposition': [0, -1000, 1000, 1000],
-                'vitality': [300, 0, 300, 500],
+                'vitality': [200, 0, 200, 500],
                 'intelligence': [0, 0, 100, 60],
 
                 'luck': [0, -50, 50, 50],
@@ -3031,7 +3112,9 @@ init -9 python:
                 'magic': [0, 0, 40, 30],
                 'defence': [0, 0, 50, 40],
                 'agility': [0, 0, 35, 25],
-                'mp': [0, 0, 40, 30]
+                'mp': [0, 0, 40, 30],
+                'evasion': [0, -100, 100, 100],
+                'resistance': [0, -100, 100, 100]
             }
             self.stats = Stats(self, stats=stats)
             self.STATS = set(self.stats.stats.keys())
@@ -3117,7 +3200,7 @@ init -9 python:
                 setattr(self, stat, self.get_max(stat))
             
             # Arena:
-            if "Warrior" in self.occupations and self not in hero.girls and self.arena_willing is not False:
+            if "Warrior" in self.occupations and self not in hero.chars and self.arena_willing is not False:
                 self.arena_willing = True
                 
             # AP:
@@ -3134,7 +3217,9 @@ init -9 python:
             self.set_flag("day_since_shopping", 1)
             
             # add Character:
-            self.say = Character(self.nickname, show_two_window=True, show_side_image=DynamicDisplayable(self._portrait), **self.say_style)
+            self.say = Character(self.nickname, show_two_window=True, show_side_image=self, **self.say_style)
+            self.say_screen_portrait = DynamicDisplayable(self._portrait)
+            self.say_screen_portrait_overlay_mode = None
         
         def get_availible_pics(self):
             """
@@ -3195,9 +3280,6 @@ init -9 python:
 
                 if key == 'joy' and self.__dict__['effects']['Impersonal']['active']:
                     value = value - int(round((value - self.__dict__["stats"]['joy'])*0.3))
-                        
-                if key == 'libido' and self.__dict__['effects']['Sensitive']['active']:
-                    value = value + int(round((value - self.__dict__["stats"]['libido'])*0.2))
                     
                 self.__dict__["stats"].mod_base_stat(key, value)
             elif key == 'exp':
@@ -3260,7 +3342,18 @@ init -9 python:
                 if self.has_image("portrait", "indifferent"):
                     self.set_flag("fixed_portrait", self.show("portrait", "indifferent", **kwargs))
             
+        def show_portrait_overlay(self, s, mode="normal"):
+            self.say_screen_portrait_overlay_mode = s
+            
+            if not s in self.UNIQUE_SAY_SCREEN_PORTRAIT_OVERLAYS:
+                interactions_portraits_overlay.change(s, mode)
+            
+        def hide_portrait_overlay(self):
+            interactions_portraits_overlay.change("default")
+            self.say_screen_portrait_overlay_mode = None
+                    
         def restore_portrait(self):
+            self.say_screen_portrait_overlay_mode = None
             self.del_flag("fixed_portrait")
                 
         def get_mood_tag(self):
@@ -3288,11 +3381,9 @@ init -9 python:
             exclude = kwargs.get("exclude", None)
             
             # search for images
+            imgset = tagdb.get_imgset_with_all_tags(tagset)
             if exclude:
-                imgset = tagdb.get_imgset_with_all_tags(tagset)
                 imgset = tagdb.remove_excluded_images(imgset, exclude)
-            else:
-                imgset = tagdb.get_imgset_with_all_tags(tagset)
                 
             # randomly select an image
             if imgset:
@@ -3402,11 +3493,11 @@ init -9 python:
                                 imgpath = self.select_image(main_tag, descriptor_tag, self.id, exclude=exclude)
                         tags = original_tags[:]
                         
-                    if type == "first_default" and not imgpath: # In case we need to try first tag as default (instead of profile/default) and failed to find a path.
-                        if add_mood:
-                            imgpath = self.select_image(main_tag, self.id, mood_tag, exclude=exclude)
-                        else:
-                            imgpath = self.select_image(main_tag, self.id, exclude=exclude)
+                        if type == "first_default" and not imgpath: # In case we need to try first tag as default (instead of profile/default) and failed to find a path.
+                            if add_mood:
+                                imgpath = self.select_image(main_tag, self.id, mood_tag, exclude=exclude)
+                            else:
+                                imgpath = self.select_image(main_tag, self.id, exclude=exclude)
                             
                 elif type == "reduce":
                     if not imgpath:
@@ -3440,18 +3531,24 @@ init -9 python:
 
             if imgpath == "":
                 msg = "could not find image with tags %s"
-                if default == None:
-                    if add_mood:
-                        imgpath = self.select_image(self.id, 'profile', mood_tag)
-                    if not imgpath:
-                        self.select_image(self.id, 'profile')
+                if not default:
+                    # New rule (Default Battle Sprites):
+                    if "battle_sprite" in pure_tags:
+                        force_battle_sprite = True
+                    else:
+                        if add_mood:
+                            imgpath = self.select_image(self.id, 'profile', mood_tag)
+                        if not imgpath:
+                            imgpath = self.select_image(self.id, 'profile')
                 else:
                     devlog.warning(str(msg % sorted(tags)))
                     return default
             
-            # If we got here without being able to find an image ("profile" lookup failed is the only option):        
-            if not imgpath:
-                devlog.warning(str("Total failure while looking for image with %s tags!!!" % sorted(tags)))
+            # If we got here without being able to find an image ("profile" lookup failed is the only option):
+            if "force_battle_sprite" in locals(): # New rule (Default Battle Sprites):
+                imgpath = "content/gfx/images/" + "default_{}_battle_sprite.png".format(self.gender) 
+            elif not imgpath:
+                devlog.warning(str("Total failure while looking for image with %s tags!!!" % tags))
                 imgpath = "content/gfx/interface/images/no_image.png"
             else: # We have an image, time to convert it to full path.
                 imgpath = "/".join([self.path_to_imgfolder, imgpath])
@@ -3692,7 +3789,7 @@ init -9 python:
             return txt
             
         def next_day(self):
-            if self in hero.girls:
+            if self in hero.chars:
                 # Local vars
                 img = 'profile'
                 txt = ''
@@ -3966,7 +4063,7 @@ init -9 python:
                         if self.days_unhappy > 7 and self.status != "slave":
                             txt += "{color=[red]}She has left your employment cause you do not give a rats ass about how she feels!{/color}"
                             flag_red = True
-                            hero.remove_girl(self)
+                            hero.remove_char(self)
                             self.location = "city"
                         
                         if self.disposition < -500:
@@ -3974,7 +4071,7 @@ init -9 python:
                                 txt += "{color=[red]}She has left your employment cause she no longer trusts or respects you!{/color}"
                                 flag_red = True
                                 self.img = self.show("profile", "sad", resize=(500, 600))
-                                hero.remove_girl(self)
+                                hero.remove_char(self)
                                 self.location = "city"
                             
                             else:
@@ -4013,7 +4110,7 @@ init -9 python:
                 
                 # Prolly a good idea to throw a red flag if she is not doing anything:
                 # I've added another check to make sure this doesn't happen if a girl is in FG as there is always something to do there:
-                if not self.action and self.location != fg:
+                if not self.action:
                     flag_red = True
                     txt += "\n\n  {color=[red]}Please note that she is not really doing anything productive!{/color}\n"
                 
@@ -4037,7 +4134,7 @@ init -9 python:
                 evt.char = self
                 evt.img = img
                 evt.txt = txt
-                NextDayList.append(evt)
+                NextDayEvents.append(evt)
                 
                 # Finances related:
                 self.fin.next_day()
@@ -4112,8 +4209,6 @@ init -9 python:
             # Should we use money? @ presently not...
             self.cash = 0 # carried cash
             self.cashtospend = 0 # cash the customer is willing to spend
-            
-            # self.libido = randint(20,150)
             
             # class battle stats
             # self.attack = randint(5, 40)
@@ -4248,6 +4343,8 @@ init -9 python:
             self.body = False
             self.elemental = False
             
+            self.mod_ap = 0 # Will only work on body traits!
+            
             self.mob_only = False
             self.character_trait = False
             self.sexual = False
@@ -4282,14 +4379,15 @@ init -9 python:
             
 
     class Team(_object):
-        def __init__(self, name="", implicit=None, max_size=3):
+        def __init__(self, name="", implicit=None, free=False, max_size=3):
             if not implicit:
                 implicit = list()
             self.name = name
             self.implicit = implicit
             self.max_size = max_size
             self._members = list()
-            self.leader = None
+            self._leader = None
+            self.free = free # Free teams do not have any implicit members.
             
             # BE Assests:
             self.position = None # BE will set it to "r" or "l" short for left/right on the screen.
@@ -4314,12 +4412,22 @@ init -9 python:
         def members(self):
             return self._members
             
+        @property
+        def leader(self):
+            try:
+                return self.members[0]
+            except:
+                return self._leader
+            
         def add(self, member):
+            if member in self:
+                notify("Impossible to join the same team twice")
+            
             if len(self._members) >= self.max_size:
                 notify("This team cannot have more than %d teammembers!"%self.max_size)
             else:
-                if not self.leader:
-                    self.leader = member
+                if not self.free and not self.leader:
+                    self._leader = member
                     if member not in self.implicit:
                         self.implicit.append(member)
                     self._members.append(member)
@@ -4334,12 +4442,12 @@ init -9 python:
                  
         def set_leader(self, member):
             if member not in self._members:
-                notify("%s a member of this team!"%member.name)
+                notify("%s is not a member of this team!"%member.name)
                 return
             if self.leader:
                 self.implicit.remove(self.leader)
-            self.leader = member
-            self.implicit.append(self.leader)
+            self._leader = member
+            self.implicit.insert(0, member)
                 
         def get_level(self):
             """

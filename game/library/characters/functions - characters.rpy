@@ -267,10 +267,30 @@ init -11 python:
                 setattr(rg, stat, randint(10, 25))
                     
         # Rest of the expected data:
-        for i in ("desc", "race", "base_race"):
+        for i in ("origin", "gold", "desc", "height", "full_race"):
             if i in data:
                 setattr(rg, i, data[i])
+                
+        if "race" in data:
+            trait = data["race"]
+            if trait in traits:
+                rg.apply_trait(traits[trait])
+            else:
+                devlog.warning("%s is not a valid race (build_rc)!" % (trait))
         
+        # Colors in say screen:
+        for key in ("color", "what_color"):
+            if key in data:
+                if data[key] in globals():
+                    color = getattr(store, data[key])
+                else:
+                    try:
+                        color = Color(data[key])
+                    except:
+                        devlog.warning("{} color supplied to {} is invalid!".format(gd[key], gd["id"]))
+                        color = ivory
+                rg.say_style[key] = color
+                
         # Normalizing new girl:
         # We simply run the init method of parent class for this:
         super(rChar, rg).init()
@@ -299,7 +319,7 @@ init -11 python:
         
         if max_out_stats:
             for stat in char.stats.stats:
-                if stat not in ["alignment", "disposition"]:
+                if stat not in char.stats.FIXED_MAX:
                     setattr(char, stat, char.get_max(stat))
         # -------- 
         
@@ -348,6 +368,11 @@ init -11 python:
             _traits.append(basetrait)
         elif pattern == "ServiceGirl":
             _traits.append(choice([traits["Maid"], traits["Cleaner"], traits["Waitress"], traits["Bartender"]]))
+        elif pattern == "Maid":
+            if dice(50):
+                _traits = [traits["Maid"], traits["Cleaner"]]
+            else:
+                _traits.append(choice([traits["Maid"], traits["Cleaner"]]))
         elif pattern == "Prostitute":
             _traits.append(traits["Prostitute"])
         elif pattern == "Stripper":
@@ -419,7 +444,7 @@ init -11 python:
         
     def create_arena_girls():
         rgirls = store.rchars.keys()
-        for __ in xrange(85):
+        for i in xrange(85):
             if not rgirls: rgirls = store.rchars.keys()
             if rgirls:
                 rgirl = rgirls.pop()
@@ -492,6 +517,8 @@ init -11 python:
                 building.manager = None
                         
         char.action = job
+        # We prolly still want to set a workplace...
+        char.workplace = building
         
         if job is None:
             return

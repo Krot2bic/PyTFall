@@ -23,14 +23,8 @@ label girl_interactions:
         if "girl_meets" in pytfall.world_actions.locations:
             del pytfall.world_actions.locations["girl_meets"]
         pytfall.world_actions.clear()
-        
-        # Hide all images, show background
-        renpy.scene()
-        renpy.show(gm.bg_cache)
-        
-        # Hide last screen
-        hs()
-        
+    
+    python:
         # Set characters
         g = char.say
         h = hero.say
@@ -44,14 +38,15 @@ label girl_interactions:
         gm.show_menu = False
         gm.show_menu_givegift = False
         
-        # Show screen
-        renpy.show_screen("girl_interactions")
-        renpy.with_statement(dissolve)
+    scene
+    show expression gm.bg_cache
+    show screen girl_interactions
+    with dissolve
 
     if char.flag("quest_cannot_be_fucked") != True and interactions_silent_check_for_bad_stuff(char): # check for nonquest cases and no issues with the character
-        if dice(20): 
-            $ char.set_flag("gm_char_proposed_sex", value=day) # 20% chance to skip sex proposition and set a flag, to make it more random
-        $ sub = check_submissivity(char)*20 + 50 # another chance check from 30 to 70 based on submissiveness
+        if dice(50): 
+            $ char.set_flag("gm_char_proposed_sex", value=day) # 50% chance to skip sex proposition and set a flag, to make it more random
+        $ sub = check_submissivity(char)*20 + 40 # another chance check from 20 to 60 based on submissiveness
         if dice(sub) and check_lovers(char, hero) and ((day - char.flag("gm_char_proposed_sex")) > 1 or char.flag("gm_char_proposed_sex") == 0): # no matter if MC agrees or not, they will do it once per 2 days at best
             call interactions_girl_proposes_sex
             menu:
@@ -62,7 +57,7 @@ label girl_interactions:
                 "No":
                     $ char.set_flag("gm_char_proposed_sex", value=day)
                     $ char.override_portrait("portrait", "indifferent")
-                    $rc("...", "I see...", "Maybe next time then...")
+                    $ rc("...", "I see...", "Maybe next time then...")
                     $ char.restore_portrait()
                     jump girl_interactions_after_greetings
                     
@@ -117,13 +112,13 @@ label girl_interactions_after_greetings: # when character wants to say something
             # CHAT
             m = 0
             pytfall.world_actions.menu(m, "Chat")
-            pytfall.world_actions.gm_choice("General", index=(m, 0))
+            pytfall.world_actions.gm_choice("Small Talk", index=(m, 0))
             pytfall.world_actions.gm_choice("About Job", mode="girl_interactions", index=(m, 1))
             pytfall.world_actions.gm_choice("How She Feels", mode="girl_interactions", index=(m, 2))
             pytfall.world_actions.gm_choice("About Her", index=(m, 3))
             pytfall.world_actions.gm_choice("About Occupation", mode="girl_meets", index=(m, 4))
             pytfall.world_actions.gm_choice("Interests", index=(m, 5))
-            pytfall.world_actions.gm_choice("Romance", index=(m, 6))
+            pytfall.world_actions.gm_choice("Flirt", index=(m, 6))
             
             
             # TRAINING
@@ -134,24 +129,26 @@ label girl_interactions_after_greetings: # when character wants to say something
             # Loop through all courses that don't belong to a school, and return the real dict
             #for k,c in get_all_courses(no_school=True, real=True).iteritems():
             
-            # Loop through all courses in the training dungeon
-            for k,c in schools[TrainingDungeon.NAME].all_courses.iteritems():
-                # Get the lessons that are one off events 
-                ev = [l for l in c.options if l.is_one_off_event]
-                
-                if ev:
-                    # Create the menu for the course
-                    pytfall.world_actions.menu((m, n), k, condition=OneOffTrainingAction("menu", c))
-                    
-                    for l in range(len(ev)):
-                        # Add the lesson
-                        pytfall.world_actions.add((m, n, l), ev[l].name, OneOffTrainingAction("action", ev[l]), condition=OneOffTrainingAction("condition", ev[l]))
-                    
-                    n += 1
+            # Loop through all courses in the training dungeon:
+            for b in hero.buildings:
+                if isinstance(b, TrainingDungeon):
+                    for k,c in schools[TrainingDungeon.NAME].all_courses.iteritems():
+                        # Get the lessons that are one off events 
+                        ev = [l for l in c.options if l.is_one_off_event]
+                        
+                        if ev:
+                            # Create the menu for the course
+                            pytfall.world_actions.menu((m, n), k, condition=OneOffTrainingAction("menu", c))
+                            
+                            for l in range(len(ev)):
+                                # Add the lesson
+                                pytfall.world_actions.add((m, n, l), ev[l].name, OneOffTrainingAction("action", ev[l]), condition=OneOffTrainingAction("condition", ev[l]))
+                            
+                            n += 1
             
             # PRAISE
             m = 2
-            pytfall.world_actions.menu(m, "Praise",  condition="not(char in hero.girls)")
+            pytfall.world_actions.menu(m, "Praise", condition="not(char in hero.chars)")
             pytfall.world_actions.gm_choice("Clever", mode="girl_meets", index=(m, 0))
             pytfall.world_actions.gm_choice("Strong", mode="girl_meets", index=(m, 1))
             pytfall.world_actions.gm_choice("Cute", mode="girl_meets", index=(m, 2))
@@ -170,7 +167,9 @@ label girl_interactions_after_greetings: # when character wants to say something
             
             # GIVE GIFT
             m = 5
-            pytfall.world_actions.add(m, "Give Gift", Return(["gift", True]))
+            flag_name = "_day_countdown_interactions_gifts"
+            flag_value = int(char.flag(flag_name))
+            pytfall.world_actions.add(m, "Give Gift", Return(["gift", True]), condition="flag_value < 3")
             
             # SPEND TIME TOGETHER
             m = 6
@@ -181,16 +180,16 @@ label girl_interactions_after_greetings: # when character wants to say something
             
             # PROPOSITION
             m = 7
-            pytfall.world_actions.menu(m, "Propose", condition="not(char in hero.girls) or not(check_friends(char, hero)) or not(check_lovers(char, hero))")
+            pytfall.world_actions.menu(m, "Propose", condition="not(char in hero.chars) or not(check_friends(char, hero)) or not(check_lovers(char, hero))")
             pytfall.world_actions.gm_choice("Friends", condition="not check_friends(char, hero)", index=(m, 0))
             pytfall.world_actions.gm_choice("Girlfriend", condition="not check_lovers(char, hero)", index=(m, 1))
-            pytfall.world_actions.gm_choice("Hire", condition="not(char in hero.girls)", index=(m, 2))
+            pytfall.world_actions.gm_choice("Hire", condition="not(char in hero.chars)", index=(m, 2))
             
             # INTIMACY
             m = 8
             pytfall.world_actions.menu(m, "Intimacy")
             pytfall.world_actions.gm_choice("Hug", index=(m, 0))
-            pytfall.world_actions.gm_choice("Slap Butt", index=(m, 1))
+            pytfall.world_actions.gm_choice("Grab Butt", index=(m, 1))
             pytfall.world_actions.gm_choice("Grab Breasts", index=(m, 2))
             pytfall.world_actions.gm_choice("Kiss", index=(m, 3))
             pytfall.world_actions.gm_choice("Sex", index=(m, 4))
@@ -198,7 +197,6 @@ label girl_interactions_after_greetings: # when character wants to say something
             pytfall.world_actions.gm_choice("Become Fr", index=(m, 6))
             pytfall.world_actions.gm_choice("Become Lv", index=(m, 7))
             pytfall.world_actions.gm_choice("Disp", index=(m, 8))
-            
             # Quests/Events to Interactions Menu:
             """
             Expects a dictionary with the following k/v pairs to be set as a flag that starts with :
@@ -217,7 +215,10 @@ label girl_interactions_after_greetings: # when character wants to say something
                     if "condition" in char.flag(f) and eval(char.flag(f)["condition"]):
                         pytfall.world_actions.gm_choice(char.flag(f)["button_name"], label=char.flag(f)["label"], index=(m, i))
                         i = i + 1
-           
+            m = 10
+            pytfall.world_actions.menu(m, "Harassment", condition="not(char in hero.team)") # no fights between team members
+            pytfall.world_actions.gm_choice("Insult", index=(m, 0))
+            pytfall.world_actions.gm_choice("Escalation", index=(m, 1))
             # Back
             pytfall.world_actions.add("zzz", "Leave", Return(["control", "back"]))
             
@@ -227,6 +228,7 @@ label girl_interactions_after_greetings: # when character wants to say something
                 pytfall.world_actions.add(("dev", "gm"), "GM", Return(["test", "GM"]), condition=_not_gm_mode)
                 pytfall.world_actions.add(("dev", "gi"), "GI", Return(["test", "GI"]), condition=_not_gi_mode)
                 pytfall.world_actions.add(("dev", "gt"), "GT", Return(["test", "GT"]), condition=_not_gt_mode)
+
                 
             pytfall.world_actions.finish()
     
@@ -286,6 +288,13 @@ label girl_interactions_control:
             
                 # Give gift:
                 else:
+                    
+                    # Prevent repeteation of this action (any gift, we do this on per gift basis already):
+                    flag_name = "_day_countdown_interactions_gifts"
+                    flag_value = int(char.flag(flag_name))
+                    
+                    char.set_flag(flag_name, flag_value + 1)
+                    
                     item = result[1]
                     dismod = item.dismod if hasattr(item, "dismod") else 0
                     
@@ -332,8 +341,6 @@ label girl_interactions_control:
                     else:
                         gm.jump("perfectgift")
                         
-                    
-        
         # Controls
         elif result[0] == "control":
             # Return / Back

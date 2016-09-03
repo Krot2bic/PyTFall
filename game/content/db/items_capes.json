@@ -88,6 +88,24 @@
     "goodtraits": ["Not Human"]
     },
     {
+    "id": "Mercenary Cape",
+    "desc": "A fancy and conspicuous custom made cape from high-quality leather and raven feathers.",
+    "icon": "content/items/cape/merc.png",
+    "price": 400,
+    "sex": "male",
+    "chance": 80,
+    "badness": 89,
+    "eqchance": 11,
+    "hidden": false,
+    "infinite": false,
+    "slot": "cape",
+    "type": "mc",
+    "max": {"charisma": 10, "defence": 15},
+    "mod": {"charisma": 15, "defence": 20},
+    "mod_skills": {"exploration": [0.01, 0.01, 0.03, 0, 0], "management": [0.01, 0.01, 0.03, 0, 0], "refinement": [0.01, 0.01, 0.01, 0, 0]},
+    "locations": ["Exploration"]
+    },
+    {
     "id": "Linen Capelet",
     "desc": "Simple piece of fabric to warn up cold shoulders in unpleasant weather.",
     "icon": "content/items/cape/lcl.png",
@@ -188,7 +206,7 @@
     "max": {"mp": 10, "defence": 30, "magic": 20, "attack": -80},
     "mod": {"defence": 40, "magic": 30},
     "locations": ["Exploration", "General Store"],
-    "goodtraits": ["Magic Gift"]
+    "goodtraits": []
     },
     {
     "id": "Cloak of Invisibility",
@@ -244,7 +262,7 @@
     "max": {"mp": 5, "defence": 10, "magic": 20, "attack": -30},
     "mod": {"defence": 10, "magic": 20},
     "locations": ["General Store"],
-    "goodtraits": ["Magic Gift"]
+    "goodtraits": []
     },
     {
     "id": "Fur Coat",
@@ -277,10 +295,27 @@
     "slot": "cape",
     "type": "armor",
     "max": {"joy": 5, "mp": 10, "magic": 10, "defence": 15, "agility": 10},
-    "mod": {"defence": 15, "magic": 20, "character": 5, "agility": -10, "attack": -10},
+    "mod": {"defence": 15, "magic": 20, "character": 5, "agility": -10, "attack": -10, "resistance": 1},
     "mod_skills": {"refinement": [0, 0, 0.03, 0, 0], "dancing": [0.01, 0, 0.01, 0, 0]},
     "locations": ["Exploration"],
     "goodtraits": ["Alien"]
+    },
+    {
+    "id": "Armoured Cape",
+    "desc": "A heavily armoured, rigid, quite weighty cape. Widely used by City Guards officers on patrols outside city walls, it could be quickly unzipped when running speed is needed.",
+    "icon": "content/items/cape/arm.png",
+    "price": 950,
+    "sex": "unisex",
+    "chance": 10,
+    "badness": 35,
+    "eqchance": 35,
+    "hidden": false,
+    "infinite": false,
+    "slot": "cape",
+    "type": "armor",
+    "max": {"defence": 100, "vitality": -50, "agility": -60},
+    "mod": {"defence": 50},
+    "locations": ["Exploration"]
     },
     {
     "id": "Ninja Cloak",
@@ -296,9 +331,9 @@
     "slot": "cape",
     "type": "armor",
     "max": {"defence": 10, "agility": 25},
-    "mod": {"defence": 15, "agility": 25, "attack": 20, "charisma": -15},
+    "mod": {"defence": 15, "agility": 25, "attack": 20, "charisma": -15, "evasion": 1},
     "mod_skills": {"refinement": [0, 0, 0.01, 0, 0], "exploration": [0.02, 0.01, 0.02, 0, 0]},
     "locations": ["Exploration", "Ninja Shop"],
-    "goodtraits": ["Former Assassin"]
+    "goodtraits": []
     }
   ]

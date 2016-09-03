@@ -26,26 +26,24 @@ label city_parkgates:
     $ pytfall.world_quests.run_quests("auto")
     $ pytfall.world_events.run_events("auto")
         
-    python:
+    while 1:
 
-        while True:
+        $ result = ui.interact()
 
-            result = ui.interact()
-
-            if result[0] == 'jump':
-                gm.start_gm(result[1])
-                
-            if result[0] == 'control':
-                renpy.hide_screen("city_parkgates")
-                if result[1] == 'jumppark':
-                    jump('city_park')
-                
-                if result[1] == 'return':
-                    break
+        if result[0] == 'jump':
+            $ gm.start_gm(result[1])
+            
+        if result[0] == 'control':
+            hide screen city_parkgates
+            if result[1] == 'jumppark':
+                $ jump('city_park')
+            
+            if result[1] == 'return':
+                $ renpy.music.stop(channel="world")
+                hide screen city_parkgates
+                jump city
                     
-    $ renpy.music.stop(channel="world")
-    hide screen city_parkgates
-    jump city
+
     
                 
 screen city_parkgates():
@@ -65,4 +63,4 @@ screen city_parkgates():
             spacing 70
             for entry in gm.display_girls():
           
-                use rg_lightbutton(img=entry.show("girlmeets", "outdoors", "nature", "urban", exclude=["swimsuit", "wildness", "indoors", "stage", "beach", "pool", "onsen"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry])
+                use rg_lightbutton(img=entry.show("girlmeets", "outdoors", "nature", "urban", exclude=["swimsuit", "wildness", "indoors", "stage", "beach", "pool", "onsen", "indoor"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry])

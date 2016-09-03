@@ -15,26 +15,24 @@ label graveyard_town:
             
     scene bg graveyard_town
     with dissolve
-    show screen cemetery_entrance
+    show screen graveyard_town
         
-    python:
+    while 1:
 
-        while True:
+        $ result = ui.interact()
 
-            result = ui.interact()
+        if result[0] == 'jump':
+            $ gm.start_gm(result[1])
+        if result[0] == 'control':
+            $ renpy.hide_screen("graveyard_town")
+            if result[1] == 'return':
+                $ renpy.music.stop(channel="world")
+                hide screen graveyard_town
+                jump city
 
-            if result[0] == 'jump':
-                gm.start_gm(result[1])
-            if result[0] == 'control':
-                renpy.hide_screen("cemetery_entrance")
-                if result[1] == 'return':
-                    break
 
-    $ renpy.music.stop(channel="world")
-    hide screen cemetery_entrance
-    jump city
     
-screen cemetery_entrance():
+screen graveyard_town():
 
     use top_stripe(True)
     
@@ -48,4 +46,4 @@ screen cemetery_entrance():
             align(0.5, 0.3)
             spacing 70
             for entry in gm.display_girls():
-                use rg_lightbutton(img=entry.show('girlmeets', exclude=["swimsuit", "wildness", "beach", "pool", "urban", "stage", "onsen", "indoors"], type="first_default",label_cache=True, resize=(300, 400)), return_value=['jump', entry])
+                use rg_lightbutton(img=entry.show('girlmeets', exclude=["swimsuit", "wildness", "beach", "pool", "urban", "stage", "onsen", "indoors", "indoor"], type="first_default",label_cache=True, resize=(300, 400)), return_value=['jump', entry])

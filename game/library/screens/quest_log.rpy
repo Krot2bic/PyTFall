@@ -41,7 +41,9 @@ init python:
 # Screen used for the in-game quest log
 # Set up as screen only (avoiding label) for easier checking during scenes as and when quest updates, etc.
 #
-screen quest_log:
+screen quest_log():
+    
+    zorder 10
     
     default display_mode = "active"
     default modes = ["active", "complete", "failed"]
@@ -49,12 +51,12 @@ screen quest_log:
     frame:
         ypos 42
         background Frame("content/gfx/frame/p_frame5.png", 10, 10)
-        xalign 0.5
-        xysize (1272, 10)
+        xalign .5
+        xysize (1272, 44)
         hbox:
             style_group "basic"
             spacing 10
-            yalign 0.5
+            yalign .5
             button:
                 style_group "basic"
                 text ("Hide Quest Popups" if USE_QUEST_POPUP else "Show Quest Popups") size 16
@@ -63,13 +65,13 @@ screen quest_log:
             $ if config.developer and "unstarted" not in modes: modes = modes + ["unstarted"]
             for mode in modes:
                 button:
-                    action SetScreenVariable("display_mode", mode)
+                    action SetVariable("quest_log_current_quest", None), SetScreenVariable("display_mode", mode), SelectedIf(mode == display_mode)
                     text mode.capitalize() size 16
     
     frame:
         ypos 78
         background Frame("content/gfx/frame/p_frame5.png", 10, 10)
-        xalign 0.5
+        xalign .5
         xysize (1270, 638)
         hbox:
             frame:
@@ -86,10 +88,10 @@ screen quest_log:
                             style_group "basic"
                             frame:
                                 style_group "content"
-                                xalign 0.5
+                                xalign .5
                                 xysize (270, 50)
                                 background Frame("content/gfx/frame/namebox5.png", 10, 10)
-                                label (u"Active:") text_size 23 text_color ivory align(0.5, 0.6)
+                                label (u"Active:") text_size 23 text_color ivory align .5, .6
                             null height 20
                             for i in pytfall.world_quests.active:
                                 textbutton i.name action [QuestLogAction(i.name), SelectedIf(i.name == quest_log_current_quest)]
@@ -145,18 +147,17 @@ screen quest_log:
                     draggable True
                     mousewheel True
                     xysize (930, 617)
+                    has vbox xsize 850
                     if quest_log_current_quest is not None:
-                        $ quest_log_last_prompt = True
-                        vbox:
-                            pos (10, 20)
-                            for i in reversed(pytfall.world_quests.get(quest_log_current_quest).prompts):
-                                if quest_log_last_prompt:
-                                    text i style "TisaOTMolxm" size 20
-                                    $ quest_log_last_prompt = False
-                                else:
-                                    null height 2
-                                    text "-------------------------------" style "TisaOTMolxm" size 20
-                                    text i style "TisaOTMolxm" size 20
+                        $ temp = list(reversed(pytfall.world_quests.get(quest_log_current_quest).prompts))
+                        if temp:
+                            text temp[0] style "TisaOTMolxm" size 20 xpos 20 xanchor .0
+                            $ temp = temp[1:]
+                            null height 2
+                            text "------------------------------------" style "TisaOTMolxm" size 20
+                            null height 2
+                            for i in temp:
+                                text i color (211, 211, 211, 180) style "TisaOTMolxm" size 18 xpos 20 xanchor .0
     
     use top_stripe(True)
     

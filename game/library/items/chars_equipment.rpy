@@ -105,7 +105,9 @@ label char_equip_loop:
             
         elif result[0] == "item":
             if result[1] == 'equip/unequip':
+                $ dummy = None # Must be set here so the items that jump away to a label work properly.
                 python:
+                    # Equipping:
                     if item_direction == 'equip':
                         # Common to any eqtarget:
                         if not can_equip(focusitem, eqtarget, silent=False):
@@ -113,60 +115,39 @@ label char_equip_loop:
                             selectedslot = None
                             unequip_slot = None
                             item_direction = None
-                            dummy = None
                             jump("char_equip_loop")
-                        if eqtarget == hero: # Simpler MCs logic:
+                            
+                        # See if we can access the equipment first:
+                        if equipment_access(eqtarget, focusitem):
+                            # If we're not equipping from own inventory, check if we can transfer:
+                            if eqtarget != inv_source:
+                                if not transfer_items(inv_source, eqtarget, focusitem):
+                                    # And terminate if we can not...
+                                    jump("char_equip_loop")
+                                    
+                            # If we got here, we just equip the item :D
                             equip_item(focusitem, eqtarget, area_effect=True)
-                        else: # Actors: Maybe it's a good idea to encapsulate this:
-                            if eqtarget.status == "slave" and focusitem.slot in ["weapon"] and not focusitem.type.lower().startswith("nw"):
-                                renpy.show_screen('message_screen', "Slaves are forbidden to equip large weapons by law!")
-                            else:
-                                if inv_source == eqtarget:
-                                    if all([eqtarget.status != "slave", eqtarget.disposition < 850]) or all([eqtarget.status != "slave", (focusitem.badness > 90 or focusitem.eqchance < 10)]):
-                                        eqtarget.say(choice(["I can manage my own things!", "Get away from my stuff!", "Don't want to..."]))
-                                    else:
-                                        equip_item(focusitem, eqtarget, area_effect=True)
-                                else:
-                                    if all([eqtarget.status != "slave", (focusitem.badness > 90 or focusitem.eqchance < 10)]):
-                                        eqtarget.say(choice(["No way!", "I do not want this!", "No way in hell!"]))
-                                    else:
-                                        if transfer_items(inv_source, eqtarget, focusitem):
-                                            equip_item(focusitem, eqtarget, area_effect=True)
                             
                     elif item_direction == 'unequip':
-                        if eqtarget == hero:
-                            hero.unequip(focusitem, unequip_slot)
-                        else: # Not MC
-                            if eqtarget.status == "slave": # Slave condition:
-                                eqtarget.unequip(focusitem, unequip_slot)
-                                eqtarget.inventory.remove(focusitem)
-                                inv_source.inventory.append(focusitem)
-                            else: # Free Girl
-                                if inv_source == hero:
-                                    eqtarget.unequip(focusitem, unequip_slot)
-                                    if not transfer_items(eqtarget, hero, focusitem, silent=False):
-                                        eqtarget.equip(focusitem)
-                                        eqtarget.say(choice(["I can manage my own things!", "Get away from my stuff!", "I'll think about it..."]))
-                                elif eqtarget.disposition < 850:
-                                    eqtarget.say(choice(["I can manage my own things!", "Get away from my stuff!", "I'll think about it..."]))
-                                else:
-                                    eqtarget.unequip(focusitem, unequip_slot)
+                        # Check if we are allowed to access inventory and act:
+                        if equipment_access(eqtarget):
+                            eqtarget.unequip(focusitem, unequip_slot)
+                            
+                            # We should try to transfer items in case of:
+                            # We don't really care if that isn't possible...
+                            if inv_source != eqtarget:
+                                transfer_items(eqtarget, inv_source, focusitem, silent=False)
                                 
                     focusitem = None
                     selectedslot = None
                     unequip_slot = None
                     item_direction = None
-                    dummy = None
                  
             elif result[1] == "discard":
                 python:
-                    if inv_source == hero:
+                    # Check if we can access the inventory:
+                    if equipment_access(inv_source):
                         renpy.call_screen("discard_item", inv_source, focusitem)
-                    else:
-                        if eqtarget.disposition < 850:
-                            eqtarget.say(choice(["I can manage my own things!", "Get away from my stuff!", "I'll think about it..."]))
-                        else:
-                            renpy.call_screen("discard_item", inv_source, focusitem)
                             
                     focusitem = None
                     selectedslot = None
@@ -331,7 +312,10 @@ screen char_equip():
         text (u"{color=#ecc88a}[eqtarget.name]") font "fonts/TisaOTM.otf" size 28 outlines [(1, "#3a3a3a", 0, 0)] xalign 0.53 ypos 126
         
         # PORTRAIT ============================>
-        add eqtarget.show("portrait", resize=(100, 100), cache=True) pos (64, 11)
+        frame:
+            xysize (100, 100)
+            background Frame("content/gfx/frame/mes12.jpg", 5, 5)
+            foreground eqtarget.show("portrait", resize=(100, 100), cache=True) pos (64, 11)
             
         # LVL ============================>
         hbox:
@@ -363,7 +347,8 @@ screen char_equip():
                 xsize 100
                 action SetScreenVariable("stats_display", "pro"), With(dissolve)
                 text "Pro Stats" style "pb_button_text"
-        
+                
+        # Stats/Skills:
         vbox:
             yfill True
             yoffset 195
@@ -371,85 +356,71 @@ screen char_equip():
             xmaximum 218
             
             if stats_display == "stats":
-                vbox spacing 5:
+                vbox:
+                    spacing 5
                     pos (4, 40)
                     frame:
                         background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.7)
-                        yminimum 270
                         xsize 218
-                        xpadding 0
-                        ypadding 0
+                        xpadding 6
+                        ypadding 6
                         xmargin 0
                         ymargin 0
-                        style_group "stats"
-                        has vbox spacing -7
+                        style_group "proper_stats"
+                        has vbox spacing 1
                         # STATS ============================>
-                        $ stats = ["constitution", "charisma", "intelligence", "fame", "reputation", "libido"] if eqtarget == hero else ["constitution", "charisma", "intelligence", "character", "reputation", "joy", "disposition"]
-                        null height 10
+                        $ stats = ["constitution", "charisma", "intelligence", "fame", "reputation"] if eqtarget == hero else ["constitution", "charisma", "intelligence", "character", "reputation", "joy", "disposition"]
+                        
+                        # Health:
                         frame:
-                            xalign 0.5
-                            xysize (215, 35)
-                            style "base_stats_frame"
-                            text "{color=#CD4F39}Health:" xalign (0.02)
+                            xysize 204, 25
+                            text "Health:" xalign .02 color "#CD4F39"
                             $ tempc = red if eqtarget.health <= eqtarget.get_max("health")*0.3 else "#F5F5DC"
                             if dummy:
                                 $ tempstr = build_str_for_eq(eqtarget, dummy, "health", tempc)
-                                text tempstr style "stats_value_text" xalign 1.0 yoffset 3
+                                text tempstr style_suffix "value_text" xalign .98 yoffset 3
                             else:
-                                text u"[eqtarget.health]/{}".format(eqtarget.get_max("health")) style "stats_value_text" xalign 1.0 color tempc  yoffset 3
+                                text u"[eqtarget.health]/{}".format(eqtarget.get_max("health")) xalign .98 yoffset 3 style_suffix "value_text" color tempc
                         
+                        # Vitality:
                         frame:
-                            xalign 0.5
-                            xysize (215, 35)
-                            left_padding 9
-                            right_padding 11
-                            top_padding 4
-                            bottom_padding 1
-                            xmargin 0
-                            ymargin 0
-                            text "{color=#43CD80}Vitality:" xalign (0.02)
+                            xysize 204, 25
+                            text "Vitality:" xalign .02 color "#43CD80"
                             $ tempc = red if eqtarget.vitality <= eqtarget.get_max("vitality")*0.3 else "#F5F5DC"
                             if dummy:
                                 $ tempstr = build_str_for_eq(eqtarget, dummy, "vitality", tempc)
-                                text tempstr style "stats_value_text" xalign 1.0 yoffset 3
+                                text tempstr style_suffix "value_text" xalign .98 yoffset 3
                             else:
-                                text u"[eqtarget.vitality]/{}".format(eqtarget.get_max("vitality")) style "stats_value_text" xalign 1.0 color tempc  yoffset 3
-                            
+                                text u"[eqtarget.vitality]/{}".format(eqtarget.get_max("vitality")) xalign .98 yoffset 3 style_suffix "value_text" color tempc
+                             
+                        # Rest of stats:
                         for stat in stats:
                             frame:
-                                xalign 0.5
-                                xysize (215, 35)
-                                style "base_stats_frame"
-                                text "{color=#79CDCD}%s"%stat.capitalize() xalign (0.02)
+                                xysize 204, 25
+                                text "{}".format(stat.capitalize()) xalign .02 color "#79CDCD"
                                 if dummy:
-                                    $ tempstr = build_str_for_eq(eqtarget, dummy, stat, tempc)
-                                    text tempstr style "stats_value_text" xalign 1.0 yoffset 3
+                                    $ tempstr = build_str_for_eq(eqtarget, dummy, stat, "#F5F5DC")
+                                    text tempstr style_suffix "value_text" xalign .98 yoffset 3
                                 else:
-                                    text u"{}/{}".format(getattr(eqtarget, stat), eqtarget.get_max(stat)) style "stats_value_text" xalign 1.0 color ivory yoffset 3
+                                    text u"{}/{}".format(getattr(eqtarget, stat), eqtarget.get_max(stat)) xalign .98 yoffset 3 style_suffix "value_text" color tempc
                                             
                     # BATTLE STATS ============================>
                     frame:
                         background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.7)
-                        xysize (218, 230)
-                        xpadding 0
-                        ypadding 0
-                        xmargin 0
-                        ymargin 0
-                        style_group "stats"
-                        has vbox spacing -7
-                        
-                        null height 10
-                        label (u"{size=18}{color=#CDCDC1}{b}Battle Stats:") xalign(0.49)
-                        $ stats = [("Attack", "#CD4F39"), ("Defence", "#dc762c"), ("Magic", "#8470FF"), ("MP", "#009ACD"), ("Agility", "#1E90FF"), ("Luck", "#00FA9A")]
-                        
-                        null height 10
-                    
+                        xsize 218
+                        padding 6, 6
+                        style_group "proper_stats"
+                        has vbox spacing 1
+                         
+                        null height 1
+                        label (u"{size=18}{color=#CDCDC1}{b}Battle Stats:") xalign .49
+                        $ stats = [("Attack", "#CD4F39"), ("Defence", "#dc762c"), ("Magic", "#8470FF"), ("MP", "#009ACD"), ("Agility", "#1E90FF"), ("Luck", "#00FA9A"), ("Evasion", "#FFFF94"), ("Resistance", "#FFA500")]
+                        null height 1
+                     
                         for stat, color in stats:
                             frame:
-                                style "base_stats_frame"
-                                xalign 0.5
-                                xysize (215, 35)
-                                text "[stat]" color color size 16 xalign (0.02)
+                                xysize 204, 25
+                                text "[stat]" color color
                                 $ stat = stat.lower()
                                 if stat == "mp":
                                     $ tempc = red if eqtarget.mp <= eqtarget.get_max("mp")*0.3 else color
@@ -457,9 +428,9 @@ screen char_equip():
                                     $ tempc = color
                                 if dummy:
                                     $ tempstr = build_str_for_eq(eqtarget, dummy, stat, tempc)
-                                    text tempstr style "stats_value_text" xalign 1.0 yoffset 3
+                                    text tempstr style_suffix "value_text" xalign .98 yoffset 3
                                 else:
-                                    text "{}/{}".lower().format(getattr(eqtarget, stat.lower()), eqtarget.get_max(stat.lower())) style "stats_value_text" color color  xalign 1.0  yoffset 3
+                                    text "{}/{}".lower().format(getattr(eqtarget, stat.lower()), eqtarget.get_max(stat.lower())) xalign .98 yoffset 3 style_suffix "value_text" color tempc
                                 
             
             elif stats_display == "pro":
@@ -519,7 +490,7 @@ screen char_equip():
                         for skill in temp:
                             frame:
                                 xpadding 3
-                                text u'{color=#43CD80}%s'%trait.capitalize() size 16 yalign 0.5
+                                text u'{color=#43CD80}%s'%skill.capitalize() size 16 yalign 0.5
                                     
                     python:
                         t_old = set(t.id for t in dummy.traits)
@@ -530,7 +501,7 @@ screen char_equip():
                         for skill in temp:
                             frame:
                                 xpadding 3
-                                text u'{color=#CD4F39}%s'%trait.capitalize() size 16 yalign 0.5
+                                text u'{color=#CD4F39}%s'%skill.capitalize() size 16 yalign 0.5
                                 
             vbox:
                 xoffset 165
@@ -607,7 +578,7 @@ screen char_equip():
         button:
             xalign 0.5
             xysize (110, 30)
-            action If(eqtarget != hero, true=Show("girls_list1"))
+            action If(eqtarget != hero, true=Show("chars_list1"))
             text "Girls List" style "pb_button_text"
             
     # Auto-Equip/Item Transfer Buttons and Paging: ================>
@@ -666,11 +637,11 @@ screen char_equip():
         action Return(['control', 'return'])
         hovered tt.Action("Return to previous screen!")
     
-screen girls_list1(source=None, page=0, total_pages=1):
+screen chars_list1(source=None, page=0, total_pages=1):
     modal True
     zorder 1
     
-    key "mousedown_3" action Hide("girls_list1")
+    key "mousedown_3" action Hide("chars_list1")
     
     frame:
         at fade_in_out()
@@ -699,7 +670,7 @@ screen girls_list1(source=None, page=0, total_pages=1):
                     align (1.0, 0.0)
                     idle ("content/gfx/interface/buttons/close3.png")
                     hover ("content/gfx/interface/buttons/close3_h.png")
-                    action Hide("girls_list1")
+                    action Hide("chars_list1")
                 
                     
 screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", mc_mode=False, tt=None):
@@ -712,6 +683,7 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
         $ xs = size[0]
         $ ys = size[1]
         fixed:
+            style_prefix "proper_stats"
             xysize (xs, ys)
             
             # Top HBox: Discard/Close buttons and the Item ID:
@@ -739,8 +711,8 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                         hovered tt.Action("Close item info")
             
             # Separation Strip (Outside of alignments):
-            label ('{color=#ecc88a}__________________________________________') text_style "stats_value_text" xalign .5 ypos 28
-            label ('{color=#ecc88a}__________________________________________') text_style "stats_value_text" xalign .5 ypos 163
+            label ('{color=#ecc88a}__________________________________________') xalign .5 ypos 28
+            label ('{color=#ecc88a}__________________________________________') xalign .5 ypos 163
             
             # Mid HBox:
             hbox:
@@ -751,8 +723,8 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                 
                 # Left Items Info:
                 frame:
-                    xalign 0.02
-                    style_group "proper_stats"
+                    xalign .02
+                    style_prefix "proper_stats"
                     background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.05)), 5, 5), alpha=0.9)
                     xysize (180, 130)
                     xpadding 0
@@ -761,25 +733,29 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                     null height 15
                     frame:
                         xysize (160, 25)
-                        text ('Price:') color gold xalign 0.02
-                        label ('{size=-4}{color=[gold]}[item.price]') align (0.98, 0.5) style "stats_value_text" text_outlines [(1, "#3a3a3a", 0, 0)]
+                        text 'Price:' color gold xalign .02
+                        label '{size=-4}{color=[gold]}[item.price]' align .98, .5 text_outlines [(1, "#3a3a3a", 0, 0)]
                     frame:
                         xysize (160, 25)
                         text ('{color=#F5F5DC}Slot:') xalign 0.02
-                        label ('{color=#F5F5DC}{size=-4}%s'%item.slot.capitalize()) align (0.98, 0.5) style "stats_value_text" text_outlines [(1, "#3a3a3a", 0, 0)]
+                        label ('{color=#F5F5DC}{size=-4}%s'%item.slot.capitalize()) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                     frame:
                         xysize (160, 25)
                         text ('{color=#F5F5DC}Type:') xalign 0.02
-                        label ('{color=#F5F5DC}{size=-4}%s'%item.type.capitalize()) align (0.98, 0.5) style "stats_value_text" text_outlines [(1, "#3a3a3a", 0, 0)]
+                        label ('{color=#F5F5DC}{size=-4}%s'%item.type.capitalize()) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                     frame:
                         xysize (160, 25)
                         text ('{color=#F5F5DC}Sex:') xalign 0.02
-                        if item.sex == 'male':
-                            label ('{color=#F5F5DC}{size=-4}{color=#FFA54F}%s'%item.sex.capitalize()) align (0.98, 0.5) style "stats_value_text" text_outlines [(1, "#3a3a3a", 0, 0)]
-                        if item.sex == 'female':
-                            label ('{color=#F5F5DC}{size=-4}{color=#FFAEB9}%s'%item.sex.capitalize()) align (0.98, 0.5) style "stats_value_text" text_outlines [(1, "#3a3a3a", 0, 0)]
-                        if item.sex == 'unisex':
-                            label ('{color=#F5F5DC}{size=-4}%s'%item.sex.capitalize()) align (0.98, 0.5) style "stats_value_text" text_outlines [(1, "#3a3a3a", 0, 0)]
+                        if item.slot in ["gift", "resources", "loot"]:
+                            label "{size=-4}N/A" align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                        elif item.type == "food" and item.sex == "unisex":
+                            label "{size=-4}N/A" align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                        elif item.sex == 'male':
+                            label ('{color=#F5F5DC}{size=-4}{color=#FFA54F}%s'%item.sex.capitalize()) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                        elif item.sex == 'female':
+                            label ('{color=#F5F5DC}{size=-4}{color=#FFAEB9}%s'%item.sex.capitalize()) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                        elif item.sex == 'unisex':
+                            label ('{color=#F5F5DC}{size=-4}%s'%item.sex.capitalize()) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                 
                 # Buttons and image:
                 button:
@@ -819,7 +795,7 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                     xysize (80, 45)
                     if tt:
                        hovered tt.Action(temp_msg)
-                    action Return(['item', 'equip/unequip'])
+                    action SensitiveIf(focusitem and can_equip(focusitem, eqtarget)), Return(['item', 'equip/unequip'])
                     text "[temp]" style "pb_button_text" align (0.5, 0.5)
                     
                 # Right items info (Stats):
@@ -827,30 +803,32 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                     xalign 0.98
                     background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.05)), 5, 5), alpha=0.9)
                     xysize (185, 130)
+                    style_group "proper_stats"
+                    left_padding 6
+                    right_padding 3
+                    ypadding 5
                     has viewport scrollbars "vertical" draggable True mousewheel True child_size 200, 500
                     vbox:
                         if item.mod:
                             label ('Stats:') text_size 18 text_color gold xpos 30
                             vbox:
                                 spacing 1
-                                style_group "proper_stats"
                                 for stat, value in item.mod.items():
                                     frame:
                                         xysize (160, 18)
                                         text (u'{color=#F5F5DC}%s' % stat.capitalize()) size 15 xalign 0.02 yoffset -2
-                                        label (u'{color=#F5F5DC}{size=-4}[value]') style "stats_value_text" align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                                        label (u'{color=#F5F5DC}{size=-4}[value]') align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                             null height 7
                             
                         if item.max:
                             label ('Max:') text_size 16 text_color gold xpos 30
                             vbox:
                                 spacing 1
-                                style_group "proper_stats"
                                 for stat, value in item.max.items():
                                     frame:
                                         xysize (160, 18)
                                         text (u'{color=#F5F5DC}%s'%stat.capitalize()) size 15 xalign 0.02 yoffset -2
-                                        label (u'{color=#F5F5DC}{size=-4}[value]') style "stats_value_text" align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                                        label (u'{color=#F5F5DC}{size=-4}[value]') align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                             null height 7
                             
                         if item.min:
@@ -862,7 +840,7 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                                 frame:
                                     xysize (160, 18)
                                     text (u'{color=#F5F5DC}%s'%stat.capitalize()) size 15 xalign 0.02 yoffset -2
-                                    label (u'{color=#F5F5DC}{size=-4}%d'%value) style "stats_value_text" align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                                    label (u'{color=#F5F5DC}{size=-4}%d'%value) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                 
             # Bottom HBox: Desc/Traits/Effects/Skills:
             hbox:

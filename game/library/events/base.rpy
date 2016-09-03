@@ -10,25 +10,7 @@ init -1 python:
     register_event("found_money_event", locations=["all"], run_conditions=["dice(max(5, int(hero.luck/5)))"], priority=50, dice=0, restore_priority=0)
     register_event("found_item_event", locations=["all"], run_conditions=["dice(max(3, int(hero.luck/6)))"], priority=50, dice=0, restore_priority=0)
 
-    # Test Events:
-    if config.debug:
-        register_event("test_ev_label_1", trigger_type="auto", locations=["city_parkgates"], priority=2, dice=100, max_runs=1)
-        register_event("test_ev_label_2", trigger_type="auto", locations=["city_parkgates"], priority=1, dice=100, max_runs=1)
-    
-label test_ev_label_1(event):
-    "Exit and reenter the location..."
-    return
-    
-label test_ev_label_2(event):
-    "Exit and reenter the location."
-    $ register_event_in_label("test_ev_label_3", trigger_type="auto", locations=["city_parkgates"], priority=1, dice=100, max_runs=1)
-    $ pytfall.world_events.force_event("test_ev_label_3") # This one adds the event to the cache before the next day..
-    return
-    
-label test_ev_label_3(event):
-    "All Done!"
-    return
-    
+   
 label meet_beggar_event(event):
 
     $ beggar = Character('Beggar', color="#c8ffc8", show_two_window=True)
@@ -93,21 +75,19 @@ label creatures_beach_event(event):
     
 label found_money_event(event):
     python:
-        amount = randint(10, 50) * hero.level + max(10, hero.luck*2)
+        amount = randint(10, 100) + hero.level*2 + max(10, hero.luck*4)
         renpy.show("_tag", what=Text("%d"%amount, style="back_serpent", color=gold, size=40, bold=True), at_list=[found_cash(150, 600, 4)])
         hero.say(choice(["Yey! Some money!", "Free Gold, lucky!", "I will not let this go to waste!"]))
         hero.add_money(amount, "Events")
-
     return
      
 label found_item_event(event):
     python:
-        amount = max(200, (50 * hero.level + max(10, hero.luck*2)))
+        # amount = max(200, (randint(10, 100) + hero.level*2 + max(10, hero.luck*4)))
         items_pool = list(item for item in items.values() if "Look around" in item.locations)
         found_item = choice(items_pool)
         renpy.show("_tag", what=ProportionalScale(found_item.icon, 100, 100), at_list=[found_cash(150, 600, 4)])
         hero.say(choice(["Yey! Found something! ([found_item.id])", "[found_item.id] Might be useful!", "[found_item.id]! Lucky?", "-[found_item.id]- Never look a gift horse in the mouth :)"]))
         hero.inventory.append(found_item)
-
     return
         

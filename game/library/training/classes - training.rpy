@@ -6,8 +6,8 @@ init -9 python:
         schools = load_training("school", School)
         
         # Load the hero's dungeon
-        school = TrainingDungeon(load_training("training", PytTraining))
-        schools[school.name] = school
+        # school = TrainingDungeon(load_training("training", PytTraining))
+        # schools[school.name] = school
         
         # Creates courses
         for school in schools:
@@ -359,7 +359,7 @@ init -9 python:
         Returns the girls that are assigned as trainers at the location.
         location = The location to check.
         """
-        tr = [g for g in hero.girls if g.location is location and g.action == "Train"]
+        tr = [g for g in hero.chars if g.location is location and g.action == "Train"]
         # Hero always available
         tr.insert(0, hero)
         return tr
@@ -369,7 +369,7 @@ init -9 python:
         Returns the girls that are training with the trainer.
         trainer = The trainer to check for.
         """
-        return [girl for girl in hero.girls if girl_training_with(girl) is trainer]
+        return [girl for girl in hero.chars if girl_training_with(girl) is trainer]
     
     def girl_training_trait_mult(girl, trait):
         """
@@ -448,7 +448,7 @@ init -9 python:
             """
             Returns the girls that are doing this course.
             """
-            return [girl for girl in hero.girls if girl.action == self.action]
+            return [girl for girl in hero.chars if girl.action == self.action]
         
         def get_lesson_image(self):
             """
@@ -467,7 +467,8 @@ init -9 python:
             images = list()
             if p in os.listdir(content_path("schools")):
                 for file in os.listdir(content_path("schools/%s"%p)):
-                    images.append("schools/%s/%s"%(p, file))
+                    if file.endswith((".png", ".jpg", ".jpeg")):
+                        images.append("schools/%s/%s"%(p, file))
             
             # Overwrite image so its used for rest of session
             if len(images) > 0: self.image = choice(images)
@@ -631,7 +632,7 @@ init -9 python:
             """
             Returns the girls that are doing this course.
             """
-            return [girl for girl in hero.girls if char_is_training(girl) is self]
+            return [girl for girl in hero.chars if char_is_training(girl) is self]
                 
         def get_image(self, girl, **kwargs):
             """
@@ -716,7 +717,8 @@ init -9 python:
             images = list()
             if p in os.listdir(content_path("schools")):
                 for file in os.listdir(content_path("schools/%s"%p)):
-                    images.append("schools/%s/%s"%(p, file))
+                    if file.endswith((".png", ".jpg", ".jpeg")):
+                        images.append("schools/%s/%s"%(p, file))
             
             # Overwrite image so its used for rest of session
             if len(images) > 0: self.image = choice(images)
@@ -1711,7 +1713,7 @@ init -9 python:
             else:
                 renpy.call_screen('message_screen', "You don't have enough AP left for this action!!")
             
-            if not self.girls_list:
+            if not self.chars_list:
                 renpy.hide_screen("slave_shopping")
         
         def can_escape(self, girl, location, guards=None, girlmod=None, pos_traits=None, neg_traits=["Restrained"], use_be=True, simulate=True, be_kwargs=dict()):
@@ -2039,7 +2041,7 @@ init -9 python:
             return self
         
         @property
-        def girls_list(self):
+        def chars_list(self):
             """
             The list to use for the slavemarket interface.
             """
@@ -2076,7 +2078,7 @@ init -9 python:
             
             # Else if has guard action, use amount over total
             elif hasattr(location, "actions") and "Guard" in location.actions:
-                girls = [g for g in hero.girls if g.location == location]
+                girls = [g for g in hero.chars if g.location == location]
                 if girls:
                     mod = float(len(location.get_girls("Guard"))) / float(len(girls))
                 else:
@@ -2084,7 +2086,7 @@ init -9 python:
             
             # Else use warriors over total
             else:
-                girls = [g for g in hero.girls if g.location == location]
+                girls = [g for g in hero.chars if g.location == location]
                 if girls:
                     mod = float(len(location.get_girls(occupation="Warrior"))) / float(len(girls))
                 else:
@@ -2147,7 +2149,7 @@ init -9 python:
                     if self.girls[girl] > 20:
                         if dice(status) and dice(self.girls[girl]):
                             del self.girls[girl]
-                            hero.remove_girl(girl)
+                            hero.remove_char(girl)
                             
                             if cdb: txt.append("{color=[blue]}        escaped for good{/color}")
                             continue
@@ -2187,7 +2189,7 @@ init -9 python:
             # Slavemarket update
             self.index = 0
             if self.jail_cache:
-                self.girl = self.girls_list[0]
+                self.girl = self.chars_list[0]
             
             # If we have escaped girls, post the event
             if self.girls:
@@ -2196,21 +2198,21 @@ init -9 python:
                 ev.char = None
                 ev.img = im.Scale("content/gfx/bg/locations/city_jail.jpg", int(config.screen_width*0.6), int(config.screen_height*0.8))
                 ev.txt = "\n".join(txt)
-                NextDayList.append(ev)
+                NextDayEvents.append(ev)
         
         def next_index(self):
             """
             Sets the next index for the slavemarket.
             """
-            self.index = (self.index+1) % len(self.girls_list)
-            self.girl = self.girls_list[self.index]
+            self.index = (self.index+1) % len(self.chars_list)
+            self.girl = self.chars_list[self.index]
         
         def previous_index(self):
             """
             Sets the previous index for the slavemarket.
             """
-            self.index = (self.index-1) % len(self.girls_list)
-            self.girl = self.girls_list[self.index]
+            self.index = (self.index-1) % len(self.chars_list)
+            self.girl = self.chars_list[self.index]
         
         def retrieve(self, girl):
             """
@@ -2230,7 +2232,7 @@ init -9 python:
                     
                     if self.jail_cache:
                         self.index %= len(self.jail_cache)
-                        self.girl = self.girls_list[self.index]
+                        self.girl = self.chars_list[self.index]
                     
                     else:
                         self.index = 0
@@ -2249,9 +2251,9 @@ init -9 python:
             Sets the girl to be the index for the slavemarket.
             girl = The girl to set.
             """
-            if self.girls_list and girl in self.girls_list:
+            if self.chars_list and girl in self.chars_list:
                 self.girl = girl
-                self.index = self.girls_list.index(self.girl)
+                self.index = self.chars_list.index(self.girl)
         
         def status(self, girl):
             """

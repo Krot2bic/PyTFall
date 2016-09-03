@@ -118,11 +118,11 @@ init -997: # Transforms:
     transform pers_effect():
         subpixel True
         parallel:
-            fade_from_to(0.9, 1.1, 2.0)
-            fade_from_to(1.1, 0.9, 2.0)
+            fade_from_to(0.98, 1.05, 1.0)
+            fade_from_to(1.05, 0.98, 2.2)
         parallel:
-            simple_zoom_from_to_with_linear(0.9, 1.1, 2.0)
-            simple_zoom_from_to_with_linear(1.1, 0.9, 2.0)
+            simple_zoom_from_to_with_linear(0.98, 1.05, 1.0)
+            simple_zoom_from_to_with_linear(1.05, 0.98, 2.2)
         repeat    
     
     transform arena_stats_slide:
@@ -162,6 +162,93 @@ init -997: # Transforms:
         on hide:
             fade_from_to(t=0.5)
     
+    # Interactions:
+    transform interactions_angry_pulse_tr:
+        "angry_pulse"
+        pos (150, 566)
+        anchor (0.5, 0.5)
+        block:
+            linear 0.05 zoom 1.1
+            linear 0.05 zoom 0.9
+            pause 0.2
+            linear 0.05 zoom 1.1
+            linear 0.05 zoom 0.9
+            pause 0.8
+            repeat
+            
+    transform interactions_puzzled_tr:
+        "question_mark"
+        pos (130, 546)
+        alpha 0.8
+        anchor (.0, .0)
+        block:
+            linear 1 rotate 15 alpha 0.7 zoom 1.1
+            linear 1 rotate -15 alpha 0.9 zoom 0.9
+            repeat
+            
+    transform interactions_note_tr:
+        "music_note"
+        pos (125, 546)
+        alpha 0.9
+        anchor (.0, .0)
+        block:
+            linear 1 alpha 1.0 zoom 1.1
+            linear 1 alpha 0.8 zoom 0.9
+            repeat
+            
+    transform interactions_blush_tr:
+        "shy_blush"
+        pos (218, 640)
+        anchor (.5, .5)
+        yzoom 2.0
+        block:
+            linear 1.0 zoom 1.1
+            linear 1.0 zoom 0.9
+            repeat
+
+    transform interactions_surprised_tr:
+        "exclamation_mark"
+        subpixel True
+        pos (157, 650)
+        alpha 0.8
+        anchor (.5, 1.0)
+        block:
+            linear 0.4 yzoom 1.1 alpha 0.7
+            pause 0.01
+            linear 0.4 yzoom 0.9 alpha 0.9
+            repeat
+            
+    transform interactions_sweat_drop_tr:
+        pos (145, 575) alpha 0.0
+        "sweat_drop"
+        easein 1.0 ypos 610 alpha 1.0
+        
+    transform interactions_scared_lines_tr:
+        "scared_lines"
+        pos (160, 577)
+        alpha 0.0
+        linear 1.0 alpha 1.0
+        
+    transform interactions_zoom(t):
+        subpixel True
+        anchor (.5, .5)
+        block:
+            linear t zoom 1.1
+            linear t zoom 1
+
+
+        
+    default interactions_portraits_overlay = DisplayableSwitcher(displayable={"angry": interactions_angry_pulse_tr,
+                                                                                                                          "sweat": interactions_sweat_drop_tr,
+                                                                                                                          "scared": interactions_scared_lines_tr,
+                                                                                                                          "puzzled": interactions_puzzled_tr,
+                                                                                                                          "note": interactions_note_tr,
+                                                                                                                          "surprised": interactions_surprised_tr,
+                                                                                                                          "shy": interactions_blush_tr, # probably should be used only as a replacement for missing shy portraits
+                                                                                                                          "love": Transform("hearts_flow", pos=(220, 700)),
+                                                                                                                          "like": Transform("hearts_rise", pos=(120, 405), anchor=(0.0, 0.0))
+                                                                                                                          })
+            
     # Also used for gm:    
     transform found_cash(x, y, t):
         subpixel True
@@ -172,7 +259,14 @@ init -997: # Transforms:
             pos(x, y)
             linear t pos(x, (y-200))
           
-            
+    transform sex_scene_libido_hearth(t):
+        anchor (.5, .5)
+        subpixel True
+        block:
+            linear (3.0/(t+1)) zoom (1.1 + t*0.05)
+            linear (3.0/(t+1)) zoom 1
+            repeat
+        
     # BE Transforms:
     transform damage_color(img): # Note: Testing case, this should become a DD/UDD with moar options at some point.
         im.MatrixColor(img, im.matrix.saturation(1))
@@ -241,14 +335,15 @@ init -997: # Transforms:
         on idle:
             linear 0.3 xoffset 300
         
-    transform be_dodge(xoffset):
-        easein 0.5 xoffset xoffset
-        linear 0.5 xoffset 0
+    transform be_dodge(xoffset, t):
+        easein .5 xoffset xoffset
+        pause t
+        linear .4 xoffset 0
             
     # GUI ===>>>    
     transform circle_around(t=10, around=(config.screen_width/2, config.screen_height/2), angle=0, radius=200):
         subpixel True
-        anchor (0.5, 0.5)
+        anchor (.5, .5)
         around around
         angle angle
         radius radius
@@ -256,6 +351,7 @@ init -997: # Transforms:
         repeat
 
     transform mm_clouds(start, end, t):
+        subpixel True
         additive 1.0
         xpos start
         linear t xpos end

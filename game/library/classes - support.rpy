@@ -63,7 +63,7 @@ init -9 python:
             """
             Heals, restores AP and MP for non player characters that may have been exposed to world events.
             """
-            characters = [girl for girl in chars.itervalues() if girl not in hero.girls]
+            characters = [girl for girl in chars.itervalues() if girl not in hero.chars]
             
             for girl in characters:
                 girl.health = girl.get_max("health")
@@ -90,7 +90,7 @@ init -9 python:
         
         @staticmethod        
         def add_random_girls():
-            l = list(girl for girl in chars.values() if girl.__class__ == rChar and not girl.arena_active and girl not in hero.girls)
+            l = list(girl for girl in chars.values() if girl.__class__ == rChar and not girl.arena_active and girl not in hero.chars)
             amount = randint(45, 60)
             if len(l) < amount:
                 for __ in xrange((amount+5) - len(l)):
@@ -176,8 +176,8 @@ init -9 python:
             self.BrtlAdList = ['sign', 'flyers', 'magazine', 'billboard', 'girl', 'celeb']
             self.LocList = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'brothel', "-PyTFall Educators-"]
             self.clientCastes = ['None', 'Peasant', 'Merchant', 'Nomad', 'Wealthy Merchant', 'Clerk', 'Noble', 'Royal']
-            self.battlestats = ['health', 'mp', 'attack', 'magic', 'defence', 'agility', "luck", "charisma"]
-            self.herostats = ['libido', 'constitution', 'reputation', 'fame', 'charisma', 'sex', 'alignment', 'vitality', 'intelligence', 'luck']
+            self.battlestats = ['health', 'mp', 'attack', 'magic', 'defence', 'agility', "luck", "charisma", "evasion", "resistance"]
+            self.herostats = ['constitution', 'reputation', 'fame', 'charisma', 'sex', 'alignment', 'vitality', 'intelligence', 'luck']
             
             # get a list of all battle tracks:
             self.battle_tracks = list()
@@ -313,7 +313,7 @@ init -9 python:
         The load_image method will always return the same image. If you want to
         do another search, you have to set the 'img' attribute to 'None'.
         """
-        def __init__(self, type='', txt='', img='', char=None, charmod={}, loc=None, locmod={}, red_flag=False, green_flag=False, **kwargs):
+        def __init__(self, type='', txt='', img='', char=None, charmod={}, loc=None, locmod={}, red_flag=False, green_flag=False, team=None, **kwargs):
             # describes the type of event
             self.type = type
             # the description of the event
@@ -322,10 +322,18 @@ init -9 python:
             self.img = img
             # the character involved in the event (optional)
             self.char = char
+            # Team, this overrides char property in the ND reports and is used for team events:
+            self.team = team
+            # Same as above, just for stats:
+            if team:
+                self.team_charmod = charmod.copy()
+                self.charmod = None
+            else:
+                # stat changes of a char (optional)
+                self.charmod = charmod.copy()
+                self.team_charmod = None
             # the location of the event (optional)
             self.loc = loc
-            # stat changes of that girl (optional)
-            self.charmod = charmod.copy()
             # stat changes of that location (optional)
             self.locmod = locmod.copy()
             
@@ -385,6 +393,13 @@ init -9 python:
                     break
             else:
                 notify("Could not find location: {} in map: {} to unlock.".format(map, loc))
+                
+        def appearing(self, map, loc):
+            for l in self(map):
+                if l["id"] == loc:
+                    if l.get("appearing", False):
+                        return True
+            return False
                 
         def lock(self, map, loc):
             for l in self(map):

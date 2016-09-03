@@ -22,25 +22,21 @@ label city_beach_left:
     $ pytfall.world_quests.run_quests("auto")
     $ pytfall.world_events.run_events("auto")
         
-    python:
+    while 1:
 
-        while True:
+        $ result = ui.interact()
 
-            result = ui.interact()
-
-            if result[0] == 'jump':
-                gm.start_gm(result[1])
-            
-            if result[0] == 'control':
-                if result[1] == 'return':
-                    break
-                    
-    $ global_flags.set_flag("keep_playing_music")
-    hide screen city_beach_left
-    jump city_beach
-    
+        if result[0] == 'jump':
+            $ gm.start_gm(result[1])
+        
+        if result[0] == 'control':
+            if result[1] == 'return':
+                $ global_flags.set_flag("keep_playing_music")
+                hide screen city_beach_left
+                jump city_beach
                 
-screen city_beach_left:
+                
+screen city_beach_left():
 
     use top_stripe(True)
     
@@ -92,4 +88,4 @@ screen city_beach_left:
                     
                         $ entry.set_flag("beach_left_tags", (day, choice(beach_left_tags_list)))
             
-                    use rg_lightbutton(img=entry.show(*entry.flag("beach_left_tags")[1], exclude=["urban", "wildness", "suburb", "nature", "winter", "night"], type="first_default", label_cache=True, resize=(300, 400)), return_value=['jump', entry]) 
+                    use rg_lightbutton(img=entry.show(*entry.flag("beach_left_tags")[1], exclude=["urban", "wildness", "suburb", "nature", "winter", "night", "formal", "indoor", "indoors"], type="first_default", label_cache=True, resize=(300, 400)), return_value=['jump', entry]) 

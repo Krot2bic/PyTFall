@@ -1,24 +1,30 @@
-# Events
-
 init -9 python:
     def get_random_event_image(eventfolder):
         templist = []
         if eventfolder in os.listdir(content_path('events')):
             for file in os.listdir(content_path('events/%s' % eventfolder)):
+                if file.lower().endswith((".png", ".jpg", ".jpeg")):
                     templist.append('content/events/%s/%s' % (eventfolder, file))
             return ProportionalScale(choice(templist), config.screen_width, config.screen_height)
     
     def register_event(*args, **kwargs):
         """
-        Registers a new event in an init block.
+        Registers a new event in an init block (and now in labels as well!).
         """
-        world_events.append(WorldEvent(*args, **kwargs))
+        if hasattr(store, "pytfall"):
+            return register_event_in_label(*args, **kwargs)
+            
+        event = WorldEvent(*args, **kwargs)
+        world_events.append(event)
+        return event
     
     def register_event_in_label(*args, **kwargs):
         """
         Registers a new event in a label.
         """
-        pytfall.world_events.events.append(WorldEvent(*args, **kwargs))
+        event = WorldEvent(*args, **kwargs)
+        pytfall.world_events.events.append(event)
+        return event
     
     class WorldEventsManager(_object):
         """Manager of all events in PyTFall.
@@ -33,6 +39,12 @@ init -9 python:
             self.events_cache = list() # events that should be acutally checked
             self.garbage = list()
             self.label_cache = None
+            
+        def get(self, name):
+            # Returns the event object with given name.
+            for e in self.events:
+                if e.name == name:
+                    return e
         
         def kill_event(self, event_name, cached=False):
             """
@@ -57,7 +69,8 @@ init -9 python:
             """
             for event in self.events:
                 if event.name == name:
-                    self.events_cache.append(event)
+                    if event not in self.events_cache:
+                        self.events_cache.append(event)
         
         def run_events(self, trigger_type, default=None, cost=0):
             """
@@ -72,27 +85,19 @@ init -9 python:
             for i in self.events_cache:
                 if i.trigger_type == trigger_type and ("all" in i.locations or last_label in i.locations): l.append(i)
             
-            if trigger_type != "auto":
-                if hero.AP < cost:
-                    renpy.show_screen("message_screen", "Not enough AP left")
-                    return
-                else:
-                    hero.AP -= cost
-                    for event in l:
-                        if event.check_conditions():
-                            event.run_event()
-                            return
-                    
-                    else:
-                        if default: renpy.call_in_new_context(default)
-                        return
-            
+            if hero.AP < cost:
+                renpy.show_screen("message_screen", "Not enough AP left")
+                return
             else:
+                hero.AP -= cost
                 for event in l:
                     if event.check_conditions():
                         event.run_event()
                         return
-        
+                else:
+                    if default: renpy.call_in_new_context(default)
+                    return
+            
         def finish_event(self):
             """
             Finishes the current event.
@@ -122,8 +127,11 @@ init -9 python:
                 # Priority skip:
                 # This also restores the priority if required
                 if not event.priority:
-                    if event.day_to_restore_priority != day: continue
-                    else: event.priority = event.priority_cache
+                    if event.day_to_restore_priority <= day:
+                        event.priority = event.priority_cache
+                    else:
+                        continue
+                    # else: event.priority = event.priority_cache
                 
                 # Day range
                 if event.end_day <= day:
@@ -156,8 +164,8 @@ init -9 python:
     class WorldEvent(Flags):
         """Container for the world event.
         """
-        def __init__(self, name, label=None, priority=100, restore_priority=5, dice=50, start_day=1, end_day=9999999, jump=False, screen=False,
-                           times_per_days=(), locations=list(), trigger_type="look_around", custom_condition=False, simple_conditions= None, run_conditions=None, stop_music=False, max_runs=0,
+        def __init__(self, name, label=None, priority=100, restore_priority=5, dice=0, start_day=1, end_day=float('inf'), jump=False, screen=False,
+                           times_per_days=(), locations=list(), trigger_type="look_around", custom_condition=False, simple_conditions=None, run_conditions=None, stop_music=False, max_runs=0,
                            quest=None):
             """
             name = name of the event, will be used as label if label if not specified.
@@ -173,7 +181,7 @@ init -9 python:
             
             start_day = day to start checking triggers for the event.
             end_day = day to stop checking triggers for the event.
-            jump = jumps intead of running in new context.
+            jump = jumps instead of running in new context.
             screen = will show a screen (bound to self.label) if True, ignored if false
             times_per_days = maximum amount of times that event may trigger in an amount of days, expects a tuple/list of amount, days.
             locations = to trigger the event.
@@ -217,6 +225,7 @@ init -9 python:
             self.max_runs = max_runs
             self.runs = 0
             
+            
             # Quest support
             self.quest = quest
             
@@ -258,10 +267,10 @@ init -9 python:
             for i in self.days[:]:
                 if i in range_of_days:
                     matched_days.append(i)
-                    # and clean-up:
-                    if i < day-self.tdp[1]: self.days.remove(i)
+                # and clean-up:
+                if i < day-self.tpd[1]: self.days.remove(i)
             
-            if len(matched_days) < self.tdp[0]: return True
+            if len(matched_days) < self.tpd[0]: return True
             else: return False
         
         def run_event(self):

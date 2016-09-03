@@ -181,15 +181,15 @@ init -11 python:
                             
                             for key in ("color", "what_color"):
                                 if key in gd:
-                                    if "color" in key:
-                                        if gd[key] in globals():
-                                            color = getattr(store, gd[key])
-                                        elif gd[key].startswith("#"):
-                                            color = gd[key]
-                                        else:
+                                    if gd[key] in globals():
+                                        color = getattr(store, gd[key])
+                                    else:
+                                        try:
+                                            color = Color(gd[key])
+                                        except:
                                             devlog.warning("{} color supplied to {} is invalid!".format(gd[key], gd["id"]))
                                             color = ivory
-                                        char.say_style[key] = color
+                                    char.say_style[key] = color
                                             
                             for key in ("name", "nickname", "fullname", "origin", "gold", "desc", "location", "status", "height", "full_race"):
                                 if key in gd:
@@ -201,13 +201,13 @@ init -11 python:
                                 setattr(char, "_path_to_imgfolder", "/".join(["content/{}".format(path), packfolder, folder]))
                                 # We load the new tags!:
                                 for fn in os.listdir("/".join([dir, packfolder, folder])):
-                                    if fn.endswith((".jpg", ".png", ".gif")):
+                                    if fn.lower().endswith((".jpg", ".png", ".gif", ".jpeg")):
                                         rp_path = "/".join(["content/{}".format(path), packfolder, folder, fn])
                                         tags = fn.split("-")
                                         # TODO: REMOVE TRY BEFORE BUILDING THE GAME! MAY SLOW THINGS DOWN!
                                         try:
                                             del tags[0]
-                                            tags[-1] = tags[-1][:-4]
+                                            tags[-1] = tags[-1].split(".")[0]
                                         except IndexError:
                                             raise Exception("Invalid file path for image: %s" % rp_path)
                                         for tag in tags:
@@ -253,7 +253,7 @@ init -11 python:
                     if os.path.isdir("/".join([dir, folder, file])):
                         # Crazy tags!:
                         for fn in os.listdir("/".join([dir, folder, file])):
-                            if fn.endswith((".jpg", ".png", ".gif")):
+                            if fn.lower().endswith((".jpg", ".png", ".gif", ".jpeg")):
                                 rp_path = "/".join(["content/chars", folder, file, fn])
                                 fn = fn.lower()
                                 filetag = None
@@ -351,13 +351,13 @@ init -11 python:
                             random_girls[gd["id"]]["_path_to_imgfolder"] = "/".join(["content/rchars", packfolder, folder])
                             # We load the new tags!:
                             for fn in os.listdir(os.sep.join([dir, packfolder, folder])):
-                                if fn.endswith((".jpg", ".png", ".gif")):
+                                if fn.lower().endswith((".jpg", ".png", ".gif", ".jpeg")):
                                     rp_path = "/".join(["content/rchars", packfolder, folder, fn])
                                     tags = fn.split("-")
                                     # TODO: REMOVE TRY BEFORE BUILDING THE GAME! MAY SLOW THINGS DOWN!
                                     try:
                                         del tags[0]
-                                        tags[-1] = tags[-1][:-4]
+                                        tags[-1] = tags[-1].split(".")[0]
                                     except IndexError:
                                         raise Exception("Invalid file path for image: %s" % rp_path)   
                                     for tag in tags:
@@ -414,6 +414,7 @@ init -11 python:
         for mob in content:
             if "id" not in mob:
                 mob["id"] = mob["name"]
+            mob["defeated"] = 0 # We need to track if the mob was defeated for bestiary.
             mobs[mob["id"]] = mob
         return mobs
 
@@ -506,14 +507,15 @@ init -11 python:
                     content.extend(json.load(f))
                     
         for item in content:
-            i = Item()
+            iteminst = Item()
             for attr in item:
+                # We prolly want to convert to objects in case of traits:
                 if attr in ("badtraits", "goodtraits"):
-                    setattr(i, attr, set(item[attr])) # More convinient to have these as sets...
+                    setattr(iteminst, attr, set(traits[i] for i in item[attr])) # More convinient to have these as sets...
                 else:
-                    setattr(i, attr, item[attr])
-            i.init()
-            items[i.id] = i
+                    setattr(iteminst, attr, item[attr])
+            iteminst.init()
+            items[iteminst.id] = iteminst
             
         return items
         

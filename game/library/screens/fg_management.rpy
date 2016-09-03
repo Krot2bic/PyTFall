@@ -7,21 +7,21 @@ label fg_management:
             char = None
         if not hasattr(store, "girls"):
             girls = None
-        for team in fg.teams[:]:
-            for girl in team:
-                if girl not in hero.girls:
-                    if team[0] == girl:
-                        fg.teams.remove(team)
-                        global_flags.set_flag("teams_changed")
-                        break
-                    else:
-                        team.remove(girl)
-                        global_flags.set_flag("teams_changed")
+        # for team in fg.teams[:]:
+            # for girl in team:
+                # if girl not in hero.chars:
+                    # if team[0] == girl:
+                        # fg.teams.remove(team)
+                        # global_flags.set_flag("teams_changed")
+                        # break
+                    # else:
+                        # team.remove(girl)
+                        # global_flags.set_flag("teams_changed")
         if global_flags.flag("teams_changed"):
             global_flags.del_flag("teams_changed")
             renpy.show_screen("message_screen", "Your teams setup has been changed, due to girls leaving your service or dieing!")
             
-    $ fg_drags = FG_Drags()
+    # $ fg_drags = FG_Drags()
 
     # $ renpy.retain_after_load()
     show screen fg_management
@@ -222,38 +222,38 @@ screen fg_management():
                             xsize 236
                             text "Building Info:" color ivory xalign (0.5)
                         null height 22
-                        frame:
-                            xalign 0.5
-                            xsize 220
-                            text "{size=-1}Rooms:" color ivory pos (3, -4)
-                            label (u"{size=-5}%s/[fg.rooms]" % len(fg.get_girls())) style "stats_value_text" align (1.0, 0.5)
-                        frame:
-                            xalign 0.5
-                            xsize 220
-                            text "{size=-1}Dirt:" color ivory pos (3, -4)
-                            label (u"{size=-5}%s (%s %%)" % (fg.get_dirt_percentage()[1], fg.get_dirt_percentage()[0])) style "stats_value_text" align (1.0, 0.5)
-                        frame:
-                            xalign 0.5
-                            xsize 220
-                            text "{size=-1}Fame:" color ivory pos (3, -4)
-                            label (u"{size=-5}[fg.fame]/[fg.maxfame]") style "stats_value_text" align (1.0, 0.5)
-                        frame:
-                            xalign 0.5
-                            xsize 220
-                            text "{size=-1}Reputation:" color ivory pos (3, -4)
-                            label (u"{size=-5}[fg.rep]/[fg.maxrep]") style "stats_value_text" align (1.0, 0.5)
+                        # frame:
+                            # xalign 0.5
+                            # xsize 220
+                            # text "{size=-1}Rooms:" color ivory pos (3, -4)
+                            # label (u"{size=-5}%s/[fg.rooms]" % len(fg.get_girls())) style "stats_value_text" align (1.0, 0.5)
+                        # frame:
+                            # xalign 0.5
+                            # xsize 220
+                            # text "{size=-1}Dirt:" color ivory pos (3, -4)
+                            # label (u"{size=-5}%s (%s %%)" % (fg.get_dirt_percentage()[1], fg.get_dirt_percentage()[0])) style "stats_value_text" align (1.0, 0.5)
+                        # frame:
+                            # xalign 0.5
+                            # xsize 220
+                            # text "{size=-1}Fame:" color ivory pos (3, -4)
+                            # label (u"{size=-5}[fg.fame]/[fg.maxfame]") style "stats_value_text" align (1.0, 0.5)
+                        # frame:
+                            # xalign 0.5
+                            # xsize 220
+                            # text "{size=-1}Reputation:" color ivory pos (3, -4)
+                            # label (u"{size=-5}[fg.rep]/[fg.maxrep]") style "stats_value_text" align (1.0, 0.5)
                 null width 110
                 vbox:
                     style_group "basic"
                     align (0.55, 0.5)
-                    button:
-                        action ToggleField(fg, "capture_girls")
-                        xysize (250, 32)
-                        text "Capture Girls!" align (0.0, 0.5)
-                        if fg.capture_girls:
-                            add (im.Scale('content/gfx/interface/icons/checkbox_checked.png', 25, 25)) align (1.0, 0.5)
-                        else:
-                            add (im.Scale('content/gfx/interface/icons/checkbox_unchecked.png', 25, 25)) align (1.0, 0.5)
+                    # button:
+                        # action ToggleField(fg, "capture_girls")
+                        # xysize (250, 32)
+                        # text "Capture Girls!" align (0.0, 0.5)
+                        # if fg.capture_girls:
+                            # add (im.Scale('content/gfx/interface/icons/checkbox_checked.png', 25, 25)) align (1.0, 0.5)
+                        # else:
+                            # add (im.Scale('content/gfx/interface/icons/checkbox_unchecked.png', 25, 25)) align (1.0, 0.5)
                      
                     # Autobuy: 
                     button:
@@ -515,10 +515,10 @@ screen fg_management():
                         action SetScreenVariable("stats_display", "Building")
                         hovered tt.action("Here you can invest your gold and resources for various improvements.\nAnd see the different information (reputation, rank, fame, etc.)")
                         text "Building" size 15
-                        add ProportionalScale("content/gfx/bg/example/e1.png", 307, 392) pos (-91, -174)
-                        add ProportionalScale("content/gfx/bg/example/e1.png", 307, 392) pos (-91, -174)
-                        add ProportionalScale("content/gfx/bg/example/e2.png", 307, 392) pos (-91, -82)
-                        add ProportionalScale("content/gfx/bg/example/e2.png", 307, 392) pos (-91, -82)
+                        # add ProportionalScale("content/gfx/bg/example/e1.png", 307, 392) pos (-91, -174)
+                        # add ProportionalScale("content/gfx/bg/example/e1.png", 307, 392) pos (-91, -174)
+                        # add ProportionalScale("content/gfx/bg/example/e2.png", 307, 392) pos (-91, -82)
+                        # add ProportionalScale("content/gfx/bg/example/e2.png", 307, 392) pos (-91, -82)
                     button:
                         xysize (150, 40)
                         yalign 0.5
@@ -576,50 +576,50 @@ screen fg_management():
                         background Frame("content/gfx/frame/namebox5.png", 10, 10)
                         label (u"Upgrades") text_size 23 text_color ivory align(0.5, 0.8)
                     null height 10
-                    for u in fg.upgrades:
-                        hbox:
-                            xalign 0.5
-                            style_group "stats"
-                            $ img = ProportionalScale(fg.upgrades[u][1], 200, 100)
-                            $ u_name = string.capwords(u)
-                            if not fg.upgrades[u][0]:
-                                vbox:
-                                    null height 5
-                                    frame:
-                                        background Frame("content/gfx/frame/stat_box.png", 5, 5)
-                                        text "[u_name]   Inactive" color ivory size 16 xalign 0.5
-                                        xmaximum 200
-                                        xminimum 100
-                                        xalign 0.5
-                                    frame: 
-                                        background Frame(Transform("content/gfx/frame/MC_bg3.png", alpha=0.9), 10, 10)
-                                        xmaximum 100
-                                        xminimum 100
-                                        xalign 0.5
-                                        imagebutton:
-                                            xalign 0.5
-                                            idle im.Sepia(img)
-                                            hover img
-                                            action Return(["fg", "upgrade", u])
-                            else:
-                                vbox:
-                                    null height 5
-                                    frame:
-                                        background Frame("content/gfx/frame/stat_box.png", 5, 5)
-                                        xmaximum 200
-                                        xminimum 100
-                                        xalign 0.5
-                                        text "[u_name]   Active" color gold size 16 xalign 0.5
-                                    frame: 
-                                        background Frame(Transform("content/gfx/frame/MC_bg3.png", alpha=0.9), 10, 10)
-                                        xmaximum 100
-                                        xminimum 100
-                                        xalign 0.5
-                                        imagebutton:
-                                            xalign 0.5
-                                            idle im.Sepia(img)
-                                            hover img
-                                            action NullAction()
+                    # for u in fg.upgrades:
+                        # hbox:
+                            # xalign 0.5
+                            # style_group "stats"
+                            # $ img = ProportionalScale(fg.upgrades[u][1], 200, 100)
+                            # $ u_name = string.capwords(u)
+                            # if not fg.upgrades[u][0]:
+                                # vbox:
+                                    # null height 5
+                                    # frame:
+                                        # background Frame("content/gfx/frame/stat_box_proper.png", 5, 5)
+                                        # text "[u_name]   Inactive" color ivory size 16 xalign 0.5
+                                        # xmaximum 200
+                                        # xminimum 100
+                                        # xalign 0.5
+                                    # frame: 
+                                        # background Frame(Transform("content/gfx/frame/MC_bg3.png", alpha=0.9), 10, 10)
+                                        # xmaximum 100
+                                        # xminimum 100
+                                        # xalign 0.5
+                                        # imagebutton:
+                                            # xalign 0.5
+                                            # idle im.Sepia(img)
+                                            # hover img
+                                            # action Return(["fg", "upgrade", u])
+                            # else:
+                                # vbox:
+                                    # null height 5
+                                    # frame:
+                                        # background Frame("content/gfx/frame/stat_box_proper.png", 5, 5)
+                                        # xmaximum 200
+                                        # xminimum 100
+                                        # xalign 0.5
+                                        # text "[u_name]   Active" color gold size 16 xalign 0.5
+                                    # frame: 
+                                        # background Frame(Transform("content/gfx/frame/MC_bg3.png", alpha=0.9), 10, 10)
+                                        # xmaximum 100
+                                        # xminimum 100
+                                        # xalign 0.5
+                                        # imagebutton:
+                                            # xalign 0.5
+                                            # idle im.Sepia(img)
+                                            # hover img
+                                            # action NullAction()
             elif stats_display == "Team Builder":
                 null height 20
                 vbox:
@@ -638,45 +638,45 @@ screen fg_management():
                     frame:
                         background Frame("content/gfx/frame/p_frame5.png", 15, 15)
                         xysize(220, 600)
-                        side "c r":
-                            maximum(220, 600)
-                            id "team_dg"
-                            viewport id "team_dg":
-                                draggable True
-                                mousewheel True
-                                hbox:
-                                    xalign 0.5
-                                    spacing 5
-                                    ysize 10000
-                                    box_wrap True
-                                    xsize 200
-                                    if team_display == "Team":
-                                        for girl in fg_drags.get_page_content():
-                                            $ index = fg_drags.get_page_content().index(girl)
-                                            $ img = girl.show("portrait", resize=(70, 70), cache=True)
-                                            vbox:
-                                                spacing 5
-                                                frame:
-                                                    xalign 0.5
-                                                    background Frame("content/gfx/frame/p_frame5.png", 15, 15)
-                                                    xysize(162, 120)
-                                                    imagebutton:
-                                                        align (0.5, 0.93)
-                                                        style "basic_choice2_button"
-                                                        idle img
-                                                        hover img
-                                                        selected_idle Transform(img, alpha=1.05)
-                                                        action NullAction()
-                                                    frame:
-                                                        xalign 0.5
-                                                        background Frame("content/gfx/frame/Mc_bg3.png", 5, 5)
-                                                        xysize(150, 10)
-                                                        ypadding 0
-                                                        if len(girl.name) > 10:
-                                                            text "{color=[gold]}[girl.name]" style "interactions_text" selected_color red size 14 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
-                                                        else:
-                                                            text "{color=[gold]}[girl.name]" style "interactions_text" selected_color red size 20 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
-                                vbar value YScrollValue("team_dg")
+                        # side "c r":
+                            # maximum(220, 600)
+                            # id "team_dg"
+                            # viewport id "team_dg":
+                                # draggable True
+                                # mousewheel True
+                                # hbox:
+                                    # xalign 0.5
+                                    # spacing 5
+                                    # ysize 10000
+                                    # box_wrap True
+                                    # xsize 200
+                                    # if team_display == "Team":
+                                        # for girl in fg_drags.get_page_content():
+                                            # $ index = fg_drags.get_page_content().index(girl)
+                                            # $ img = girl.show("portrait", resize=(70, 70), cache=True)
+                                            # vbox:
+                                                # spacing 5
+                                                # frame:
+                                                    # xalign 0.5
+                                                    # background Frame("content/gfx/frame/p_frame5.png", 15, 15)
+                                                    # xysize(162, 120)
+                                                    # imagebutton:
+                                                        # align (0.5, 0.93)
+                                                        # style "basic_choice2_button"
+                                                        # idle img
+                                                        # hover img
+                                                        # selected_idle Transform(img, alpha=1.05)
+                                                        # action NullAction()
+                                                    # frame:
+                                                        # xalign 0.5
+                                                        # background Frame("content/gfx/frame/Mc_bg3.png", 5, 5)
+                                                        # xysize(150, 10)
+                                                        # ypadding 0
+                                                        # if len(girl.name) > 10:
+                                                            # text "{color=[gold]}[girl.name]" style "interactions_text" selected_color red size 14 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
+                                                        # else:
+                                                            # text "{color=[gold]}[girl.name]" style "interactions_text" selected_color red size 20 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
+                                # vbar value YScrollValue("team_dg")
     
             elif stats_display == "Exploration":
                 vbox: ### Gismo: Just example ###

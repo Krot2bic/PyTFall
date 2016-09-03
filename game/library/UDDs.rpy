@@ -204,7 +204,7 @@ init -999 python:
         def visit(self):
             return [img[0] for img in self.images]
             
-    
+            
     class ProportionalScale(im.ImageBase):
         '''Resizes a renpy image to fit into the specified width and height.
         The aspect ratio of the image will be conserved.'''
@@ -216,33 +216,30 @@ init -999 python:
             self.bilinear = bilinear
 
         def load(self):
-            child = im.cache.get(self.image)
-            width, height = child.get_size()
-            
-            ratio = min(self.maxwidth/float(width), self.maxheight/float(height))
-            width = ratio * width
-            height = ratio * height
+            surf = im.cache.get(self.image)
+            width, height = self.true_size()
 
             if self.bilinear:
                 try:
                     renpy.display.render.blit_lock.acquire()
-                    rv = renpy.display.scale.smoothscale(child, (width, height))
+                    rv = renpy.display.scale.smoothscale(surf, (width, height))
                 finally:
                     renpy.display.render.blit_lock.release()
             else:
                 try:
                     renpy.display.render.blit_lock.acquire()
-                    rv = renpy.display.pgrender.transform_scale(child, (newwidth, newheight))
+                    rv = renpy.display.pgrender.transform_scale(surf, (newwidth, newheight))
                 finally:
                     renpy.display.render.blit_lock.release()
+                    
             return rv
             
         def true_size(self):
             """
             I use this for the BE. Will do the callulations but not render anything.
             """
-            child = im.cache.get(self.image)
-            width, height = child.get_size()
+            surf = im.cache.get(self.image)
+            width, height = surf.get_size()
             
             ratio = min(self.maxwidth/float(width), self.maxheight/float(height))
             width = int(round(ratio * width))
@@ -369,8 +366,7 @@ init -999 python:
                     
             render = renpy.Render(width, height)
             for r in self.args:
-                cr = r.render(width, height, st, at)
-                render.blit(cr, (r.xpos, r.ypos))
+                render.place(r)
             renpy.redraw(self, 0)
             return render
             
@@ -454,7 +450,7 @@ init -100 python:
                     del(self.shown[d])
                 else:
                     d = self.shown[d]
-                    render.blit(d.render(width, height, st, at), (d.xpos, d.ypos))
+                    render.place(d)
                     
             rp.redraw(self, 0)
             
@@ -519,7 +515,7 @@ init -100 python:
                     del(self.shown[d])
                 else:
                     d = self.shown[d]
-                    render.blit(d.render(width, height, st, at), (d.xpos, d.ypos))
+                    render.place(d)
                     
             rp.redraw(self, 0)
             
@@ -659,20 +655,8 @@ init -100 python:
                 st = st - self.d["start_st"] + self.d["pause_st"]
                 
             d = self.d["d"]
-            cr = d.render(width, height, st, at)
-            size = cr.get_size()
-            render = rp.Render(size[0], size[1])
-            
-            try:
-                position = d.get_placement()
-                x, y = position[:2]
-                if x is None:
-                    x = 0
-                if y is None:
-                    y = 0
-            except:
-                x, y = 0, 0
-            render.blit(cr, (x, y))
+            render = rp.Render(width, height)
+            render.place(d)
             
             rp.redraw(self, 0)
             return render
@@ -681,11 +665,12 @@ init -100 python:
             return [v["d"] for v in self.displayable.values()]
             
             
-    class MovieLoopedOnce(renpy.display.video.Movie):
+    class MovieLooped(renpy.display.video.Movie):
         """Play Movie Sprites without loops. Until Ren'Py permits that by defualt, this can be used.
         """
         def __init__(self, *args, **kwargs):
-            super(MovieLoopedOnce, self).__init__(*args, **kwargs)
+            super(MovieLooped, self).__init__(*args, **kwargs)
+            self.loops = kwargs.get("loops", 1)
             
         def play(self, old):
             if old is None:
@@ -695,17 +680,90 @@ init -100 python:
     
             if self._play != old_play:
                 if self._play:
-                    renpy.audio.music.play(self._play, channel=self.channel, loop=False, synchro_start=True)
+                    renpy.audio.music.play([self._play]*self.loops, channel=self.channel, loop=False, synchro_start=True)
     
                     if self.mask:
-                        renpy.audio.music.play(self.mask, channel=self.mask_channel, loop=False, synchro_start=True)
+                        renpy.audio.music.play([self.mask]*self.loops, channel=self.mask_channel, loop=False, synchro_start=True)
     
                 else:
                     renpy.audio.music.stop(channel=self.channel)
     
                     if self.mask:
                         renpy.audio.music.stop(channel=self.mask_channel)
-            
+                        
+                        
+    class Appearing(renpy.Displayable):
+
+        def __init__(self, child, opaque_distance, transparent_distance, start_alpha=0.0, **kwargs):
+
+            # Pass additional properties on to the renpy.Displayable
+            # constructor.
+            super(Appearing, self).__init__(**kwargs)
+
+            # The child.
+            self.child = renpy.displayable(child)
+
+            # The distance at which the child will become fully opaque, and
+            # where it will become fully transparent. The former must be less
+            # than the latter.
+            self.opaque_distance = opaque_distance
+            self.transparent_distance = transparent_distance
+            self.start_alpha = start_alpha
+
+            # The alpha channel of the child.
+            self.alpha = start_alpha
+
+            # The width and height of us, and our child.
+            self.width = 0
+            self.height = 0
+
+        def render(self, width, height, st, at):
+
+            # Create a transform, that can adjust the alpha channel of the
+            # child.
+            t = Transform(child=self.child, alpha=self.alpha)
+
+            # Create a render from the child.
+            child_render = renpy.render(t, width, height, st, at)
+
+            # Get the size of the child.
+            self.width, self.height = child_render.get_size()
+
+            # Create the render we will return.
+            render = renpy.Render(self.width, self.height)
+
+            # Blit (draw) the child's render to our render.
+            render.blit(child_render, (0, 0))
+
+            # Return the render.
+            return render
+
+        def event(self, ev, x, y, st):
+
+            # Compute the distance between the center of this displayable and
+            # the mouse pointer. The mouse pointer is supplied in x and y,
+            # relative to the upper-left corner of the displayable.
+            distance = math.hypot(x - (self.width / 2), y - (self.height / 2))
+
+            # Base on the distance, figure out an alpha.
+            if distance <= self.opaque_distance:
+                alpha = 1.0
+            elif distance >= self.transparent_distance:
+                alpha = self.start_alpha
+            else:
+                alpha = 1.0 - 1.0 * (distance - self.opaque_distance) / (self.transparent_distance - self.opaque_distance)
+
+            # If the alpha has changed, trigger a redraw event.
+            if alpha != self.alpha:
+                self.alpha = alpha
+                renpy.redraw(self, 0)
+
+            # Pass the event to our child.
+            return self.child.event(ev, x, y, st)
+
+        def visit(self):
+            return [ self.child ]
+           
             
 init python:
     def get_size(d):
@@ -713,7 +771,7 @@ init python:
         w, h = renpy.render(d, 0, 0, 0, 0).get_size()
         w, h = int(round(w)), int(round(h))
         return w, h
-    
+        
     def gen_randmotion(count, dist, delay):
         args = [ ]
         for i in xrange(count):
@@ -732,8 +790,9 @@ init python:
                 args.append(anim.Edge(i, delay, j, MoveTransition(delay)))
         return anim.SMAnimation(0, *args)
 
-    def double_vision_on(img, alpha=0.5, count=10, dist=7, delay=0.4):
-        renpy.scene()
+    def double_vision_on(img, alpha=0.5, count=10, dist=7, delay=0.4, clear_scene=True):
+        if clear_scene:
+            renpy.scene()
         renpy.show(img)
         renpy.show(img, at_list=[Transform(alpha=alpha), gen_randmotion(count, dist, delay)], tag="blur_image")
         renpy.with_statement(dissolve)

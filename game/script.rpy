@@ -1,7 +1,10 @@
 ﻿label start:
+    # Trying to fix Git...
+    
     $ renpy.block_rollback()
-    if config.developer:
-        show screen debugTools
+    if config.debug:
+        $ renpy.show_screen("debug_tools", _layer="pytfall")
+        show screen debug_tools
         
     python:
         # Global variables and loading content:
@@ -14,6 +17,7 @@
         male_first_names = load_male_first_names(200)
         random_last_names = load_random_last_names(200)
         random_team_names = load_team_names(50)
+        
         # Load random names selections for Teams:
         file = open(renpy.loader.transfn(content_path("db/RandomTeamNames_1.txt")))
         randomTeamNames = file.readlines()
@@ -49,6 +53,7 @@
         tgs.body = [i for i in traits.values() if i.body]
         tgs.base = [i for i in traits.values() if i.basetrait and not i.mob_only]
         tgs.elemental = [i for i in traits.values() if i.elemental]
+        tgs.el_strings = [i.id.lower() for i in tgs.elemental]
         tgs.ct = [i for i in traits.values() if i.character_trait]
         tgs.sexual = [i for i in traits.values() if i.sexual] # This is a subset of character traits!
         tgs.race = [i for i in traits.values() if i.race]
@@ -65,7 +70,7 @@
     call load_battle_skills
     $ tl.timer("Loading: Battle Skills")
     
-    python:    
+    python:
         # MC:
         hero = Player()
         
@@ -73,7 +78,7 @@
         
         tl.timer("Loading: SimpleJobs")
         # This jobs are usually normal, most common type that we have in PyTFall
-        temp = [TestingJob(), WhoreJob(), StripJob(), ServiceJob(), BarJob(), Manager()]
+        temp = [TestingJob(), WhoreJob(), StripJob(), ServiceJob(), BarJob(), Manager(), CleaningJob(), GuardJob()]
         simple_jobs = {j.id: j for j in temp}
         del temp
         tl.timer("Loading: SimpleJobs")
@@ -92,7 +97,7 @@
         # maps = xml_to_dict(content_path('db/map.xml'))
         calendar = Calendar(day=28, month=2, year=125)
         global_flags = Flags()
-        girlslist_last_page_viewed = 0
+        chars_list_last_page_viewed = 0
         
         # import cPickle as pickle
         # tl.timer("Loading: Binary Tag Database")
@@ -118,6 +123,10 @@
         tl.timer("Loading: All Characters!")
         devlog.info("Loaded %d images from filenames!" % tagdb.count_images())
         
+        # Temp Code:
+        # atts = [i for i in battle_skills.values() if i.__class__ == SimpleAttack]
+        # raise Exception([i.name for i in atts])
+        
         # Build shops:
         pytfall.init_shops()
         
@@ -141,7 +150,7 @@
         if rchars:
             rgirls = rchars.keys()
             shuffle(rgirls)
-            for __ in xrange(25):
+            for i in xrange(25):
                 if rgirls:
                     rgirl = rgirls.pop()
                     new_random_girl = build_rc(id=rgirl)
@@ -161,7 +170,7 @@
         tl.timer("Loading: GirlsMeets")
         
         tl.timer("Loading: Populating SlaveMarket")
-        pytfall.sm.populate_girls_list()
+        pytfall.sm.populate_chars_list()
         tl.timer("Loading: Populating SlaveMarket")
         
     # Loading apartments/guilds:
@@ -170,49 +179,57 @@
 label dev_testing_menu:
     if config.developer:
         menu:
-            "Test Intro":
-                call intro
-            "MC Setup Screen":
-                call mc_setup
-                $ neow = True
-            "Skip MC Setup (Zero MC)":
-                $ pass
-            "MC Level 100":
+            "Debug Mode":
                 $ initial_levelup(hero, 100, max_out_stats=True)
-            "Dark Test":
-                jump intro_story
-                jump dev_testing_menu
-            "Test Matrix":
-                call test_matrix
-                jump dev_testing_menu
-
-            "Test UDD/SFX":
+                
+            "Content":
                 menu:
-                    "Test Vortex":
-                        call test_vortex
+                    "Test Intro":
+                        call intro
+                        call mc_setup
+                    "MC Setup":
+                        call mc_setup
+                        $ neow = True
+                    "Skip MC Setup":
+                        $ pass
+                    "Back":
                         jump dev_testing_menu
-                    "Quality Test":
-                        call screen testing_image_quality
-                        jump dev_testing_menu
-                    "FilmStrip":
-                        call screen testing_new_filmstrip
-                        jump dev_testing_menu
-                    "Animation":
-                        scene black
-                        show expression Transform("cataclysm", yzoom=2.5, xzoom=1.5) as cataclysm
-                        pause 5.5
-                        hide cataclysm
-                        "Done"
-                        jump dev_testing_menu
-                    "Particle":
-                        scene black
-                        show expression ParticleBurst([Solid("#%06x"%renpy.random.randint(0, 0xFFFFFF), xysize=(5, 5)) for i in xrange(50)], mouse_sparkle_mode=True) as pb
-                        pause
-                        hide pb
-                        jump dev_testing_menu
-                    "Test Robert Penners Easing":
-                        call screen test_penners_easing
-                        jump dev_testing_menu
+
+                        
+            "Logic":
+                while 1:
+                    menu:
+                        "Extend test":
+                            $ h = chars["Hinata"]
+                            "[h.name] prepares herself, awaiting for further orders."
+                            extend " You ask her to sit on top of you, immersing your dick inside."
+                        "Back":
+                            jump dev_testing_menu
+
+            "GFX":
+                while 1:
+                    menu:
+                        "Webm":
+                            call test_webm
+                        "Chain UDD":
+                            call testing_chain_udd
+                        "Test Matrix":
+                            call test_matrix
+                        "Test Vortex":
+                            call test_vortex
+                        # "Quality Test":
+                            # call screen testing_image_quality
+                        "FilmStrip":
+                            call screen testing_new_filmstrip
+                        "Particle":
+                            scene black
+                            show expression ParticleBurst([Solid("#%06x"%renpy.random.randint(0, 0xFFFFFF), xysize=(5, 5)) for i in xrange(50)], mouse_sparkle_mode=True) as pb
+                            pause
+                            hide pb
+                        "Test Robert Penners Easing":
+                            call screen test_penners_easing
+                        "Back":
+                            jump dev_testing_menu
                         
                         
         python:

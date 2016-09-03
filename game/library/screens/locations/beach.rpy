@@ -27,21 +27,18 @@ label city_beach:
     $ pytfall.world_quests.run_quests("auto")
     $ pytfall.world_events.run_events("auto")
     
-    python:
-        while True:
-            result = ui.interact()
-            
-            if result[0] == 'jump':
-                gm.start_gm(result[1])
-            
-            if result[0] == 'control':
-                if result[1] == 'return':
-                    break
-    
-    hide screen city_beach
-    jump city
-    
-
+    while 1:
+        $ result = ui.interact()
+        
+        if result[0] == 'jump':
+            $ gm.start_gm(result[1])
+        
+        if result[0] == 'control':
+            if result[1] == 'return':
+                hide screen city_beach
+                jump city
+                
+                
 screen city_beach():
     
     use top_stripe(True)
@@ -73,4 +70,4 @@ screen city_beach():
             spacing 70
             
             for entry in gm.display_girls():
-                use rg_lightbutton(img=entry.show("girlmeets", "swimsuit", "beach", exclude=["urban", "wildness", "suburb", "nature", "winter", "night"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry]) 
+                use rg_lightbutton(img=entry.show("girlmeets", "swimsuit", "beach", exclude=["urban", "wildness", "suburb", "nature", "winter", "night", "formal", "indoor", "indoors"], type="reduce", label_cache=True, resize=(300, 400)), return_value=['jump', entry]) 

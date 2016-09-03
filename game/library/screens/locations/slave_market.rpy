@@ -181,7 +181,7 @@ label blue_menu:
     jump slave_market            
     
 
-screen slavemarket:
+screen slavemarket():
     
     use top_stripe(True)
     
@@ -198,25 +198,20 @@ screen slave_shopping(store, tt_text, buy_button, buy_tt):
     default tt = Tooltip("%s"%tt_text)
     
     frame:
-        background Frame(Transform("content/gfx/frame/ink_box2.png", alpha=1.0), 10, 10)
+        background Frame("content/gfx/frame/black_frame.png", 10, 10)
         align(0.995, 1.0)
         xysize (953, 92)
         vbox:
             label (u"{=stats_text}%s"%tt.value) text_outlines [(1, "#3a3a3a", 0, 0)]
     
-    if store.girls_list:
-        # Stats and Info:
+    if store.chars_list:
+        # Stats and Info (Left Frame):
         frame:
             background Frame(Transform("content/gfx/frame/p_frame53.png", alpha=0.98), 10, 10)
             xysize(330, 678)
             ypos 41
             style_group "content"
             has vbox
-            #side "c r":
-                #viewport id "sm_vp_stats":
-                    #xysize (300, 600)
-                    #draggable True
-                    #mousewheel True
             null height 15
             vbox:
                 # Name:
@@ -360,8 +355,6 @@ screen slave_shopping(store, tt_text, buy_button, buy_tt):
                             xmaximum 306
                             frame:
                                 xsize 305
-                                text "{color=#79CDCD}{size=-1}Libido:" pos (1, -4)
-                                label (u"{size=-5}%s/%s"%(store.girl.libido, store.girl.get_max("libido"))) style "stats_value_text" align (1.0, 0.5) ypos 10
         
         # Picture:
         frame:
@@ -379,40 +372,33 @@ screen slave_shopping(store, tt_text, buy_button, buy_tt):
             style_group "content"
             xysize (350, 334)
             background Frame(Transform("content/gfx/frame/p_frame53.png", alpha=0.98), 10, 10)
-            vbox:
-                align (0.5, 0.5)
-                null height 5
-                label (u"{size=20}{color=[ivory]}{b}Traits:") xalign(0.5) text_outlines [(2, "#424242", 0, 0)]
-                null height 5
-                frame:
-                    xsize 220
-                    background Frame (Transform("content/gfx/frame/p_frame4.png", alpha=0.6), 10, 10)
-                    hbox:
-                        side "c r":
-                            align(0, 1.0)
-                            viewport id "sm_vp_traits":
-                                xysize (210, 240)
-                                draggable True
-                                mousewheel True
-                                vbox:
-                                    ysize 5000
-                                    spacing -7
-                                    style_group "stats"
-                                    for entry in store.girl.traits:
-                                        if not entry.hidden:
-                                            frame:
-                                                xysize (185, 10)
-                                                button:
-                                                    background Null()
-                                                    action NullAction()
-                                                    hovered tt.action(u"%s"%entry.desc)
-                                                    xysize (185, 10)
-                                                    text ("{color=[bisque]}{size=-1}[entry.id]")
-                                                    hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.15)), 5, 5)
-                            vbar value YScrollValue("sm_vp_traits")
+            has vbox align (0.5, 0.5)
+            null height 5
+            label (u"{size=20}{color=[ivory]}{b}Traits:") xalign .5 text_outlines [(2, "#424242", 0, 0)]
+            null height 5
+            frame:
+                left_padding 15
+                ypadding 10
+                xsize 226
+                background Frame (Transform("content/gfx/frame/p_frame4.png", alpha=0.6), 10, 10)
+                has viewport xysize (210, 253) draggable True mousewheel True scrollbars "vertical"
+                vbox:
+                    xalign .5
+                    style_group "proper_stats"
+                    spacing 1
+                    for trait in list(t for t in store.girl.traits if not any([t.basetrait])):
+                        if not trait.hidden:
+                            frame:
+                                xysize (195, 25)
+                                button:
+                                    background Null()
+                                    xysize (195, 25)
+                                    action NullAction()
+                                    text trait.id idle_color bisque size 19 align .5, .5 hover_color crimson
+                                    hovered tt.Action(u"%s"%trait.desc)
+                                    hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.10)), 5, 5)
         
         # Buttons:
-        
         frame:
             background Frame(Transform("content/gfx/frame/p_frame53.png", alpha=0.98), 10, 10)
             xpadding 5
@@ -472,7 +458,7 @@ screen slave_shopping(store, tt_text, buy_button, buy_tt):
                     hbox:
                         align(0, 0)
                         spacing 5
-                        for girl in store.girls_list:
+                        for girl in store.chars_list:
                             $ img = girl.show("vnsprite", resize=(180, 140), cache=True)
                             frame:
                                 background Frame("content/gfx/frame/Mc_bg3.png", 10, 10)
@@ -484,6 +470,7 @@ screen slave_shopping(store, tt_text, buy_button, buy_tt):
                 bar value XScrollValue("sm_vp_glist")
     
     use top_stripe(True)
+    
 screen se_captured_retrieval(pos=(900, 300)):
     zorder 3
     modal True

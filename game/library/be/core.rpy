@@ -26,7 +26,7 @@ init -1 python: # Core classes:
     class BE_Core(object):
         """Main BE attrs, data and the loop!
         """
-        def __init__(self, bg, music=None, row_pos=None, start_sfx=None, end_sfx=None, logical=False):
+        def __init__(self, bg=Null(), music=None, row_pos=None, start_sfx=None, end_sfx=None, logical=False, quotes=False):
             """Creates an instance of BE scenario.
             
             logical: Just the calculations, without pause/gfx/sfx.
@@ -34,9 +34,12 @@ init -1 python: # Core classes:
             self.teams = list() # Each team represents a faction on the battlefield. 0 index for left team and 1 index for right team.
             self.queue = list() # List of events in BE..
             self.bg = ConsitionSwitcher("default", {"default": bg, "black": Solid("#000000"), "mirrage": Mirage(bg, amplitude=0.04, wavelength=10, ycrop=10)}) # Background we'll use.
-            # self.miragebg = Mirage(bg, amplitude=0.04, wavelength=10, ycrop=10)
+            
+            if music == "random":
+                self.music = choice(ilists.battle_tracks)
+            else:
+                self.music = music
                 
-            self.music = music
             self.corpses = set() # Anyone died in the BE.
             
             if not row_pos:
@@ -52,8 +55,10 @@ init -1 python: # Core classes:
             self.end_turn_events = list() # Events we execute on start of the turn.
             self.start_turn_events = list() # Events we execute on the end of the turn.
             self.mid_turn_events = list() # Events to execute after controller was set.
+            self.terminate = False
             
             self.logical = logical
+            self.quotes = quotes # Decide if we run quotes at the start of the battle.
             
             self.start_sfx = start_sfx
             self.end_sfx = end_sfx
@@ -114,9 +119,6 @@ init -1 python: # Core classes:
                 if not self.logical:
                     renpy.hide_screen("pick_skill")
                     renpy.hide_screen("target_practice")
-                    
-                # if config.developer:
-                    # renpy.show_screen("be_test", ev) # If I need to know whats going on atm, I am using this in the dev mode...
                 
                 # End turn events, Death (Usually) is added here for example.
                 for event in self.end_turn_events[:]:
@@ -124,7 +126,7 @@ init -1 python: # Core classes:
                         self.end_turn_events.remove(event)
                 
                 # We check the conditions for terminating the BE scenario, this should prolly be end turn event as well, but I've added this before I've added events :)       
-                if self.check_conditions():
+                if self.check_break_conditions():
                     break
             
             self.end_battle()
@@ -156,9 +158,12 @@ init -1 python: # Core classes:
                     self.show_char(i, at_list=[Transform(pos=self.get_icp(team, i))])
                     
                 renpy.show("bg", what=self.bg)
-                renpy.show_screen("battle_overlay")
+                renpy.show_screen("battle_overlay", self)
                 if self.start_sfx: # Special Effects:
                     renpy.with_statement(self.start_sfx)
+                    
+                if self.quotes:
+                    self.start_turn_events.append(RunQuotes(self.teams[0]))
                     
             # After we've set the whole thing up, we've launch the main loop:
             self.main_loop()
@@ -182,8 +187,7 @@ init -1 python: # Core classes:
                     
                     # Allegiance:
                     char.allegiance = team.name
-            
-            
+                    
         def end_battle(self):
             """Ends the battle, trying to normalize any variables that may have been used during the battle.
             """
@@ -357,10 +361,12 @@ init -1 python: # Core classes:
                 
             return l
             
-        def check_conditions(self):
+        def check_break_conditions(self):
             # Checks if any specific condition is reached.
             # Should prolly be turned into a function when this gets complicated, for now it's just fighting until one of the party are "corpses".
             # For now this assumes that team indexed 0 is player team.
+            if self.terminate:
+                return True
             if len(self.teams[0]) == len(self.get_fighters(state="dead", rows=(0, 1))):
                 self.winner = self.teams[1]
                 return True
@@ -407,6 +413,9 @@ init -1 python: # Core classes:
     class BE_Action(BE_Event):
         """Basic action class that assumes that there will be targeting of some kind and followup logical and graphical effects.
         """
+        DELIVERY = ["magic", "ranged", "melee", "status"] # Damage/Effects Delivery Methods!
+        DAMAGE = ["physical", "fire", "water", "ice", "earth", "air", "electricity", "light", "darkness", "healing", "poison"] # Damage (Effect) types...
+        
         def __init__(self, name, range=1, source=None, type="se", piercing=False, multiplier=1, true_pierce=False,
                            menuname=None, critpower=0, menucat="Attacks", sfx=None, gfx=None, attributes=[], effect=0, zoom=None,
                            add2skills=True, desc="", pause=0, target_state="alive", menu_pos=0,
@@ -418,7 +427,7 @@ init -1 python: # Core classes:
                            target_damage_effect={},
                            target_death_effect={},
                            bg_main_effect={},
-                           **kwrags):
+                           **kwargs):
             """
             range: range of the spell, 1 is minimum.
             damage_effect: None is default, character is dissolved with the death effect in gfx method in special cases
@@ -503,7 +512,21 @@ init -1 python: # Core classes:
             if pause:
                 self.main_effect["duration"] = pause
             
-        
+        def __call__(self, ai=False, t=None):
+            self.effects_resolver(t)
+            died = self.apply_effects(t)
+            
+            if not isinstance(died, (list, set, tuple)):
+                died = list()
+            
+            if not battle.logical:
+                self.time_gfx(t, died)
+            
+                for tag in self.tags_to_hide:
+                    renpy.hide(tag)
+                self.tags_to_hide= list()
+                
+        # Targeting/Conditioning.
         def get_targets(self, source=None):
             """
             Gets tagets that can be hit with this action.
@@ -583,25 +606,49 @@ init -1 python: # Core classes:
             return in_range # List: So we can support indexing...
             
         def check_conditions(self, source=None):
-            if source:
-                char = source
-            else:
-                char = self.source
-            if self.get_targets(char):
-                return True
+            """Checks if the source can manage the attack."""
+            char = source if source else self.source
                 
+            # Check if attacker has enought resources for the attack:
+            if not isinstance(self.mp_cost, int):
+                mp_cost = int(char.get_max("mp")*self.mp_cost)
+            else:
+                mp_cost = self.mp_cost
+                
+            if not isinstance(self.health_cost, int):
+                health_cost = int(char.get_max("health")*self.health_cost)
+            else:
+                health_cost = self.health_cost
+                
+            if not isinstance(self.vitality_cost, int):
+                vitality_cost = int(char.get_max("vitality")*self.vitality_cost)
+            else:
+                vitality_cost = self.vitality_cost
+                
+            # We need to make sure that we have enough resources for this one:
+            # Making sure we cannot kill the source by taking off all the health:
+            if (char.mp - mp_cost >= 0) and (char.health - health_cost > 0) and (char.vitality - vitality_cost >= 0):
+                if self.get_targets(char):
+                    return True
+                
+        # Logical Effects:
         def effects_resolver(self, targets):
-            """
-            Logical effect of the action. More often than not, it calculates the damage.
+            """Logical effect of the action.
+            
+            - For normal attacks, it calculates the damage.
             Expects a list or tuple with targets.
             This should return it's results through PytCharacters property called damage so the show_gfx method can be adjusted accordingly.
             But it is this method that writes to the log to be displayed later... (But you can change even this :D)
             """
+            # TODO: Make a list of all required checks!
+            
             # prepare the variables:
             if not isinstance(targets, (list, tuple, set)):
                 targets = [targets]
+                
             a = self.source
             attributes = self.attributes
+            type = self.type
             
             # Get the attack power:
             attack = self.get_attack()
@@ -610,21 +657,19 @@ init -1 python: # Core classes:
             for t in targets:
                 # If character does NOT resists the attack:
                 if not self.check_resistance(t):
-                    # We get the mupliplier and any effects that those may bring.
-                    effects, multiplier = self.get_attributes_multiplier(t, attributes)
+                    # We get the multiplier and any effects that those may bring.
+                    effects, multiplier = self.get_multiplier(t, attributes)
                     
                     # Get the damage:
-                    defense = self.get_defense(t)
-                    damage = self.default_damage_calculator(t, attack, defense, multiplier)
+                    result = self.check_absorbtion(t) # we check the absorption
+                    defense = self.get_defense(t, absorb=result)
+                    damage = self.damage_calculator(t, attack, defense, multiplier)
                     
                     # Rows Damage:
                     effects_append, damage = self.get_row_damage(t, damage)
                     effects = effects + effects_append
-                            
-                    # Lets check the absobtion:
-                    result = self.check_absorbtion(t)
                     if result:
-                        damage = -damage * result
+                        damage = -int(damage * result+randint(1,10))
                         effects.append("absorbed")
                 else: # resisted
                     damage = 0
@@ -640,59 +685,10 @@ init -1 python: # Core classes:
                 s = list()
                 s.append("{color=[teal]}%s{/color} attacks %s with %s!" % (a.nickname, t.nickname, self.name))
                 
-                s = s + self.effects_for_string(t)
+                s = s + self.effects_to_string(t)
                 
                 battle.log("".join(s))
         
-        def effects_for_string(self, t, default_color="red"):
-            # String for the log:
-            effects = t.beeffects
-            attributes = self.attributes
-            s = list()
-            if "resisted" not in effects:
-                if "elemental_damage_bonus" in effects:
-                    # Elemental Damage Bonus, means attacker caused extra damage due to a spell aligning (positevely) with one or more if the attackers elements:
-                    s.append(" {color=[lawngreen]}ElDmg+! {/color}")
-                if "elemental_damage_penatly" in effects:
-                    # The opposite of the above
-                    s.append(" {color=[red]}ElDmg-! {/color}")
-                if "elemental_defence_bonus" in effects:
-                    # Elemental Damage Bonus, means attacker caused extra damage due to a spell aligning (negatevely) with one or more if the defenders elements
-                    s.append(" {color=[lawngreen]}ElDef- {/color}")
-                if "elemental_defence_penalty" in effects:
-                    # The opposite of the above
-                    s.append(" {color=[red]}ElDef+ {/color}")
-                if "backrow_penalty" in effects:
-                    # Damage halved due to the target being in the back row!
-                    s.append(" {color=[red]}1/2 DMG (Back-Row) {/color}")
-                if "critical_hit" in effects:
-                    s.append(" {color=[lawngreen]}Critical Hit {/color}")
-                if "missed_hit" in effects:
-                    s.append(" {color=[lawngreen]}Attack Missed {/color}")
-                if "absorbed" in effects:
-                    s.append(" {color=[lawngreen]}Absorbed DMG{/color}")
-                    s.append(self.set_dmg_font_color(t, attributes, color="green"))
-                else:
-                    s.append(self.set_dmg_font_color(t, attributes, color=default_color))    
-            else: # If resisted:
-                s.append(" {color=[crimson]}Resisted the attack{/color}")
-                s.append(self.set_dmg_font_color(t, attributes, color="green"))
-                
-            return s
-                
-        def default_damage_calculator(self, t, attack, defense, multiplier):
-            damage = 0
-            # Calculate damage same as usual
-            if (defense < 1):
-                damage = attack * 1.5
-            else:
-                damage = (attack/defense) + 0.5
-                
-            # Get a random number between 0.8 and 1.2
-            rand = (random.random() * 0.4) + 0.8
-            damage = int(float(damage) * multiplier * 10 * rand)
-            return damage
-                
         def get_row_damage(self, t, damage):
             # It's always the normal damage except for rows 0 and 3 (unless everyone in the front row are dead :) ).
             # Adding true_piece there as well:
@@ -730,85 +726,124 @@ init -1 python: # Core classes:
             Very simple method to get to attack power.
             """
             a = self.source
-            if any(list(i for i in ["melee", "ranged"] if i in self.attributes)):
-                attack = (a.attack + self.effect) * self.multiplier  # TODO: ADD WEAPONS EFFECTS IF THIS IS A WEAPON SKILLS.
+            
+            if "melee" in self.attributes: # TODO: ADD WEAPONS EFFECTS IF THIS IS A WEAPON SKILLS
+                attack = (a.attack*0.8 + a.agility*0.25 + self.effect) * self.multiplier
+            elif "ranged" in self.attributes:
+                attack = (a.attack*0.9 + (a.luck+50)*0.5 + self.effect) * self.multiplier # luck bonus is far more limited than agility bonus from melee, but ranged attacks should have drawbacks too
             elif "magic" in self.attributes:
-                attack = (a.magic + self.effect) * self.multiplier
+                attack = (a.magic*0.8 + a.intelligence*0.2 + self.effect) * self.multiplier
             else:
                 attack = self.effect + 20
-            return attack    
+                
+            # Simple randomization factor?:
+            attack *= random.uniform(.85, 1.15) # every time attack is random from 85 to 115%
             
-        def get_defense(self, target):
+            # Decreasing based of current health:
+            healthlevel=(1-a.health/a.get_max("health"))*0.5 # low health decrease attack power, down to 50% at close to 0 health
+            attack *= (1-healthlevel)
+            
+            return attack if attack > 0 else 1
+            
+        def get_defense(self, target, absorb=False):
             """
             A method to get defence value vs current attack.
             """
-            if any(list(i for i in ["melee", "ranged"] if i in self.attributes)):
-                defense = round(target.defence + target.constitution*0.2)
+            if "melee" in self.attributes:
+                defense = round(target.defence*0.8 + target.constitution*0.2)
+            elif "ranged" in self.attributes:
+                defense = round(target.defence*0.8 + target.constitution*0.1 + target.agility*0.1)
             elif "magic" in self.attributes:
-                defense = round(target.magic*0.4 + target.defence*0.4 + target.constitution*0.2 + target.intelligence*0.2)
+                if absorb: # we lower defense if the element is going to be absorbed, character kinda tries to not resist the magic to absorb as much as possible
+                    defense = round(target.defence*0.6 - target.intelligence*0.2)
+                else:
+                    defense = round(target.magic*0.2 + target.defence*0.6 + target.intelligence*0.2)
             else:
-                defense = target.defence
-            return defense if defense != 0 else 1
+                defense = target.defence+target.health
+            rand = randint(85, 110)*0.01 # every time defense is random from 85 to 110%
+            defense *= rand
+            return defense if defense > 0 else 1
                 
-        def get_attributes_multiplier(self, t, attributes):
+        def damage_calculator(self, t, attack, defense, multiplier):
+            """Used to calc damage of the attack.
+            Before multipliers and effects are apllied.
             """
-            This calculates the multiplier to use with damage.
+            resist = pow(attack/defense, 0.5) # depending on how high the difference between attack and defense, damage additionally reduces or increases. attack 10 times higher than defense gives damage*3, 10 lower gives damage*0.3
+            damage = int((attack/defense*resist+randint(1,5))*multiplier)
+            return damage
+            
+        def get_multiplier(self, t, attributes, multiplier=1.0):
             """
-            multiplier = 1.0
+            This calculates the multiplier to use with effect of the skill.
+            """
             effects = list()
             a = self.source
+            
             if any(list(i for i in ["melee", "ranged"] if i in attributes)): 
-                evasion_chance = round (0.5*t.level + t.agility - 0.5*a.level - a.agility)
-                if evasion_chance > 0: # evasion
-                    if evasion_chance > 90:
-                        evasion_chance = 90
+                if dice((a.luck+50)*0.35): # Critical hit prevents any evasion and depends solely on the attacker luck, 35% with luck 50; in the future it probably will be tied to weapon skills
+                    multiplier += 1.5 + self.critpower
+                    effects.append("critical_hit")
+                elif ("inevitable" not in attributes): # inevitable attribute makes skill/spell undodgeable/unresistable
+                    evasion_chance = t.evasion # starting evasion chance = evasion stat
+                    healthlevel=(1-t.health/t.get_max("health"))*10 # low health provides additional evasion, up to 10% with close to 0 hp
+                    evasion_chance += healthlevel
                     if dice(evasion_chance):
                         multiplier = 0
                         effects.append("missed_hit")
-                elif (a.luck >= t.luck): # Critical hit, cannot be done now on higher level or too agile targets
-                    if dice(round(((a.luck+50)-(t.luck+50))*0.35)):
-                        multiplier += 1.5 + self.critpower # different weapons have different power of crit
-                        effects.append("critical_hit")
-            # Magic/Attribute alignment:
-            for al in attributes:
+
+            else:
+                result = self.check_absorbtion(t) # they will never dodge spells that can be absorbed
+                if result:
+                    evasion_chance = -1
+                elif any(list(i for i in ["healing", "revive", "status", "inevitable"] if i in attributes)): # no escape from healing and status effects
+                    evasion_chance = -1
+                else: # magic resistance
+                    evasion_chance = t.resistance # base chance is the target resistance stat
+                    healthlevel=(1-t.health/t.get_max("health"))*5 # low health provides additional evasion, up to 5% with close to 0 hp
+                    evasion_chance += healthlevel
+                if dice(evasion_chance):
+                    multiplier = 0.65 # successful resistance decreases spell damage; for now it's always 0.65, but eventually it might be depending on something
+                    effects.append("missed_hit")
+                    
+            # Get multiplier from traits:
+            # We decided that any trait could influence this:
+            damage = []
+            defence = []
+            for attr in attributes:
                 # Damage first:
-                i = {}
-                # @Review: We decided that any trait should influence this:
-                for e in a.traits:
-                    if al in e.el_damage:
-                        i[e.id] = e.el_damage[al]
-                if i:
-                    i = sum(i.values()) / len(i)
-                    if i > 0.15 or i < 0.15:
-                        if i > 0:
-                            effects.append("elemental_damage_bonus")
-                        elif i < 0:
-                            effects.append("elemental_damage_penalty")
-                    multiplier += i
-                    
+                for trait in a.traits:
+                    if attr in trait.el_damage:
+                        damage.append(trait.el_damage[attr])
+                        
                 # Defence next:
-                i = {}
-                for e in t.traits:
-                    if al in e.el_defence:
-                        i[e.id] = e.el_defence[al]
-                if i:
-                    i = sum(i.values()) / len(i)
-                    # From the perspective of the attacker...
-                    if i > 0.15 or i < 0.15:
-                        if i > 0:
-                            effects.append("elemental_defence_penalty")
-                        elif i < 0:
-                            effects.append("elemental_defence_bonus")
-                    multiplier -= i
-                    
-            return effects, multiplier
+                for trait in t.traits:
+                    if attr in trait.el_defence:
+                         defence.append(trait.el_defence[attr])
+                         
+            if damage:
+                damage = float(sum(damage)) / len(damage)
+                # if i > 0.15 or i < 0.15:
+                effects.append(("damage_mod", damage))
+                multiplier += damage
                 
+            if defence:
+                defence = float(sum(defence)) / len(defence)
+                # From the perspective of the attacker...
+                # if i > 0.15 or i < 0.15:
+                effects.append(("defence_mod", defence))
+                multiplier -= defence
+                        
+            return effects, multiplier
+            
+        # To String methods:
         def set_dmg_font_color(self, t, attributes, to_string=True, color="red"):
             """
             Sets up the color for damage graphics and returns a correct string for the log if to_string is True
             color: default to use if none found.
             attributes: list of effects to go through
             """
+            effects = t.beeffects
+            
             # Get the color for damage font based on elemental damage:
             l = list(e for e in store.traits.itervalues() if e.id.lower() in attributes)
             if l:
@@ -817,51 +852,111 @@ init -1 python: # Core classes:
                 if e.font_color:
                     color = e.font_color
             t.dmg_font = color # Set the font to pass it to show_damage_effect method, where it is reset back to red.
+            
+            # We do not want to show damage in the log if the attack missed:
+            if to_string and "missed_hit" in effects:
+                gfx = self.dodge_effect.get("gfx", "dodge")
+                if gfx == "dodge":
+                    return ""
+                
             return "{color=[%s]} DMG: %d {/color}" % (color, t.beeffects[0])
             
+        def effects_to_string(self, t, default_color="red"):
+            # String for the log:
+            effects = t.beeffects
+            attributes = self.attributes
+            s = list()
+            if "resisted" not in effects:
+                for effect in effects:
+                    if isinstance(effect, tuple):
+                        if not isinstance(effect[1], float):
+                            raise Exception(effect)
+                        if effect[0] == "damage_mod":
+                            damage = round(float(effect[1]), 1)
+                            if damage > 0:
+                                s.append(" {color=[lawngreen]}⚔+ (%s){/color} "%damage)
+                            elif damage < 0:
+                                s.append(" {color=[red]}⚔- (%s){/color} "%-damage)
+                                
+                        elif effect[0] == "defence_mod":
+                            defence = round(float(effect[1]), 1)
+                            if defence > 0:
+                                s.append(" {color=[red]}☗+ (%s){/color} "%defence)
+                            elif defence < 0:
+                                s.append(" {color=[lawngreen]}☗- (%s){/color} "%-defence)
+                                    
+                    else: # it's a string...
+                        if effect == "backrow_penalty":
+                            # Damage halved due to the target being in the back row!
+                            s.append(" {color=[red]}1/2 DMG (Back-Row) {/color}")
+                        elif effect == "critical_hit":
+                            s.append(" {color=[lawngreen]}Critical Hit {/color}")
+                        elif effect == "missed_hit":
+                            gfx = self.dodge_effect.get("gfx", "dodge")
+                            if gfx == "dodge":
+                                s.append(" {color=[lawngreen]}Attack Missed {/color}")
+                            else:
+                                s.append(" {color=[lawngreen]}Spell Resisted (-⅓ damage) {/color}")
+                        elif effect == "absorbed":
+                            s.append(" {color=[lawngreen]}Absorbed DMG{/color}")
+                            s.append(self.set_dmg_font_color(t, attributes, color="green"))
+                        else:
+                            s.append(self.set_dmg_font_color(t, attributes, color=default_color))   
+                            
+            else: # If resisted:
+                s.append(" {color=[crimson]}Resisted the attack{/color}")
+                s.append(self.set_dmg_font_color(t, attributes, color="green"))
+                
+            return s
+            
         def apply_effects(self, targets):
+            """This is a  final method where all effects of the attacks are being dished out on the objects.
+            """
+            
             # Not 100% for that this will be required...
             # Here it is simple since we are only focusing on damaging health:
             # prepare the variables:
             died = list()
-            
             if not isinstance(targets, (list, tuple, set)):
                 targets = [targets]
             for t in targets:
                 if t.health - t.beeffects[0] > 0:
                     t.mod("health", -t.beeffects[0])
                 else:
-                    died.append(t)
-                    # if t.can_die:
-                        # t.health = 0 # This prolly should be moved to end routine to prevent major fuckups with teams!:
-                    # else:
                     t.health = 1
                     battle.end_turn_events.append(RPG_Death(t))
+                    died.append(t)
                     
+            # Here we need to take of cost:
+            if not(isinstance(self.mp_cost, int)):
+                mp_cost = int(self.source.get_max("mp")*self.mp_cost)
+            else:
+                mp_cost = self.mp_cost
+            if not(isinstance(self.health_cost, int)):
+                health_cost = int(self.source.get_max("health")*self.health_cost)
+            else:
+                health_cost = self.health_cost
+            if not(isinstance(self.vitality_cost, int)):
+                vitality_cost = int(self.source.get_max("vitality")*self.vitality_cost)
+            else:
+                vitality_cost = self.vitality_cost
+                
+            self.source.mp -= mp_cost
+            self.source.health -= health_cost
+            self.source.vitality -= vitality_cost
             return died
             
-        def __call__(self, ai=False, t=None):
-            self.effects_resolver(t)
-            died = self.apply_effects(t)
-            
-            if not isinstance(died, (list, set, tuple)):
-                died = list()
-            
-            if not battle.logical:
-                self.show_gfx(t, died)
-            
-                for tag in self.tags_to_hide:
-                    renpy.hide(tag)
-                self.tags_to_hide= list()
-                
+        # Game/Gui Assists:
         def get_element(self):
-            # Returns (if any) an element bound to spell or attack:
-            for t in traits:
-                if t.lower() in self.attributes and t.lower() not in ["magic", "melee", "ranged"]:
-                    return traits[t]
+            # This may have to be expanded if we permit multi-elemental attacks in the future.
+            # Returns first (if any) an element bound to spell or attack:
+            for t in tgs.elemental:
+                element = t.id
+                if element.lower() in self.attributes:
+                    return t
                 
         # GFX/SFX:
-        def show_gfx(self, targets, died):
+        def time_gfx(self, targets, died):
             """Executes GFX part of an attack. Diregarded during logical combat.
             
             Usually, this has the following order:
@@ -1180,7 +1275,8 @@ init -1 python: # Core classes:
                         renpy.show(target.betag, what=target.besprite, at_list=[Transform(pos=target.cpos)], zorder=target.besk["zorder"])
             
         def time_target_damage_effect(self, targets, died, start):
-            damage_effect_start = start + self.target_damage_effect.get("initial_pause", 0.2)
+            default =  self.main_effect["duration"] * .75 # Used to be .2 but it is a better idea to show it after the attack gfx effects are finished if no value was specified directly.
+            damage_effect_start = start + self.target_damage_effect.get("initial_pause", default)
             
             if damage_effect_start in self.timestamps:
                 damage_effect_start = damage_effect_start + random.uniform(0.001, 0.002)
@@ -1202,15 +1298,20 @@ init -1 python: # Core classes:
                     if target not in died or force:
                         tag = "bb" + str(index)
                         if "missed_hit" in target.beeffects:
-                            s = "Missed"
-                            color = getattr(store, target.dmg_font)
+                            gfx = self.dodge_effect.get("gfx", "dodge")
+                            if gfx == "dodge":
+                                s = "Missed"
+                                color = getattr(store, target.dmg_font)
+                            else:
+                                s = "▼ "+"%s"%target.beeffects[0]
+                                color = getattr(store, target.dmg_font)
                         else:
                             s = "%s"%target.beeffects[0]
                             if "critical_hit" in target.beeffects:
                                 s = "\n".join([s, "Critical hit!"])
                             color = getattr(store, target.dmg_font)
                         txt = Text(s, style="TisaOTM", min_width=200, text_align=0.5, color=color, size=18)
-                        renpy.show(tag, what=txt, at_list=[battle_bounce(battle.get_cp(target, type="tc", yo=-20))], zorder=target.besk["zorder"]+2)
+                        renpy.show(tag, what=txt, at_list=[battle_bounce(battle.get_cp(target, type="tc", yo=-30))], zorder=target.besk["zorder"]+2)
                         target.dmg_font = "red"
             
         def get_target_damage_effect_duration(self):
@@ -1299,34 +1400,63 @@ init -1 python: # Core classes:
             
             
         def time_dodge_effect(self, targets, attacker, start):
-            effect_start = start - 0.3
-            if effect_start < 0:
-                effect_start = 0
+            # effect_start = start - .3
+            # if effect_start < 0:
+                # effect_start = 0
+                
+            # Ok, so since we'll be using it for all kinds of attacks now, we need better timing controls:
+            effect_start = self.dodge_effect.get("initial_pause", None)
+            if effect_start is None:
+                effect_start = start - .3
+                if effect_start < 0:
+                    effect_start = 0
+            else:
+                effect_start = effect_start + start
             
             if effect_start in self.timestamps:
                 effect_start = effect_start + random.uniform(0.001, 0.002)
             self.timestamps[effect_start] = renpy.curry(self.show_dodge_effect)(attacker, targets)
             
-            # delay = effect_start + self.bg_main_effect["duration"]
-            # if delay in self.timestamps:
-                # delay = delay + random.uniform(0.001, 0.002)
+            # Hiding timing as well in our new version:
+            delay = effect_start + self.main_effect["duration"]
+            if delay in self.timestamps:
+                delay = delay + random.uniform(0.001, 0.002)
             
-            # self.timestamps[delay] = self.hide_bg_main_effect
+            self.timestamps[delay] = renpy.curry(self.hide_dodge_effect)(targets)
                     
-        def show_dodge_effect(self, attacker,  targets):
+        def show_dodge_effect(self, attacker, targets):
+            gfx = self.dodge_effect.get("gfx", "dodge")
             # gfx = self.dodge_effect["gfx"]
             # sfx = self.dodge_effect.get("sfx", None)
             
             # if sfx:
                 # renpy.sound.play(sfx)
                 
-            for target in targets:
+            for index, target in enumerate(targets):
                 if "missed_hit" in target.beeffects:
-                    xoffset = -100 if battle.get_cp(attacker)[0] > battle.get_cp(target)[0] else 100
-                    renpy.show(target.betag, what=target.besprite, at_list=[be_dodge(xoffset)], zorder=target.besk["zorder"])
+                    if gfx == "dodge":
+                        xoffset = -100 if battle.get_cp(attacker)[0] > battle.get_cp(target)[0] else 100
+                        
+                        # Figure out the pause:
+                        pause = self.main_effect["duration"]
+                        if pause < .5:
+                            pause = 0
+                        else:
+                            pause = pause - .5
+                        
+                        renpy.show(target.betag, what=target.besprite, at_list=[be_dodge(xoffset, pause)], zorder=target.besk["zorder"])
+                        
+                    elif gfx == "magic_shield":
+                        tag = "dodge" + str(index)
+                        renpy.show(tag, what=ImageReference("resist"), at_list=[Transform(size=(300, 300), pos=battle.get_cp(target, type="center"), anchor=(.5, .5))], zorder=target.besk["zorder"]+1)
                 
-        def hide_dodge_effect(self):
-            pass
+        def hide_dodge_effect(self, targets):
+            gfx = self.dodge_effect.get("gfx", "dodge")
+            
+            if gfx == "magic_shield":
+                for index, target in enumerate(targets):
+                    tag = "dodge" + str(index)
+                    renpy.hide(tag)
             
             
     class BE_AI(object):
@@ -1338,7 +1468,7 @@ init -1 python: # Core classes:
             skills = self.get_skills()
             if skills:
                 skill = choice(skills)
-                # So we have a skill... now lets pick a taget(s):
+                # So we have a skill... now lets pick a target(s):
                 skill.source = self.source
                 targets = skill.get_targets() # Get all targets in range.
                 targets = targets if "all" in skill.type else choice(targets) # We get a correct amount of targets here.
@@ -1363,3 +1493,10 @@ init -1 python: # Core classes:
                 # if not skill.check_conditions():
                     # skills.remove(skill)
             return skills
+
+    class Slave_BE_AI(object): # for slaves involved in combat, skips every turn since they are not allowed to fight.
+        def __init__(self, source):
+            self.source = source
+        def __call__(self):
+            skill = Slave_BE_Skip(source=self.source)
+            skill()

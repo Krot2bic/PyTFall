@@ -65,6 +65,10 @@
             "oral": [
                 10,
                 40
+            ],
+            "sex": [
+                10,
+                40
             ]
         },
         "leveling_stats": {
@@ -373,7 +377,7 @@
         "occupations": [
             "Server"
         ],
-        "desc": "She specializes in striptease.",
+        "desc": "She specializes in cleaning.",
         "higher_tiers": ["Maid"],
         "basetrait": true,
         "mod_skills": {
@@ -503,24 +507,25 @@
         "desc": "There is a little spark of magic within her soul giving her ability to manipulate arcane energies.",
         "basetrait": true,
         "mod": {
-            "magic": 100,
+            "magic": 10,
             "upkeep": 5,
-            "intelligence": 10
+            "intelligence": 5
         },
         "max": {
-            "magic": 50,
+            "magic": 25,
             "intelligence": 5
         },
         "init_lvlmax": {
-            "magic": 100,
-            "mp": 100
+            "magic": 40,
+            "mp": 50
         },
         "init_max": {
-            "magic": 100,
-            "mp": 100
+            "magic": 40,
+            "mp": 50
         },
         "init_mod": {
-            "magic": 50
+            "magic": 10,
+            "resistance": 5
         },
         "init_skills": {},
         "leveling_stats": {
@@ -529,16 +534,16 @@
                 -1
             ],
             "defence": [
-                -2,
+                -1,
                 -1
             ],
             "magic": [
-                0,
+                1,
                 1
             ],
             "mp": [
-                0,
-                2
+                1,
+                1
             ]
         }
     },
@@ -568,7 +573,9 @@
             "mp": 50
         },
         "init_mod": {
-            "magic": 25
+            "magic": 25,
+            "evasion": 2,
+            "resistance": 2
         },
         "init_skills": {},
         "leveling_stats": {
@@ -666,7 +673,8 @@
         },
         "init_mod": {
             "attack": 50,
-            "defence": 25
+            "defence": 25,
+            "evasion": 4
         },
         "init_skills": {},
         "leveling_stats": {
@@ -718,7 +726,9 @@
             "health": 100
         },
         "init_mod": {
-            "defence": 25
+            "defence": 25,
+            "evasion": 6,
+            "resistance": 1
         },
         "init_skills": {},
         "leveling_stats": {
@@ -822,7 +832,10 @@
         "init_mod": {
             "attack": 20,
             "defence": 10,
-            "agility": 15
+            "agility": 15,
+            "evasion": 10,
+            "resistance": 1
+            
         },
         "init_skills": {},
         "leveling_stats": {

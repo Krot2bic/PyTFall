@@ -104,68 +104,52 @@ screen items_transfer():
             frame:
                 ypos -35
                 background Frame("content/gfx/frame/p_frame5.png", 15, 15)
-                xysize(550, 310)
-                side "c r":
-                    maximum(370, 560)
-                    viewport id "left_members":
-                        draggable True
-                        mousewheel True
-                        hbox:
-                            xpos 5
+                xysize (550, 310)
+                has viewport draggable True mousewheel True xysize 355, 300 child_size 355, 10000 scrollbars "vertical"
+                hbox:
+                    xpos 5
+                    spacing 5
+                    box_wrap True
+                    xsize 355
+                    for lmember in pytfall.it.populate_character_viewports()[1]:
+                        $ img = lmember.show("portrait", resize=(70, 70), cache=True)
+                        vbox:
                             spacing 5
-                            ysize 10000
-                            box_wrap True
-                            xsize 385
-                            for lmember in pytfall.it.populate_character_viewports()[1]:
-                                $ img = lmember.show("portrait", resize=(70, 70), cache=True)
-                                vbox:
-                                    spacing 5
-                                    frame:
-                                        xpos 4
-                                        background Frame("content/gfx/frame/p_frame5.png", 15, 15)
-                                        xysize(162, 120)
-                                        imagebutton:
-                                            align (0.5, 0.93)
-                                            style "basic_choice2_button"
-                                            idle img
-                                            hover img
-                                            selected_idle Transform(img, alpha=1.05)
-                                            action [Return(['select_left_char', lmember]), SelectedIf(lmember == pytfall.it.left_char), SensitiveIf(lmember != pytfall.it.right_char)], With(dissolve)
-                                        frame:
-                                            xalign 0.5
-                                            background Frame("content/gfx/frame/Mc_bg3.png", 5, 5)
-                                            xysize(150, 10)
-                                            ypadding 0
-                                            if len(lmember.name) > 10: # Gismo: For buildings???
-                                                text "{color=[gold]}[lmember.name]" style "interactions_text" selected_color red size 14 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
-                                            else:
-                                                text "{color=[gold]}[lmember.name]" style "interactions_text" selected_color red size 20 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
-
-                    vbar value YScrollValue("left_members")
+                            frame:
+                                xpos 4
+                                background Frame("content/gfx/frame/p_frame5.png", 15, 15)
+                                xysize (162, 120)
+                                imagebutton:
+                                    align (0.5, 0.93)
+                                    style "basic_choice2_button"
+                                    idle img
+                                    hover img
+                                    selected_idle Transform(img, alpha=1.05)
+                                    action [Return(['select_left_char', lmember]), SelectedIf(lmember == pytfall.it.left_char), SensitiveIf(lmember != pytfall.it.right_char)]
+                                frame:
+                                    xalign 0.5
+                                    background Frame("content/gfx/frame/Mc_bg3.png", 5, 5)
+                                    xysize(150, 10)
+                                    ypadding 0
+                                    if len(lmember.name) > 10: # Gismo: For buildings???
+                                        text "{color=[gold]}[lmember.name]" style "interactions_text" selected_color red size 14 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
+                                    else:
+                                        text "{color=[gold]}[lmember.name]" style "interactions_text" selected_color red size 20 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
                 
             frame:
                 ypos -40
                 background Frame("content/gfx/frame/p_frame5.png", 15, 15)
-                xysize(376, 378)
-                side "c r":
-                    pos (5, 5)
-                    maximum(353, 352)
-                    viewport id "left_items":
-                        draggable True
-                        mousewheel True
-                        vbox:
-                            style_group "dropdown_gm2"
-                            spacing 2
-                            ysize 10000
-                            if pytfall.it.show_left_items_selection():
-                                for litem in pytfall.it.get_left_inventory():
-                                    $ left_vp_items_amount = pytfall.it.left_char.inventory.content[litem.id]
-                                    button:
-                                        xysize (325, 28)
-                                        action [Return(['select_left_item', litem]), SelectedIf(litem == pytfall.it.left_item)] , With(dissolve)
-                                        text "[litem.id]" align (0.0, 0.5) style "dropdown_gm2_button_text"
-                                        text "[left_vp_items_amount]" align (1.0, 0.7) style "dropdown_gm2_button_value_text"
-                    vbar value YScrollValue("left_items")
+                style_group "dropdown_gm2"
+                xysize (378, 378)
+                has vbox
+                if pytfall.it.show_left_items_selection():
+                    for litem in pytfall.it.get_left_inventory():
+                        $ left_vp_items_amount = pytfall.it.left_char.inventory.content[litem.id]
+                        button:
+                            xysize (330, 28)
+                            action [Return(['select_left_item', litem]), SelectedIf(litem == pytfall.it.left_item)]
+                            text "[litem.id]" align (0.0, 0.5) style "dropdown_gm2_button_text"
+                            text "[left_vp_items_amount]" align (1.0, 0.7) style "dropdown_gm2_button_value_text"
             
         # Right members + Items
         vbox:
@@ -175,68 +159,58 @@ screen items_transfer():
                 background Frame("content/gfx/frame/p_frame5.png", 15, 15)
                 style_group "dropdown_gm"
                 xysize (550, 310)
-                side "c l":
-                    ypos -4
-                    xpos 180
-                    maximum(370, 560)
-                    viewport id "right_members":
-                        draggable True
-                        mousewheel True
-                        hbox:
-                            spacing 5
-                            ysize 10000
-                            box_wrap True
-                            xsize 385
-                            for rmember in pytfall.it.populate_character_viewports()[1]:
-                                $ img = rmember.show("portrait", resize=(70, 70), cache=True)
-                                vbox:
-                                    spacing 5
+                has side "c l" ypos -4 xpos 180 maximum (360, 560)
+                viewport id "right_members":
+                    draggable True
+                    mousewheel True
+                    xysize 355, 300
+                    child_size 355, 10000
+                    hbox:
+                        spacing 5
+                        box_wrap True
+                        xsize 355
+                        for rmember in pytfall.it.populate_character_viewports()[1]:
+                            $ img = rmember.show("portrait", resize=(70, 70), cache=True)
+                            vbox:
+                                spacing 5
+                                frame:
+                                    xpos 4
+                                    background Frame("content/gfx/frame/p_frame5.png", 15, 15)
+                                    xysize(162, 120)
+                                    imagebutton:
+                                        ypos 27
+                                        xalign 0.5
+                                        style "basic_choice2_button"
+                                        idle img
+                                        hover img
+                                        selected_idle Transform(img, alpha=1.05)
+                                        action [Return(['select_right_char', rmember]), SelectedIf(rmember == pytfall.it.right_char), SensitiveIf(rmember != pytfall.it.left_char)]
                                     frame:
-                                        xpos 4
-                                        background Frame("content/gfx/frame/p_frame5.png", 15, 15)
-                                        xysize(162, 120)
-                                        imagebutton:
-                                            ypos 27
-                                            xalign 0.5
-                                            style "basic_choice2_button"
-                                            idle img
-                                            hover img
-                                            selected_idle Transform(img, alpha=1.05)
-                                            action [Return(['select_right_char', rmember]), SelectedIf(rmember == pytfall.it.right_char), SensitiveIf(rmember != pytfall.it.left_char)], With(dissolve)
-                                        frame:
-                                            ypos -4
-                                            xalign 0.5
-                                            background Frame("content/gfx/frame/Mc_bg3.png", 5, 5)
-                                            xysize(150, 10)
-                                            ypadding 0
-                                            if len(rmember.name) > 10: # Gismo: For buildings???
-                                                text "{color=[gold]}[rmember.name]" style "interactions_text" selected_color red size 14 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
-                                            else:
-                                                text "{color=[gold]}[rmember.name]" style "interactions_text" selected_color red size 20 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
-                    vbar value YScrollValue("right_members")
+                                        ypos -4
+                                        xalign 0.5
+                                        background Frame("content/gfx/frame/Mc_bg3.png", 5, 5)
+                                        xysize(150, 10)
+                                        ypadding 0
+                                        if len(rmember.name) > 10: # Gismo: For buildings???
+                                            text "{color=[gold]}[rmember.name]" style "interactions_text" selected_color red size 14 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
+                                        else:
+                                            text "{color=[gold]}[rmember.name]" style "interactions_text" selected_color red size 20 outlines [(1, "#3a3a3a", 0, 0)] ypos 17
+                vbar value YScrollValue("right_members")
+                
             frame:
                 pos (172, -40)
                 background Frame("content/gfx/frame/p_frame5.png", 15, 15)
-                xysize(378, 378)
-                side "c l":
-                    pos (22, 5)
-                    maximum(355, 352)
-                    viewport id "right_items":
-                        draggable True
-                        mousewheel True
-                        vbox:
-                            style_group "dropdown_gm2"
-                            spacing 2
-                            ysize 10000
-                            if pytfall.it.show_right_items_selection():
-                                for ritem in pytfall.it.get_right_inventory():
-                                    $ right_vp_items_amount = pytfall.it.right_char.inventory.content[ritem.id]  
-                                    button:
-                                        xysize (325, 28)
-                                        action [Return(['select_right_item', ritem]), SelectedIf(ritem == pytfall.it.right_item)], With(dissolve)
-                                        text "[ritem.id]" align (0.0, 0.5) style "dropdown_gm2_button_text"
-                                        text "[right_vp_items_amount]" align (1.0, 0.7) style "dropdown_gm2_button_value_text"
-                    vbar value YScrollValue("right_items")
+                xysize (378, 378)
+                style_group "dropdown_gm2"
+                has vbox xoffset 33
+                if pytfall.it.show_right_items_selection():
+                    for ritem in pytfall.it.get_right_inventory():
+                        $ right_vp_items_amount = pytfall.it.right_char.inventory.content[ritem.id]  
+                        button:
+                            xysize (330, 28)
+                            action [Return(['select_right_item', ritem]), SelectedIf(ritem == pytfall.it.right_item)]
+                            text "[ritem.id]" align (0.0, 0.5) style "dropdown_gm2_button_text"
+                            text "[right_vp_items_amount]" align (1.0, 0.7) style "dropdown_gm2_button_value_text"
                     
                     
         # Paging Left and Right:
@@ -325,7 +299,7 @@ screen items_transfer():
                     yalign 0.5
                     spacing 5
                     text (u'{size=-5}Amount:') yalign 0.5 xpos 46 size 20 color ivory style "garamond"
-                    text (u'{size=-5}[pytfall.it.items_amount]') yalign 0.5 xpos 60 size 20 color ivory style "stats_value_text"
+                    text (u'{size=-5}[pytfall.it.items_amount]') yalign 0.5 xpos 60 size 20 color ivory style "proper_stats_value_text"
 
                 $ img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_right.png', 25, 25, align=(0.5, 0.5))
                 button:
@@ -340,29 +314,25 @@ screen items_transfer():
                     
                 
         # Filters Buttons:
-        vbox:
+        frame:
             style_group "dropdown_gm"
-            xalign 0.5
+            background Frame("content/gfx/frame/Mc_bg3.png", 10, 10)
             ypos 215
-            frame:
-                background Frame("content/gfx/frame/Mc_bg3.png", 10, 10)
-                xalign 0.5
-                xysize (400, 65)
-                hbox:
-                    spacing 2
-                    ypos -1
-                    xalign 0.5
-                    for filter in hero.inventory.GEQ_FILTERS:
-                        $ img = ProportionalScale("content/gfx/interface/buttons/filters/%s.png" % filter, 44, 44)
-                        $ img_hover = ProportionalScale("content/gfx/interface/buttons/filters/%s hover.png" % filter, 44, 44)
-                        $ img_selected = ProportionalScale("content/gfx/interface/buttons/filters/%s selected.png" % filter, 44, 44)
-                        imagebutton:
-                            idle img
-                            hover Transform(img_hover, alpha=1.1)
-                            selected_idle img_selected
-                            selected_hover Transform(img_selected, alpha=1.15)
-                            action [Return(['set_filter', filter]), SelectedIf(filter == pytfall.it.filter)] , With(dissolve)
-                            focus_mask True
+            xalign 0.5
+            xysize (400, 65)
+            has hbox spacing 2
+            
+            for filter in hero.inventory.GEQ_FILTERS:
+                $ img = ProportionalScale("content/gfx/interface/buttons/filters/%s.png" % filter, 44, 44)
+                $ img_hover = ProportionalScale("content/gfx/interface/buttons/filters/%s hover.png" % filter, 44, 44)
+                $ img_selected = ProportionalScale("content/gfx/interface/buttons/filters/%s selected.png" % filter, 44, 44)
+                imagebutton:
+                    idle img
+                    hover im.MatrixColor(img_hover, im.matrix.brightness(0.10))
+                    selected_idle img_selected
+                    selected_hover im.MatrixColor(img_selected, im.matrix.brightness(0.10))
+                    action Return(['set_filter', filter]), SelectedIf(filter == pytfall.it.filter)
+                    focus_mask True
            
                     
         frame:
