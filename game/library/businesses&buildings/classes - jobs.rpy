@@ -241,11 +241,10 @@
                 
                 else:
                     if self.girl.stats.is_stat(stat):
-                        self.girl.stats.mod(stat, self.girlmod[stat])
+                        self.girl.mod_stat(stat, self.girlmod[stat])
                         
                     elif self.girl.stats.is_skill(stat):
-                        setattr(self.girl, stat, self.girlmod[stat])
-                        # self.girl.stats.mod_skill(stat, self.girlmod[stat])
+                        self.girl.mod_stat(stat, self.girlmod[stat])
             
             for stat in self.locmod:
                 if stat == 'fame':
@@ -262,7 +261,7 @@
                     self.loc.modrep(self.locmod[stat])
                 
                 else:
-                    raise Exception("Stat: {} does not exits for Brothels".format(stat))
+                    raise Exception("Stat: {} does not exits for Businesses".format(stat))
         
         def auto_clean(self):
             """
@@ -525,7 +524,7 @@
                     self.loc.modrep(self.locmod[stat])
                 
                 else:
-                    raise Exception("Stat: {} does not exits for Brothels".format(stat))
+                    raise Exception("Stat: {} does not exits for Businesses".format(stat))
         
         def apply_worker_stats(self, worker, mods):
             """Apply stats for a single worker.
@@ -546,7 +545,7 @@
                         worker.constitution -= 5
                 else:
                     if worker.stats.is_stat(key):
-                        worker.stats.mod(key, mods[key])
+                        worker.mod_stat(key, mods[key])
                         
                     elif worker.stats.is_skill(key):
                         setattr(worker, key, mods[key])
@@ -649,7 +648,7 @@
                     if difference < 1:
                         difference = 1
                     char.set_flag("jobs_introjoy", -randint(5, 10))
-                    char.set_flag("jobs_introdis", -randint(0, difference))
+                    char.set_flag("jobs_introdis", -randint(0, int(difference)))
                     self.loggs('vitality', -randint(5,15))
                 else:
                     if sub<0:
@@ -670,7 +669,7 @@
                     if char.joy < 50: # slaves additionally get more disposition penalty with low joy
                         difference += randint(0, (50-char.joy))
                     char.set_flag("jobs_introjoy", -randint(10, 15))
-                    char.set_flag("jobs_introdis", -randint(0, difference))
+                    char.set_flag("jobs_introdis", -randint(0, int(difference)))
                     self.loggs('vitality', -randint(10,25))
             else:
                 char.set_flag("jobs_whoreintro", choice(["%s is doing her shift as a harlot." % char.name, "%s gets busy with a client." % char.fullname, "%s serves customers as a whore." % char.nickname]))
@@ -1286,7 +1285,7 @@
                 self.logloc("fame", choice([0, 1, 1, 1]))
                 self.logloc("reputation", choice([0, 1]))
             elif self.worker.charisma >= 800:
-                self.txt.append("%s made the customer fall in love with her unearthly beauty. Careful now girl, we don't need crowds of admires around our brothels..." %self.worker.name)
+                self.txt.append("%s made the customer fall in love with her unearthly beauty. Careful now girl, we don't need crowds of admires around our businesses..." %self.worker.name)
                 self.loggs("joy", 1)
                 self.logloc("fame", choice([0, 1]))
                 self.logloc("reputation", choice([0, 0, 1]))
@@ -1449,7 +1448,7 @@
                         if dice(35):
                             self.loggs('character', 1)
                     char.set_flag("jobs_introjoy", -randint(1, 10))
-                    char.set_flag("jobs_introdis", -randint(0, difference))
+                    char.set_flag("jobs_introdis", -randint(0, int(difference)))
                     self.loggs('vitality', -randint(5,15))
                 else:
                     sub = check_submissivity(char)
@@ -1471,7 +1470,7 @@
                     if char.joy < 50:
                         difference += randint(0, (50-char.joy))
                     char.set_flag("jobs_introjoy", -randint(10, 15))
-                    char.set_flag("jobs_introdis", -randint(0, difference))
+                    char.set_flag("jobs_introdis", -randint(0, int(difference)))
                     self.loggs('vitality', -randint(10,20))
 
             else:
@@ -1621,7 +1620,9 @@
             """
             # Stat Mods:
 
-                                                 
+
+            self.worker.disable_effect('Exhausted')  # rest immediately disables the effect and removes its counter
+                
             available = list()
             if (self.worker.disposition >= 250) or ("Exhibitionist" in self.worker.traits):
                 kwargs = dict(exclude=["dungeon", "sad", "angry", "in pain", "after sex", "group", "normalsex", "bdsm"], add_mood=False) # with not too low disposition nude pics become available during rest
@@ -1719,14 +1720,16 @@
                     else:
                             self.txt.append(choice(["{} is relaxing during her free time.".format(self.worker.name),
                                                     "{} is taking a break during her free time.".format(self.worker.name)]))
-            while self.worker.AP and not all([(self.worker.vitality + self.workermod.get('vitality', 0) >= self.worker.get_max("vitality") - 50),
-                                                          (self.worker.health + self.workermod.get('health', 0) >= self.worker.get_max('health') - 5)]):
-                self.loggs('health', randint(2, 3))
-                self.loggs('vitality', randint(35, 40))
-                self.loggs('mp', randint(1, 3))
-                self.loggs('joy', randint(1, 2))
-                self.worker.AP -= 1
-            
+
+                                                    
+            self.loggs('health', randint(2, 3))
+            if self.worker.effects['Drowsy']['active']:
+                self.loggs('vitality', (randint(30, 50)*self.worker.AP))
+            else:
+                self.loggs('vitality', (randint(15, 30)*self.worker.AP))
+            self.loggs('mp', randint(1, 3))
+            self.loggs('joy', randint(1, 2))
+
             if not self.img:
                 self.img = self.worker.show("rest", resize=(740, 685))
                 
@@ -2403,7 +2406,7 @@
             
             # Traits/Job-types associated with this job:
             self.occupations = ["Warrior"] # General Strings likes SIW, Warrior, Server...
-            self.occupation_traits = [traits["Warrior"], traits["Mage"], traits["Defender"], traits["Shooter"], traits["Battle Mage"]] # Corresponding traits...
+            self.occupation_traits = [traits["Warrior"], traits["Mage"], traits["Defender"], traits["Shooter"]] # Corresponding traits...
             
             # Relevant skills and stats:
             self.skills = ["cleaning"]
@@ -2665,7 +2668,7 @@
                             self.stats[stat] = char.adjust_exp(self.stats[stat])
                             char.exp += self.stats[stat]
                         else:
-                            char.mod(stat, self.stats[stat])
+                            char.mod_stat(stat, self.stats[stat])
                 
                 else:
                     characters[char] = True

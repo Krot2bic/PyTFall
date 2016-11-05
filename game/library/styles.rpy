@@ -269,8 +269,7 @@ init 2: # Advanced style that can carry a lot of properies to be used in screens
     style dropdown_gm_frame:
         is default
         background Frame("content/gfx/frame/BG_choicebuttons.png", 10, 10)
-        xpadding 10
-        ypadding 10
+        padding (10, 10)
         
     style dropdown_gm_text:
         is black_serpent
@@ -280,7 +279,7 @@ init 2: # Advanced style that can carry a lot of properies to be used in screens
         is basic_choice_button
         size_group "dropdown_gm"
         ypadding 1
-        xalign 0
+        # xalign 0
         
     style dropdown_gm_button_text:
         is TisaOTMc
@@ -290,6 +289,8 @@ init 2: # Advanced style that can carry a lot of properies to be used in screens
     # Second set of DD buttons:
     style dropdown_gm2_button:
         is basic_choice2_button
+        padding (2, 0)
+        margin (1, 1)
         
     style dropdown_gm2_button_text:
         is TisaOTMc
@@ -375,7 +376,7 @@ init 2: # Advanced style that can carry a lot of properies to be used in screens
         background Frame("content/gfx/frame/stat_box_proper.png")
         padding (0, 0)
         margin (0, 0)
-    style proper_stats_frame:
+    style proper_stats_vbox:
         is vbox
         spacing 1
     style proper_stats_main_frame:

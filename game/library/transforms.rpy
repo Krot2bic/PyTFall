@@ -9,7 +9,6 @@ init -997: # Transforms:
         align (0.25, 1.0)
     
     # Other Transforms:
-        
     transform move_to_pos_with_offset(pos, t):
         linear t offset pos
     
@@ -65,7 +64,6 @@ init -997: # Transforms:
     transform fade_from_to(start_val=1.0, end_val=0.0, t=1.0, wait=0):
         # Setup as a fade out, reverse the values for the fade in
         # simple_fade (fade is reserved...)
-        subpixel True
         alpha start_val
         pause wait
         linear t alpha end_val
@@ -84,7 +82,7 @@ init -997: # Transforms:
             fade_from_to(sv1, ev1, t1)
         on hide:
             fade_from_to(sv2, ev2, t2)
-        
+            
     transform rotate_by(degrees):
         # When used with x/ycenter in SL, this will (or at leastshould) be positioned correctly!
         rotate degrees
@@ -103,7 +101,7 @@ init -997: # Transforms:
     transform simple_zoom_from_to_with_linear(start_val=1.0, end_val=0.0, t=1.0):
         # Simple zoom...
         subpixel True
-        anchor (0.5, 0.5)
+        anchor (.5, .5)
         zoom start_val
         linear t zoom end_val
         
@@ -162,6 +160,55 @@ init -997: # Transforms:
         on hide:
             fade_from_to(t=0.5)
     
+    transform fish():
+        align(random.random(), random.random())
+        block:
+            subpixel True
+            choice:
+                linear randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_quad randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_quad randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_cubic randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_cubic randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_quart randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_quart randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_quint randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_quint randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_expo randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_expo randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_circ randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_circ randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_back randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_back randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_elastic randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_elastic randint(16, 22) align(random.random(), random.random())
+            choice:
+                easein_bounce randint(16, 22) align(random.random(), random.random())
+            choice:
+                easeout_bounce randint(16, 22) align(random.random(), random.random())
+            pause randint(1, 3)
+            repeat
+            
     # Interactions:
     transform interactions_angry_pulse_tr:
         "angry_pulse"
@@ -268,6 +315,12 @@ init -997: # Transforms:
             repeat
         
     # BE Transforms:
+    transform status_overlay(sv1=0.0, ev1=1.0, t1=1.0,
+                                        sv2=1.0, ev2=0.0, t2=1.0):
+        fade_from_to(sv1, ev1, t1)
+        fade_from_to(sv2, ev2, t2)
+        repeat
+    
     transform damage_color(img): # Note: Testing case, this should become a DD/UDD with moar options at some point.
         im.MatrixColor(img, im.matrix.saturation(1))
         0.05

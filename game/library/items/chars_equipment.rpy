@@ -71,9 +71,7 @@ label char_equip:
         dummy = None
         
         eqtarget.inventory.set_page_size(16)
-        # eqtarget.inventory.famale_filter = True
         hero.inventory.set_page_size(16)
-        # hero.inventory.famale_filter = True
         inv_source = eqtarget
     
     scene bg gallery3
@@ -94,9 +92,11 @@ label char_equip_loop:
         
         if result[0] == "jump":
             if result[1] == "item_transfer":
-                hide char_equip
-                $ pytfall.it = GuiItemsTransfer("personal_transfer", char=eqtarget, last_label="char_equip")
-                jump items_transfer
+                hide screen char_equip
+                $ items_transfer([hero, eqtarget])
+                $ eqtarget.inventory.set_page_size(16)
+                $ hero.inventory.set_page_size(16)
+                show screen char_equip
                 
         elif result[0] == "equip_for":
             python:
@@ -300,7 +300,7 @@ screen char_equip():
                 at fade_in_out()
                 background Transform(Frame(im.MatrixColor("content/gfx/frame/Mc_bg3.png", im.matrix.brightness(-0.2)), 5, 5), alpha=0.3)
                 xysize (710, 296)
-                use itemstats2(item=focusitem, size=(703, 296), tt=tt)
+                use char_equip_item_info(item=focusitem, size=(703, 287), tt=tt)
         
     # Left Frame: =====================================>
     fixed:
@@ -362,10 +362,8 @@ screen char_equip():
                     frame:
                         background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.7)
                         xsize 218
-                        xpadding 6
-                        ypadding 6
-                        xmargin 0
-                        ymargin 0
+                        padding 6, 6
+                        margin 0, 0
                         style_group "proper_stats"
                         has vbox spacing 1
                         # STATS ============================>
@@ -398,11 +396,12 @@ screen char_equip():
                             frame:
                                 xysize 204, 25
                                 text "{}".format(stat.capitalize()) xalign .02 color "#79CDCD"
+                                $ tempc = "#F5F5DC"
                                 if dummy:
                                     $ tempstr = build_str_for_eq(eqtarget, dummy, stat, "#F5F5DC")
                                     text tempstr style_suffix "value_text" xalign .98 yoffset 3
                                 else:
-                                    text u"{}/{}".format(getattr(eqtarget, stat), eqtarget.get_max(stat)) xalign .98 yoffset 3 style_suffix "value_text" color tempc
+                                    text u"{}/{}".format(getattr(eqtarget, stat), eqtarget.get_max(stat)) xalign .98 yoffset 3 style_suffix "value_text" color "#F5F5DC"
                                             
                     # BATTLE STATS ============================>
                     frame:
@@ -414,7 +413,7 @@ screen char_equip():
                          
                         null height 1
                         label (u"{size=18}{color=#CDCDC1}{b}Battle Stats:") xalign .49
-                        $ stats = [("Attack", "#CD4F39"), ("Defence", "#dc762c"), ("Magic", "#8470FF"), ("MP", "#009ACD"), ("Agility", "#1E90FF"), ("Luck", "#00FA9A"), ("Evasion", "#FFFF94"), ("Resistance", "#FFA500")]
+                        $ stats = [("Attack", "#CD4F39"), ("Defence", "#dc762c"), ("Magic", "#8470FF"), ("MP", "#009ACD"), ("Agility", "#1E90FF"), ("Luck", "#00FA9A")]
                         null height 1
                      
                         for stat, color in stats:
@@ -466,13 +465,13 @@ screen char_equip():
             # Traits and skills:
             vbox:
                 hbox:
-                    add "content/gfx/interface/images/add.png" yalign 0.7
-                    add "content/gfx/interface/images/remove.png" yalign 0.9
+                    add "content/gfx/interface/images/add.png" yalign .5 yoffset -3
+                    add "content/gfx/interface/images/remove.png" yalign .5 yoffset -5
                     label ('Traits:') text_size 16 text_color gold style "stats_label"
                 viewport:
                     mousewheel True
                     has vbox
-                    style_group "stats"
+                    style_group "proper_stats"
                     python:
                         t_old = set(t.id for t in eqtarget.traits)
                         if hasattr(eqtarget, "effects"):
@@ -506,16 +505,16 @@ screen char_equip():
             vbox:
                 xoffset 165
                 hbox:
-                    add "content/gfx/interface/images/add.png" yalign 0.7
-                    add "content/gfx/interface/images/remove.png" yalign 0.9
+                    add "content/gfx/interface/images/add.png" yalign .5 yoffset -3
+                    add "content/gfx/interface/images/remove.png" yalign .5 yoffset -5
                     label ('Skills:') text_size 16 text_color gold style "stats_label"
                 viewport:
                     mousewheel True
                     has vbox
                     style_group "proper_stats"
                     python:
-                        s_old = set(s.name for s in eqtarget.attack_skills + eqtarget.magic_skills)
-                        s_new = set(s.name for s in dummy.attack_skills + dummy.magic_skills)
+                        s_old = set(s.name for s in list(eqtarget.attack_skills) + list(eqtarget.magic_skills))
+                        s_new = set(s.name for s in list(dummy.attack_skills) + list(dummy.magic_skills))
                         temp = s_new.difference(s_old)
                         temp = sorted(list(temp)) 
                     if temp:
@@ -525,8 +524,8 @@ screen char_equip():
                                 text u'{color=#43CD80}%s'%skill.capitalize() size 16 
                                     
                     python:
-                        s_old = set(s.name for s in dummy.attack_skills + dummy.magic_skills)
-                        s_new = set(s.name for s in eqtarget.attack_skills + eqtarget.magic_skills)
+                        s_old = set(s.name for s in list(dummy.attack_skills) + list(dummy.magic_skills))
+                        s_new = set(s.name for s in list(eqtarget.attack_skills) + list(eqtarget.magic_skills))
                         temp = s_new.difference(s_old)
                         temp = sorted(list(temp))
                     if temp:
@@ -567,12 +566,12 @@ screen char_equip():
             spacing 100
             button:
                 xsize 70
-                action SelectedIf(eqtarget == hero or inv_source == hero), If(eqtarget != hero, true=[SetVariable("inv_source", hero), Function(eqtarget.inventory.apply_filter, hero.inventory.filter), Return(['con', 'return']), With(dissolve)]) 
+                action SelectedIf(eqtarget == hero or inv_source == hero), If(eqtarget != hero, true=[SetVariable("inv_source", hero), Function(eqtarget.inventory.apply_filter, hero.inventory.slot_filter), Return(['con', 'return']), With(dissolve)]) 
                 hovered tt.Action("Equip from [hero.nickname]'s Inventory")
                 text "Hero" style "pb_button_text"
             button:
                 xsize 70
-                action SelectedIf(inv_source != hero), SensitiveIf(eqtarget != hero), If(eqtarget != hero, true=[SetVariable("inv_source", eqtarget), Function(eqtarget.inventory.apply_filter, hero.inventory.filter), Return(['con', 'return']), With(dissolve)])
+                action SelectedIf(inv_source != hero), SensitiveIf(eqtarget != hero), If(eqtarget != hero, true=[SetVariable("inv_source", eqtarget), Function(eqtarget.inventory.apply_filter, hero.inventory.slot_filter), Return(['con', 'return']), With(dissolve)])
                 hovered tt.Action("Equip from [eqtarget.nickname]'s Inventory")
                 text "Girl" style "pb_button_text"
         button:
@@ -605,20 +604,25 @@ screen char_equip():
         style_group "dropdown_gm"
         xsize 340
         spacing 2 
-        for filter in inv_source.inventory.ALL_FILTERS:
+        for filter in inv_source.inventory.filters:
             frame:
                 xpadding 0
                 ymargin -8
-                background Null() 
-                $ img = ProportionalScale("content/gfx/interface/buttons/filters/%s.png" % filter, 44, 44)
-                $ img_hover = ProportionalScale("content/gfx/interface/buttons/filters/%s hover.png" % filter, 44, 44)
-                $ img_selected = ProportionalScale("content/gfx/interface/buttons/filters/%s selected.png" % filter, 44, 44)
+                background Null()
+                if renpy.loadable("content/gfx/interface/buttons/filters/%s.png" % filter):
+                    $ img = ProportionalScale("content/gfx/interface/buttons/filters/%s.png" % filter, 44, 44)
+                    $ img_hover = ProportionalScale("content/gfx/interface/buttons/filters/%s hover.png" % filter, 44, 44)
+                    $ img_selected = ProportionalScale("content/gfx/interface/buttons/filters/%s selected.png" % filter, 44, 44)
+                else:
+                    $ img = Solid("#FFF", xysize=(44, 44))
+                    $ img_hover = Solid("#FFF", xysize=(44, 44))
+                    $ img_selected = Solid("#FFF", xysize=(44, 44))
                 imagebutton:
                     idle img
                     hover Transform(img_hover, alpha=1.1)
                     selected_idle img_selected
                     selected_hover Transform(img_selected, alpha=1.15)
-                    action [Function(inv_source.inventory.apply_filter, filter), SelectedIf(filter == inv_source.inventory.filter)], With(dissolve)
+                    action [Function(inv_source.inventory.apply_filter, filter), SelectedIf(filter == inv_source.inventory.slot_filter)], With(dissolve)
                     focus_mask True
         
     # Inventory: ====================================>
@@ -673,7 +677,7 @@ screen chars_list1(source=None, page=0, total_pages=1):
                     action Hide("chars_list1")
                 
                     
-screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", mc_mode=False, tt=None):
+screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="content", mc_mode=False, tt=None):
     
     key "mousedown_3" action Return(['con', 'return'])
     
@@ -684,11 +688,11 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
         $ ys = size[1]
         fixed:
             style_prefix "proper_stats"
-            xysize (xs, ys)
+            xysize size
             
             # Top HBox: Discard/Close buttons and the Item ID:
             hbox:
-                align .5, 0
+                align .5, .0
                 xsize xs-10
                 imagebutton:
                     xalign 0
@@ -698,10 +702,10 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                     if tt:
                         hovered tt.Action("Discard item")
                 frame:
-                    xalign .5
-                    xysize (439, 20)
-                    background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.05)), 5, 5), alpha=0.9)
-                    label ('[item.id]') text_color gold xalign 0.5 text_size 19 text_outlines [(1, "#000000", 0, 0)] text_style "interactions_text"
+                    align .5, .5
+                    xysize (439, 35)
+                    background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.05)), 10, 10), alpha=0.9)
+                    label ('[item.id]') text_color gold align .5, .5 text_size 19 text_outlines [(1, "#000000", 0, 0)] text_style "interactions_text"
                 imagebutton:
                     xalign 1.0
                     idle ("content/gfx/interface/buttons/close3.png")
@@ -711,8 +715,8 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                         hovered tt.Action("Close item info")
             
             # Separation Strip (Outside of alignments):
-            label ('{color=#ecc88a}__________________________________________') xalign .5 ypos 28
-            label ('{color=#ecc88a}__________________________________________') xalign .5 ypos 163
+            label ('{color=#ecc88a}--------------------------------------------------------------------------------------------------') xalign .5 ypos 25
+            label ('{color=#ecc88a}--------------------------------------------------------------------------------------------------') xalign .5 ypos 163
             
             # Mid HBox:
             hbox:
@@ -738,7 +742,12 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                     frame:
                         xysize (160, 25)
                         text ('{color=#F5F5DC}Slot:') xalign 0.02
-                        label ('{color=#F5F5DC}{size=-4}%s'%item.slot.capitalize()) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                        python:
+                            if item.slot in SLOTALIASES:
+                                slot = SLOTALIASES[item.slot]
+                            else:
+                                slot = item.slot.capitalize()
+                        label ('{color=#F5F5DC}{size=-4}%s'%slot) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                     frame:
                         xysize (160, 25)
                         text ('{color=#F5F5DC}Type:') xalign 0.02
@@ -807,7 +816,7 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                     left_padding 6
                     right_padding 3
                     ypadding 5
-                    has viewport scrollbars "vertical" draggable True mousewheel True child_size 200, 500
+                    has viewport draggable True mousewheel True child_size 200, 500
                     vbox:
                         if item.mod:
                             label ('Stats:') text_size 18 text_color gold xpos 30
@@ -815,10 +824,10 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                                 spacing 1
                                 for stat, value in item.mod.items():
                                     frame:
-                                        xysize (160, 18)
+                                        xysize (172, 18)
                                         text (u'{color=#F5F5DC}%s' % stat.capitalize()) size 15 xalign 0.02 yoffset -2
                                         label (u'{color=#F5F5DC}{size=-4}[value]') align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
-                            null height 7
+                            null height 3
                             
                         if item.max:
                             label ('Max:') text_size 16 text_color gold xpos 30
@@ -826,51 +835,53 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                                 spacing 1
                                 for stat, value in item.max.items():
                                     frame:
-                                        xysize (160, 18)
+                                        xysize (172, 18)
                                         text (u'{color=#F5F5DC}%s'%stat.capitalize()) size 15 xalign 0.02 yoffset -2
                                         label (u'{color=#F5F5DC}{size=-4}[value]') align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
-                            null height 7
+                            null height 3
                             
                         if item.min:
                             label ('Min:') text_size 16 text_color gold xpos 30
                             vbox:
                                 spacing 1
-                                style_group "proper_stats"
-                            for stat, value in item.min.items():
-                                frame:
-                                    xysize (160, 18)
-                                    text (u'{color=#F5F5DC}%s'%stat.capitalize()) size 15 xalign 0.02 yoffset -2
-                                    label (u'{color=#F5F5DC}{size=-4}%d'%value) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                                for stat, value in item.min.items():
+                                    frame:
+                                        xysize (172, 18)
+                                        text (u'{color=#F5F5DC}%s'%stat.capitalize()) size 15 xalign 0.02 yoffset -2
+                                        label (u'{color=#F5F5DC}{size=-4}%d'%value) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                 
             # Bottom HBox: Desc/Traits/Effects/Skills:
             hbox:
-                yalign 0.98
+                yalign 1.0
                 # Traits, Effects:
                 frame:
                     background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.05)), 5, 5), alpha=0.9)
-                    xysize (158, 108)
-                    has viewport scrollbars "vertical" draggable True mousewheel True
+                    xysize 158, 104
+                    padding 2, 3
+                    has viewport draggable True mousewheel True
                     
                     # Traits:
                     vbox:
                         style_group "proper_stats"
+                        xsize 150
                         if item.addtraits or item.removetraits:
                             hbox:
-                                align (0.1, 0.5)
-                                label ('Traits:') text_size 14 text_color gold xoffset 7
+                                xalign .5
                                 if item.addtraits:
-                                    add "content/gfx/interface/images/add.png" yalign 0.7 xoffset 26
+                                    add "content/gfx/interface/images/add.png" yalign .5
                                 if item.removetraits:
-                                    add "content/gfx/interface/images/remove.png" yalign 0.9 xoffset 26
-                                    
+                                    add "content/gfx/interface/images/remove.png"  yalign .5 yoffset -2
+                                null width 4
+                                label ('Traits:') text_size 14 text_color gold
+                                
                             for trait in item.addtraits:
                                 frame:
-                                    xalign 0.02
+                                    xalign .1
                                     xpadding 2
                                     text (u'{color=#43CD80}%s'%trait.capitalize()) size 15 align .5, .5
                             for trait in item.removetraits:
                                 frame:
-                                    xalign 0.98
+                                    xalign 0.9
                                     xpadding 2
                                     text (u'{color=#CD4F39}%s'%trait.capitalize()) size 15 align .5, .5
                                 
@@ -878,53 +889,58 @@ screen itemstats2(item=None, char=None, size=(635, 380), style_group="content", 
                         if item.addeffects or item.removeeffects:
                             null height 5
                             hbox:
-                                align (0.1, 0.5)
-                                label ('Effects:') text_size 14 text_color gold xoffset 7
+                                xalign .5
                                 if item.addeffects:
-                                    add "content/gfx/interface/images/add.png" yalign 0.7 xoffset 25
+                                    add "content/gfx/interface/images/add.png" yalign .5
                                 if item.removeeffects:
-                                    add "content/gfx/interface/images/remove.png" yalign 0.9 xoffset 25
+                                    add "content/gfx/interface/images/remove.png"  yalign .5 yoffset -2
+                                null width 4
+                                label ('Effects:') text_size 14 text_color gold xoffset 7
     
                             for effect in item.addeffects:
                                 frame:
-                                    xalign 0.02
+                                    xalign .1
                                     xpadding 2
                                     text (u'{color=#43CD80}%s'%effect.capitalize()) size 15 align .5, .5
                             for effect in item.removeeffects:
                                 frame:
-                                    xalign 0.98
+                                    xalign 0.9
                                     xpadding 2
                                     text (u'{color=#CD4F39}%s'%effect.capitalize()) size 15 align .5, .5
                 
                 frame:
-                    xysize 382, 108 
+                    xysize 382, 104
+                    padding 10, 5
                     background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.9)
-                    has viewport scrollbars "vertical" mousewheel True
-                    text '[item.desc]' font "fonts/TisaOTM.otf" size 15 color "#ecc88a" outlines [(1, "#3a3a3a", 0, 0)] xalign 0.5
+                    has viewport draggable True mousewheel True
+                    text '[item.desc]' font "fonts/TisaOTM.otf" size 15 color "#ecc88a" outlines [(1, "#3a3a3a", 0, 0)]
                     
                 frame:
                     background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.05)), 5, 5), alpha=0.9)
-                    xysize (158, 108)
-                    has viewport scrollbars "vertical" draggable True mousewheel True
+                    xysize 158, 104
+                    padding 2, 3
+                    has viewport draggable True mousewheel True
                     vbox:
+                        xsize 150
                         style_group "proper_stats"
                         if item.add_be_spells or item.remove_be_spells:
                             hbox:
-                                align (0.1, 0.5)
-                                label ('Skills:') text_size 14 text_color gold xoffset 7
+                                xalign .5
                                 if item.add_be_spells:
-                                    add "content/gfx/interface/images/add.png" yalign 0.7 xoffset 26
+                                    add "content/gfx/interface/images/add.png" yalign .5
                                 if item.remove_be_spells:
-                                    add "content/gfx/interface/images/remove.png" yalign 0.9 xoffset 26
+                                    add "content/gfx/interface/images/remove.png" yalign .5 yoffset -2
+                                null width 4
+                                label ('Skills:') text_size 14 text_color gold xoffset 7
                                     
                             for skill in item.add_be_spells:
                                 frame:
-                                    xalign 0.02
+                                    xalign .1
                                     xpadding 2
                                     text (u'{color=#43CD80}%s'%skill.capitalize()) size 15 align .5, .5
                             for skill in item.remove_be_spells:
                                 frame:
-                                    xalign 0.98
+                                    xalign 0.9
                                     xpadding 2
                                     text (u'{color=#CD4F39}%s'%skill.capitalize()) size 15 align .5, .5
                                                         

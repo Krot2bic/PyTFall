@@ -11,10 +11,11 @@
     {
     "id": "Psychic",
     "desc": "This girl always seems to know what people want.",
-    "mod": {"upkeep": 10, "evasion": 1, "resistance": 1},
+    "mod": {"upkeep": 10},
     "min": {"luck": 5},
     "max": {"intelligence": 5},
     "mod_skills": {"refinement": [0.02, 0, 0.02], "service": [0.01, 0, 0.01], "vaginal": [0, 0, 0.01], "anal": [0, 0, 0.01], "oral": [0, 0, 0.01], "strip": [0, 0, 0.01], "management": [0.02, 0.01, 0.02], "teaching": [0.01, 0, 0.01]},
+    "evasion_bonus": [4, 8, 50],
     "character_trait": true
     },
     {
@@ -22,10 +23,10 @@
     "desc": "She is brave and valiant in the face of danger.",
     "blocks": ["Coward"],
     "mod_stats": {"character": [1, 10]},
-    "mod": {"evasion": -3},
     "max": {"character": 5},
     "mod_skills": {"bdsm": [0.01, 0, 0.03], "exploration": [0.05, 0, 0.06]},
     "character_trait": true,
+    "evasion_bonus": [-5, -5, 1],
     "client": true
     },
     {
@@ -33,10 +34,10 @@
     "desc": "This girl is very cowardly and jumpy.",
     "blocks": ["Courageous"],
     "mod_stats": {"character": [-1, 10]},
-    "mod": {"evasion": 1},
     "max": {"character": -5},
     "mod_skills": {"bdsm": [-0.01, 0, -0.03], "exploration": [-0.05, 0, -0.06]},
     "character_trait": true,
+    "evasion_bonus": [1, 2, 10],
     "client": true
     },
     {
@@ -44,36 +45,50 @@
     "desc": "She is nervous and afraid to speak her mind sometimes.",
     "mod_stats": {"character": [-1, 5]},
     "mod_skills": {"service": [-0.02, 0, 0.03], "refinement": [-0.01, 0, 0], "management": [-0.01, 0, -0.04], "strip": [-0.01, -0.01, -0.01]},
+    "effects": ["Diffident"],
     "character_trait": true
     },
     {
     "id": "Aggressive",
     "desc": "She never hesitates to pick a fight.",
+    "blocks": ["Peaceful"],
     "max": {"character": 5},
-    "mod": {"evasion": -1},
-    "mod_skills": {"service": [0.02, 0, -0.03], "refinement": [0.01, 0, 0], "management": [0.01, 0, 0.04], "strip": [0.01, 0.01, 0]},
+    "mod_skills": {"service": [0.02, 0, -0.03], "management": [-0.01, 0, -0.04]},
     "character_trait": true,
+    "evasion_bonus": [-5, -5, 0],
+    "damage_multiplier": 0.05,
+    "client": true
+    },
+    {
+    "id": "Peaceful",
+    "desc": "She prefers to avoid fights if possible.",
+    "blocks": ["Aggressive"],
+    "max": {"character": 5},
+    "mod_skills": {"service": [-0.02, 0, 0.03], "management": [0.01, 0, 0.04]},
+    "character_trait": true,
+    "evasion_bonus": [5, 5, 0],
+    "damage_multiplier": -0.05,
     "client": true
     },
     {
     "id": "Optimist",
     "desc": "She is very cheerful and is rarely in a bad mood. She enjoys what she does, a lot.",
     "blocks": ["Pessimist"],
-    "effect": "Optimist",
+    "effects": ["Optimist"],
     "character_trait": true
     },
     {
     "id": "Pessimist",
     "desc": "All it takes is one thing to send her mood down into the pits of the abyss.",
     "blocks": ["Optimist"],
-    "effect": "Pessimist",
+    "effects": ["Pessimist"],
     "character_trait": true
     },
     {
     "id": "Serious",
-    "desc": "This girl doesn't joke around.",
+    "desc": "She has no time to joke around or mope.",
     "mod_skills": {"management": [0.01, 0, 0.01], "bartending": [0, 0, -0.01]},
-    "effect": "Composure",
+    "effects": ["Composure"],
     "character_trait": true
     },
     {
@@ -105,14 +120,15 @@
     "mod_skills": {"bdsm": [0.15, 0.1, 0.15]},
     "sexual": true,
     "character_trait": true,
+    "damage_multiplier": 0.05,
     "client": true
     },
     {
     "id": "Masochist",
-    "desc": "She gets sexual gratification from pain, deprivation, degradation, etc.",
+    "desc": "She gets sexual gratification from pain and humiliation.",
     "max": {"defence": -5},
-    "mod": {"evasion": -1},
     "mod_skills": {"bdsm": [0.15, 0.1, 0.15]},
+    "defence_multiplier": {"magic":0.05, "status":0.05, "melee":0.05, "ranged":0.05},
     "sexual": true,
     "character_trait": true
     },
@@ -146,7 +162,7 @@
     },
     {
     "id": "Bisexual",
-    "desc": "This girl considers herself a bisexual.",
+    "desc": "She has no problems sleeping with guys or gals.",
     "blocks": ["Lesbian"],
     "sexual": true,
     "character_trait": true
@@ -169,38 +185,43 @@
     "id": "Energetic",
     "blocks": ["Dawdler"],
     "desc": "This girl is very active and vigorous.",
-    "mod_stats": {"agility": [1, 5]},
-    "mod": {"evasion": 1},
-    "max": {"agility": 5},
-    "mod_skills": {"strip": [0, 0, -0.06], "waiting": [-0.02, 0, 0.01]},
+    "mod_stats": {"agility": [1, 1]},
+    "max": {"agility": 10},
+    "mod_skills": {"strip": [0, 0, -0.1], "waiting": [-0.05, 0, 0.1]},
     "character_trait": true,
-    "client": true
+    "client": true,
+    "effects": ["Vigorous"],
+    "evasion_bonus": [3, 6, 40],
+    "defence_multiplier": {"status":-0.1}
     },
     {
     "id": "Dawdler",
     "blocks": ["Energetic"],
-    "desc": "This girl is certainly takes her time.",
-    "mod": {"upkeep": -20, "resistance": 2},
-    "mod_stats": {"agility": [-1, 5]},
-    "max": {"agility": -5},
+    "desc": "This girl is certainly takes her time (restores more vitality during rest).",
+    "mod_stats": {"agility": [-1, 1]},
+    "max": {"agility": -10},
     "mod_skills": {"strip": [0, 0, 0.1], "waiting": [-0.01, 0, -0.1]},
     "character_trait": true,
-    "client": true
+    "client": true,
+    "effects": ["Drowsy"],
+    "evasion_bonus": [-5, -5, 1],
+    "defence_multiplier": {"status":0.1}
     },
     {
     "id": "Elegant",
     "blocks": ["Clumsy"],
     "desc": "She's got style and flair, every single movement of her perfectly gracious.",
     "mod_skills": {"strip": [0, 0, 0.04], "waiting": [0.01, 0, 0.02], "dancing": [0.02, 0, 0.05], "refinement": [0, 0, 0.01]},
-    "character_trait": true
+    "character_trait": true,
+    "evasion_bonus": [1, 2, 30]
     },
     {
     "id": "Clumsy",
     "blocks": ["Elegant"],
     "desc": "This girl often makes mistakes. Maybe she will learn in time.",
-    "mod": {"evasion": 1},
     "mod_skills": {"strip": [0, 0, -0.04], "waiting": [-0.01, 0, -0.02], "dancing": [-0.02, 0, -0.05], "refinement": [0, 0, -0.01]},
-    "character_trait": true
+    "character_trait": true,
+    "evasion_bonus": [-2, -2, 1]
     },
     {
     "id": "Virgin",
@@ -213,4 +234,13 @@
     "desc": "This woman has had children before.",
     "mod_skills": {"vaginal": [0.01, 0, 0.01]},
     "virginity": true
+    },
+    {
+    "id": "Open Minded",
+    "desc": "She has no problems trying different things sexually and will accept anything as-is."
+    },
+    {
+    "id": "Dedicated",
+    "desc": "She works not just for money. She is loyal to you and will expect less wage than usual.",
+    "effects": ["Loyal"]
     }]

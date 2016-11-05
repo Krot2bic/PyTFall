@@ -120,14 +120,14 @@ init -1 python:
         """
         Class for populating and running of the slave market.
         """
-        def __init__(self, type = []):
+        def __init__(self, type = None):
             """
             Creates a new SlaveMarket.
             type = type girls predominatly present in the market. Not used.
             """
             super(SlaveMarket, self).__init__()
             self.id = "PyTFall Slavemarket"
-            self.type = type
+            self.type = [] if type is None else type
             
             self.girl = None
             
@@ -263,7 +263,7 @@ init -1 python:
                 return True
                 
         def show_equip_button(self):
-            if self.item and self.item.sex != "female" and self.item.id in hero.inventory.content:
+            if self.item and self.item.sex != "female" and self.item in hero.inventory:
                 return True
                 
                 

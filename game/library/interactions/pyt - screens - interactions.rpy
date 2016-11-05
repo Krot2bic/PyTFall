@@ -183,7 +183,7 @@ label girl_interactions_after_greetings: # when character wants to say something
             pytfall.world_actions.menu(m, "Propose", condition="not(char in hero.chars) or not(check_friends(char, hero)) or not(check_lovers(char, hero))")
             pytfall.world_actions.gm_choice("Friends", condition="not check_friends(char, hero)", index=(m, 0))
             pytfall.world_actions.gm_choice("Girlfriend", condition="not check_lovers(char, hero)", index=(m, 1))
-            pytfall.world_actions.gm_choice("Hire", condition="not(char in hero.chars)", index=(m, 2))
+            pytfall.world_actions.gm_choice("Hire", condition="not(char in hero.chars) and not char.flag('quest_cannot_be_hired')", index=(m, 2))
             
             # INTIMACY
             m = 8
@@ -194,9 +194,9 @@ label girl_interactions_after_greetings: # when character wants to say something
             pytfall.world_actions.gm_choice("Kiss", index=(m, 3))
             pytfall.world_actions.gm_choice("Sex", index=(m, 4))
             pytfall.world_actions.gm_choice("Hire For Sex", index=(m, 5), condition="not(check_lovers(char, hero)) and cgo('SIW') and char.status != 'slave'")
-            pytfall.world_actions.gm_choice("Become Fr", index=(m, 6))
-            pytfall.world_actions.gm_choice("Become Lv", index=(m, 7))
-            pytfall.world_actions.gm_choice("Disp", index=(m, 8))
+            pytfall.world_actions.gm_choice("Become Fr", index=(m, 6), condition="config.developer")
+            pytfall.world_actions.gm_choice("Become Lv", index=(m, 7), condition="config.developer")
+            pytfall.world_actions.gm_choice("Disp", index=(m, 8), condition="config.developer")
             # Quests/Events to Interactions Menu:
             """
             Expects a dictionary with the following k/v pairs to be set as a flag that starts with :
@@ -216,7 +216,7 @@ label girl_interactions_after_greetings: # when character wants to say something
                         pytfall.world_actions.gm_choice(char.flag(f)["button_name"], label=char.flag(f)["label"], index=(m, i))
                         i = i + 1
             m = 10
-            pytfall.world_actions.menu(m, "Harassment", condition="not(char in hero.team)") # no fights between team members
+            pytfall.world_actions.menu(m, "Harassment", condition="not(char in hero.team) and char in hero.chars") # no fights between team members
             pytfall.world_actions.gm_choice("Insult", index=(m, 0))
             pytfall.world_actions.gm_choice("Escalation", index=(m, 1))
             # Back
@@ -228,30 +228,16 @@ label girl_interactions_after_greetings: # when character wants to say something
                 pytfall.world_actions.add(("dev", "gm"), "GM", Return(["test", "GM"]), condition=_not_gm_mode)
                 pytfall.world_actions.add(("dev", "gi"), "GI", Return(["test", "GI"]), condition=_not_gi_mode)
                 pytfall.world_actions.add(("dev", "gt"), "GT", Return(["test", "GT"]), condition=_not_gt_mode)
-
                 
             pytfall.world_actions.finish()
     
-    jump girl_interactions_control
+    jump interactions_control
 
 label girl_interactions_end:
-    python:
-        # Music flag
-        # This causes an issue when run from interactions, trying to fix:
-        if renpy.music.get_playing(channel='world'):
-            global_flags.set_flag("keep_playing_music")
+        # End the GM:
+        $ gm.end()
         
-        # Reset GM counters
-        gm_disp_mult = 1
-        
-        # Reset scene
-        renpy.scene()
-        renpy.hide_screen("girl_interactions")
-        
-        # End the GM
-        gm.end()
-        
-label girl_interactions_control:
+label interactions_control:
     while 1:
         $ result = ui.interact()
         
@@ -288,7 +274,6 @@ label girl_interactions_control:
             
                 # Give gift:
                 else:
-                    
                     # Prevent repeteation of this action (any gift, we do this on per gift basis already):
                     flag_name = "_day_countdown_interactions_gifts"
                     flag_value = int(char.flag(flag_name))
@@ -296,28 +281,22 @@ label girl_interactions_control:
                     char.set_flag(flag_name, flag_value + 1)
                     
                     item = result[1]
-                    dismod = item.dismod if hasattr(item, "dismod") else 0
+                    dismod = getattr(item, "dismod", 0)
                     
-                    if hasattr(item, "traits"):
-                        for t in item.traits:
-                            if traits[t] in char.traits:
-                                dismod += item.traits[t]
-                         
-                    if hasattr(item, "occupations"):
-                        for occ in item.occupations:
-                            if occ in char.occupations:
-                                dismod += item.occupations[occ]
+                    if item.type == "romantic" and not(check_lovers(char, hero)) and char.disposition < 800:  # cannot give romantic gifts to anyone
+                            dismod = -10
+                    else:
+                        for t, v in getattr(items, "traits", {}).iteritems():
+                            if t in char.traits:
+                                dismod += v
                      
                     flag_name = "_day_countdown_{}".format(item.id)
                     flag_value = int(char.flag(flag_name))
+                    
+                    # We never award more than 70 disposition for a single gift:
                     if dismod > 70:
                         dismod = 70
-                    if char.disposition > 50:
-                        if dismod*10 > char.disposition:
-                            dismod = round(char.disposition * 0.1)
-                    else:
-                        if dismod > 5:
-                            dismod = 5
+                        
                     # Add the appropriate dismod value:
                     if flag_value != 0:
                         if flag_value < item.cblock:
@@ -423,7 +402,6 @@ screen girl_interactions():
                 has vbox
                 
                 for item in hero.inventory:
-                    $ item = items[item]
                     if item.slot == "gift":
                         button:
                             style "main_screen_3_button"
@@ -433,7 +411,7 @@ screen girl_interactions():
                                     yoffset 3
                                     xysize (90, 90)
                                     add im.Scale(item.icon, 90, 90)
-                                    text str(hero.inventory.content[item.id]) color ivory style "library_book_header_main" align (0, 0)
+                                    text str(hero.inventory[item]) color ivory style "library_book_header_main" align (0, 0)
                                 null width 10
                                 text "[item.id]" yalign 0.5 style "library_book_header_sub" color ivory
                             action If(hero.AP > 0, Return(["gift", item]))

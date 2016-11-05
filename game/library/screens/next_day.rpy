@@ -69,8 +69,22 @@ init python:
                                 
         return actions, rest, events
         
+label next_day_effects_check: 
+    python:
+        for i in hero.chars: # chars with low or high joy get joy-related effects every day
+            if not "Pessimist" in i.traits and i.joy <= 15 and not i.effects['Depression']['active']:
+                i.enable_effect('Depression')
+            elif not "Optimist" in i.traits and i.joy >= 95 and not i.effects['Elation']['active']:
+                i.enable_effect('Elation')
+            if i.vitality < 50 and not i.effects['Exhausted']['active']: # 10+ days with vitality < 50 lead to Exhausted effect, can be removed by one day of rest
+                i.effects['Exhausted']['activation_count'] += 1
+            if i.effects['Exhausted']['activation_count'] >= 1 and not i.effects['Exhausted']['active']:
+                i.enable_effect('Exhausted')
+    return
+        
         
 label next_day:
+    call next_day_effects_check
     scene bg profile_2
     
     if just_view_next_day: # Review old reports:
@@ -100,7 +114,7 @@ label next_day:
     $ girls = None
     hide screen next_day
     jump mainscreen
-    
+
 label next_day_calculations:
     $ FilteredList=list()
     
@@ -217,7 +231,8 @@ label next_day_calculations:
     python:
         # Append building report to the list
         tl.timer("Building.next_day")
-        building.next_day()
+        if len(nd_buildings):
+            building.next_day()
         tl.timer("Building.next_day")
             
     $ tl.timer("Buildings")
@@ -295,95 +310,50 @@ label next_day_controls:
     scene bg profile_2
     show screen next_day
     with dissolve
-    
+
     while 1:
-        $ result = ui.interact()
-        
-        if result[0] == 'filter':
-            
-            if result[1] == 'all':
-                python:
+        python:
+            result = ui.interact()
+
+            if result[0] == 'filter':
+
+                if result[1] == 'all':
                     FilteredList = NextDayEvents * 1
-                    event = FilteredList[0]
-                    index = FilteredList.index(event)
-                    # raise Exception, [event, type(event), event.__class__, event.__dict__]
-                    gimg = event.load_image()
-                
-            if result[1] == 'red_flags':
-                python:
-                    FilteredList = list()
-                    for event in NextDayEvents:
-                        if event.red_flag:
-                            FilteredList.append(event)
-                    event = FilteredList[0]
-                    index = FilteredList.index(event)
-                    # raise Exception, [event, type(event), event.__class__, event.__dict__]
-                    gimg = event.load_image()
-                
-            elif result[1] == 'mc':
-                python:
-                    FilteredList = []
-                    for entry in NextDayEvents:
-                        if entry.type == 'mcndreport':
-                            FilteredList.append(entry)
-                    event = FilteredList[0]
-                    index = FilteredList.index(event)
-                    gimg = event.load_image()
-            
-            elif result[1] == 'school':
-                python:
-                    FilteredList = []
-                    for entry in NextDayEvents:
-                        if entry.type == 'schoolndreport':
-                            FilteredList.insert(0, entry)
-                        if entry.type == 'schoolreport':
-                            FilteredList.append(entry)
-                    event = FilteredList[0]
-                    index = FilteredList.index(event)
-                    gimg = event.load_image()
-                        
-            elif result[1] == 'gndreports': # Girl Next Day Reports
-                python:
-                    FilteredList = []
-                    for entry in NextDayEvents:
-                        if entry.type == 'girlndreport':
-                            FilteredList.append(entry)
-                    
-                # Preventing Index Exception on empty filter
-                python:
-                    if FilteredList:
-                        event = FilteredList[0]
-                        index = FilteredList.index(event)
-                        gimg = event.load_image()
-                    else:
-                        FilteredList = NextDayEvents
-                        
-            elif result[1] == 'building':
-                python:
+
+                elif result[1] == 'red_flags':
+                    FilteredList = [e for e in NextDayEvents if e.red_flag]
+
+                elif result[1] == 'mc':
+                    FilteredList = [e for e in NextDayEvents if event.type == 'mcndreport']
+
+                elif result[1] == 'school':
+                    order = {"schoolndreport":1, "schoolreport":2}
+                    FilteredList = sorted([e for e in NextDayEvents if e.type in order], key=lambda e: order[e.type])
+
+                elif result[1] == 'gndreports': # Girl Next Day Reports
+                    FilteredList = [e for e in NextDayEvents if e.type == 'girlndreport']
+
+                elif result[1] == 'building':
                     building = result[2]
-                    FilteredList = []
-                    for entry in NextDayEvents:
-                        if entry.type == 'buildingreport' and entry.loc == building:
-                            FilteredList.insert(0, entry)
-                        elif entry.type == "jobreport" and entry.loc == building:
-                            FilteredList.append(entry)
+                    order = {"buildingreport":1, "jobreport":2}
+                    FilteredList = sorted([e for e in NextDayEvents if e.loc == building and e.type in order], key=lambda e: order[e.type])
+
+                elif result[1] == "fighters_guild":
+                    order = {"fg_report":1, "exploration_report":2, "fg_job":3}
+                    FilteredList = sorted([e for e in NextDayEvents if e.type in order], key=lambda e: order[e.type])
+
+                else:
+                    devlog.warn("unhandled event:"+result[1])
+
+                if len(FilteredList):
                     event = FilteredList[0]
-                    index = FilteredList.index(event)
                     gimg = event.load_image()
-                
-            elif result[1] == "fighters_guild":
-                python:
-                    FilteredList = []
-                    for entry in NextDayEvents:
-                        if entry.type == "fg_report":
-                            FilteredList.insert(0, entry)
-                        elif entry.type == "exploration_report":
-                            FilteredList.insert(1, entry)
-                        elif entry.type == 'fg_job':
-                            FilteredList.append(entry)
-                    event = FilteredList[0]
-                    index = FilteredList.index(event)
-                    gimg = event.load_image()
+                    index = 0
+                else:
+                    devlog.warn("all NextDayEvents were filtered for: "+result[0]+", "+result[1])
+                    if result[1] == 'gndreports':
+                        # Preventing Index Exception on empty filter
+                        FilteredList = NextDayEvents
 
         if result[0] == 'control':
             if result[1] == 'left':
@@ -399,7 +369,7 @@ label next_day_controls:
                     if index < len(FilteredList)-1:
                         event = FilteredList[index+1]
                         gimg = event.load_image()
-                    
+
             elif result[1] == 'return':
                 return
 

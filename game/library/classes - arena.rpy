@@ -601,7 +601,7 @@ init -9 python:
                         elif stat == "Arena Rep":
                             member.arena_rep += statdict[stat]
                         else:
-                            member.mod(stat, statdict[stat])
+                            member.mod_stat(stat, statdict[stat])
                         
                 for member in def_team:
                     member.health = 1
@@ -629,7 +629,7 @@ init -9 python:
                         elif stat == "Arena Rep":
                             member.arena_rep += statdict[stat]
                         else:
-                            member.mod(stat, statdict[stat])
+                            member.mod_stat(stat, statdict[stat])
                         
                 for member in off_team:
                     member.health = 1
@@ -865,7 +865,7 @@ init -9 python:
                 if candidates:
                     self.king = choice(candidates)
                     self.king.exp += 700000 # TODO: Improve
-                    self.king.attack_skills.append("SwordAttack")
+                    self.king.attack_skills.append("Sword Slash")
                     self.king.magic_skills.append("Windwhirl")
                     self.king.magic_skills.append("Fire Arrow")
                     
@@ -888,7 +888,7 @@ init -9 python:
                 if str_lvl_1 > 0:
                     fighter = choice(candidates)
                     fighter.exp += randint(500000, 600000)
-                    fighter.attack_skills.append("SwordAttack")
+                    fighter.attack_skills.append("Sword Slash")
                     mskillz = list(["Fire 2", "Fire 3",
                                          "Water 2", "Water 3",
                                          "Earth 2", "Earth 3",
@@ -910,7 +910,7 @@ init -9 python:
                 elif str_lvl_2 > 0:
                     fighter = choice(candidates)
                     fighter.exp += randint(350000, 400000)
-                    fighter.attack_skills.append("SwordAttack")
+                    fighter.attack_skills.append("Sword Slash")
                     mskillz = list(["Fire 1", "Fire 2", "Fire 3",
                                          "Water 1", "Water 2", "Water 3",
                                          "Earth 1", "Earth 2", "Earth 3",
@@ -932,7 +932,7 @@ init -9 python:
                 elif str_lvl_3 > 0:
                     fighter = choice(candidates)
                     fighter.exp += randint(150000, 200000)
-                    fighter.attack_skills.append("SwordAttack")
+                    fighter.attack_skills.append("Sword Slash")
                     mskillz = list(["Fire 1", "Fire 2",
                                          "Water 1",
                                          "Earth 1",
@@ -954,7 +954,7 @@ init -9 python:
                 elif str_lvl_4 > 0:
                     fighter = choice(candidates)
                     fighter.exp += randint(20000, 60000)
-                    fighter.attack_skills.append("SwordAttack")
+                    fighter.attack_skills.append("Sword Slash")
                     mskillz = list(["Fire 1", "Fire 2",
                                          "Ice Arrow",
                                          "Wrath Of Nature",
@@ -1233,7 +1233,7 @@ init -9 python:
                             elif stat == "Arena Rep":
                                 member.arena_rep += statdict[stat]
                             else:
-                                member.mod(stat, statdict[stat])
+                                member.mod_stat(stat, statdict[stat])
                         member.combat_stats = statdict
                     else:
                         member.combat_stats = "K.O."
@@ -1375,7 +1375,7 @@ init -9 python:
                             elif stat == "gold":
                                 member.add_money(statdict[stat], reason="Arena")
                             else:
-                                member.mod(stat, statdict[stat])
+                                member.mod_stat(stat, statdict[stat])
                         member.combat_stats = statdict
                     else:
                         member.combat_stats = "K.O."
@@ -1406,7 +1406,7 @@ init -9 python:
                             elif stat == "gold":
                                 member.add_money(statdict[stat], reason="Arena")
                             else:
-                                member.mod(stat, statdict[stat])
+                                member.mod_stat(stat, statdict[stat])
                     self.remove_team_from_dogfights(member)
                         
                 for member in hero.team:
@@ -1465,7 +1465,7 @@ init -9 python:
                             elif stat == "Arena Rep":
                                 member.arena_rep += statdict[stat]
                             else:
-                                member.mod(stat, statdict[stat])
+                                member.mod_stat(stat, statdict[stat])
                         member.combat_stats = statdict
                     else:
                         member.combat_stats = "K.O."
@@ -1498,7 +1498,7 @@ init -9 python:
                             elif stat == "Arena Rep":
                                 member.arena_rep += statdict[stat]
                             else:
-                                member.mod(stat, statdict[stat])
+                                member.mod_stat(stat, statdict[stat])
                     self.remove_team_from_dogfights(member)
                             
                 for member in hero.team:
@@ -1528,7 +1528,6 @@ init -9 python:
             renpy.music.play(choice(ilists.battle_tracks), fadein=1.5)
             
             battle = Battle(ActiveSchema())
-            # battlefield = GridBattlefield(BattlefieldSprite('bg test_grid'), origin=(50, 50), gridSize=(17,6), spaceSize=(100, 100), diagonals=False)
             # battlefield = GridBattlefield(BattlefieldSprite(map_image), origin=(48, 48), gridSize=(40, 25), spaceSize=(96, 96), diagonals=False)
             battlefield = GridBattlefield(BattlefieldSprite(map_image), origin=(48, 48), gridSize=(40, 25), spaceSize=(96, 96), diagonals=False)
             battle.SetBattlefield(battlefield)

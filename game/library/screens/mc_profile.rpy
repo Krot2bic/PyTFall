@@ -115,7 +115,7 @@ init:
                 add ProportionalScale("content/gfx/interface/images/mag.png", 24, 24)
                 text("{size=-5}{font=fonts/Rubius.ttf}{color=#8470FF}[hero.magic]|%d"%(hero.get_max("magic"))) outlines [(1, "#0d0d0d", 0, 0)]
         
-        # LEFT FRAME ====================================>
+        # LEFT FRAME (Stats/Friends/Etc) ====================================>
         vbox:
             xsize 217
             pos (8, 110)
@@ -138,7 +138,7 @@ init:
             if lframe_display == "status":
                 # STATS ====================================>
                 null height 20
-                $ stats = ["constitution", "charisma", "intelligence", "fame", "reputation", "evasion", "resistance"]
+                $ stats = ["constitution", "charisma", "intelligence", "fame", "reputation"]
                 vbox:
                     style_group "proper_stats"
                     spacing 1
@@ -344,11 +344,12 @@ init:
                 has vbox
                 label (u"Traits:") text_size 20 text_color ivory text_bold True xalign .45
                 viewport:
-                    xysize (160, 300)
-                    scrollbars "vertical"
+                    xysize (160, 150)
                     draggable True
                     mousewheel True
                     has vbox spacing 1
+                    # for i in range(200):
+                        # add Solid("#F00", xysize=(100, 20))
                     for trait in list(t for t in hero.traits if not any([t.personality, t.race, t.elemental])):
                         if not trait.hidden:
                             frame:
@@ -359,6 +360,26 @@ init:
                                     action NullAction()
                                     text trait.id idle_color ivory size 15 align .5, .5 hover_color crimson
                                     hovered tt.Action(u"%s"%trait.desc)
+                                    hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.10)), 5, 5)
+                                
+                null height 10
+                                    
+                label (u"Effects:") text_size 20 text_color ivory text_bold True xalign .45
+                viewport:
+                    xysize (160, 150)
+                    draggable True
+                    mousewheel True
+                    has vbox spacing 1
+                    for effect, val in hero.effects.iteritems():
+                        if val['active']:
+                            frame:
+                                xysize (147, 25)
+                                button:
+                                    background Null()
+                                    xysize (147, 25)
+                                    action NullAction()
+                                    text "[effect]" idle_color ivory size 15 align .5, .5 hover_color crimson
+                                    hovered tt.Action(u"%s"%val.get("desc", "No Description availible."))
                                     hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.10)), 5, 5)
                                     
         # TOOLTIP TEXT ====================================>
@@ -443,7 +464,7 @@ init:
                 add "content/gfx/interface/images/exp_b.png" ypos 2 xalign 0.8
                 text "[hero.exp]/[hero.goal]" style "proper_stats_value_text" bold True outlines [(1, "#181818", 0, 0)] color "#DAA520"
     
-    screen hero_equip():
+    screen hero_equip(): # This is not used any longer...?
         modal True
         zorder 1
         default tt = Tooltip(None)
@@ -468,7 +489,7 @@ init:
             spacing 3
             hbox:
                 spacing 52
-                use paging(root='hero', ref=hero.inventory, use_filter=True)
+                use paging(ref=hero.inventory, use_filter=True)
                 use items_inv(char=hero)
                 
             # Buttons:    

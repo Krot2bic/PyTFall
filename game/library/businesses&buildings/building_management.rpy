@@ -194,14 +194,20 @@ label building_management_loop:
                         renpy.call_screen('message_screen', "No more rooms can be added to this building!")
             
             elif result[1] == 'items_transfer':
-                $ pytfall.it = GuiItemsTransfer(building, last_label=last_label)
-                $ jump(result[1])
+                python:
+                    it_members = list(w for w in hero.chars if w.location == building)
+                    if hero.location == building:
+                        it_members.insert(0, hero)
+                        
+                hide screen building_management
+                $ items_transfer(it_members)
+                show screen building_management
             
             elif result[1] == "sign":
                 python:
                     if building.flag('bought_sign'):
                         if hero.take_money(20, reason="Ads"):
-                            building.adverts[result[1]]['active'] = True
+                            building.toggle_advert(result[1])
                         
                         else:    
                             renpy.show_screen("message_screen", "Not enough cash on hand!")
@@ -209,7 +215,7 @@ label building_management_loop:
                     else:
                         if hero.take_money(200, reason="Ads"):
                             building.set_flag('bought_sign')
-                            building.adverts[result[1]]['active'] = True
+                            building.toggle_advert(result[1])
                         
                         else:
                             renpy.show_screen("message_screen", "Not enough cash on hand!")
@@ -354,22 +360,16 @@ init: # Screens:
                         # action Return(['building', "buyroom"])
                         # hovered tt.action('Add rooms to this Building. Price = %d.' % building.get_room_price())
                         # text "Add Room"
-                if hasattr(building, "use_adverts") and building.use_adverts:
+                if building.can_advert:
                     button:
                         xysize (135, 40)
                         action Show("building_adverts")
                         hovered tt.action('Advertise this building to attract more and better customers.')
                         text "Advertise"
-                else:
-                    button:
-                        xysize (135, 40)
-                        action NullAction()
-                        hovered tt.action('Advertise this building to attract more and better customers.')
-                        text "Advertise"
                 if len(building.get_girls()) > 0:
                     button:
                         xysize (135, 40)
-                        action [Hide("building_management"), Return(['building', "items_transfer"])]
+                        action Return(['building', "items_transfer"])
                         hovered tt.action('Transfer items between characters in this building!')
                         text "Transfer Items"
                 else:
@@ -648,7 +648,7 @@ init: # Screens:
                 # vbox:
                     # null height 35
                     # spacing -6
-                    # for advert in building.adverts.values():
+                    # for advert in building.adverts:
                         # if advert['active']:
                             # frame:
                                 # xysize (305, 27)
@@ -1223,8 +1223,7 @@ init: # Screens:
                 align(0.5, 0.4)
                 box_wrap True
                 spacing 20
-                for name in building.adverts:
-                    $ advert = building.adverts[name]
+                for advert in building.adverts:
                     vbox:
                         style_group "basic"
                         align (0.5, 0.5)
@@ -1235,7 +1234,7 @@ init: # Screens:
                                 action ToggleDict(advert, "active")
                                 text ("Stop %s!" % advert['name']) color black align (0.5, 0.5)
                         else:
-                            if name == "sign":
+                            if advert['name'] == "sign":
                                 button:
                                     xysize(280, 32)
                                     hovered tt.action(advert['desc'])
@@ -1246,7 +1245,12 @@ init: # Screens:
                                     xysize(280, 32)
                                     hovered tt.action(advert['desc'])
                                     action ToggleDict(advert, "active")
-                                    text ("Use %s for %s Gold!" % (advert['name'], advert['price'])) color black align (0.5, 0.5) size 15
+                                    if advert['price'] == 0:
+                                        text ("Use %s for %s Gold a day!" % (advert['name'], advert['upkeep'])) color black align (0.5, 0.5) size 15
+                                    elif advert['upkeep'] == 0:
+                                        text ("Use %s for %s Gold!" % (advert['name'], advert['price'])) color black align (0.5, 0.5) size 15
+                                    else:
+                                        text ("Use %s for %s Gold and %s a day!" % (advert['name'], advert['price'], advert['upkeep'])) color black align (0.5, 0.5) size 15
     
             button:
                 style_group "dropdown_gm"

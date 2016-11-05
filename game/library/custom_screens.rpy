@@ -1,13 +1,12 @@
 ################### Specialized ####################
 init: # Items:
+    image water_texture__ = Movie(channel="main_gfx_bow", play="content/gfx/animations/water_texture_webm/movie.webm")
     screen items_inv(char=None, main_size=(553, 282), frame_size=(90, 90), return_value=['item', 'get']):
         frame:
             background Null()
-            #background Frame("content/gfx/frame/MC_bg3.png", 10, 10)
             xysize main_size
             has hbox box_wrap True
-            #align (0.5, 0.5)
-            for item in list(item for item in char.inventory.getpage()):
+            for item in char.inventory.page_content:
                 frame:
                     if item.bg_color == "dark":
                         background Frame("content/gfx/frame/frame_it2.png", -1, -1)
@@ -15,13 +14,11 @@ init: # Items:
                         background Frame("content/gfx/frame/frame_it2.png", -1, -1)
                     xysize frame_size
                     use r_lightbutton (img=ProportionalScale(item.icon, 70, 70), return_value=return_value+[item], align=(0.5, 0.5))
-                    label (u"{color=#ecc88a}%d" % char.inventory.content[item.id]):
+                    label (u"{color=#ecc88a}%d" % char.inventory[item]):
                         align (0.995, 0.995)
                         style "stats_label_text"
                         text_size 18
                         text_outlines [(2, "#9c8975", 0, 0), (1, "#000000", 0, 0)]
-                        #if item.bg_color == "dark":
-                            #text_color ivory
     
     screen eqdoll(active_mode=True, char=None, frame_size=[55, 55], scr_align=(0.23, 0.23), return_value=['item', 'get'], txt_size=17, fx_size=(300, 320)):
         # active_mode = Allows equipped item to be focused if true, otherwise just dispayes a picture of an item (when equipped).
@@ -99,50 +96,53 @@ init: # Items:
         
         if focus:
             vbox:
-                align (0.5, 0.5)
+                align .5, .5
                 frame:
                     background Frame("content/gfx/frame/frame_dec_1.png", 30, 30)
-                    align (0.5, 0.5)
-                    xpadding 30
-                    ypadding 30
-                    xysize (555, 400)
-                    style_group "content"
-    
+                    xalign .5
+                    padding 30, 30
+                    
                     use itemstats(item=focus, size=(580, 350))
+                    
+                null height 3
                     
                 frame:
                     background Frame("content/gfx/frame/p_frame5.png", 10, 10)
-                    align (0.5, 1.0)
-                    xysize (300, 110)
-                    vbox:
-                        align (0.5, 1.0)
-                        xysize (400, 110)
-                        frame:
-                            align (0.5, 0.5)
-                            style_group "stats"
-                            $ total_price = item_price * amount
-                            label "Retail Price: [total_price]":
-                                text_color gold
-                                text_size 22
-                                xalign 0.5
-                        
+                    xalign .5
+                    padding 10, 10
+                    
+                    has vbox ysize 100
+                    
+                    frame:
+                        xalign .5
+                        style_prefix "proper_stats"
+                        $ total_price = item_price * amount
+                        padding 3, 3
                         fixed:
-                            xsize 150
-                            xalign 0.5
-                            spacing 25
-                            use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_left.png', 40, 40), return_value=['control', "decrease_amount"], align=(0, 0.5))
-                            text ("{size=36}[amount]") align (0.5, 0.5) color ivory style "proper_stats_label_text"
-                            use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_right.png', 40, 40), return_value=['control', "increase_amount"], align=(1.0, 0.5))
-                        
-                        button:
-                            style_group "basic"
-                            action Return(['item', 'buy/sell'])
-                            xsize 100
-                            xalign 0.5
-                            if purchasing_dir == "buy":
-                                text "Buy"
-                            elif purchasing_dir == "sell":
-                                text "Sell"
+                            xysize 250, 25
+                            label "Retail Price:" text_color gold text_size 22 xalign .0 yalign .5
+                            label "[total_price]" text_color gold text_size 22 xalign 1.0 yalign .5
+                    
+                    fixed:
+                        xsize 180
+                        xalign .5
+                        use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_left.png', 25, 25), return_value=['control', -10], align=(0, .5))
+                        use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_left.png', 30, 30), return_value=['control', -5], align=(.1, .5))
+                        use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_left.png', 40, 40), return_value=['control', -1], align=(.25, .5))
+                        text ("{size=36}[amount]") align .5, .5 color ivory style "proper_stats_label_text"
+                        use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_right.png', 40, 40), return_value=['control', 1], align=(.75, .5))
+                        use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_right.png', 30, 30), return_value=['control', 5], align=(.9, .5))
+                        use r_lightbutton(img=ProportionalScale('content/gfx/interface/buttons/blue_arrow_right.png', 25, 25), return_value=['control', 10], align=(1.0, .5))
+                    
+                    button:
+                        style_prefix "basic"
+                        action Return(['item', 'buy/sell'])
+                        xsize 100
+                        xalign 0.5
+                        if purchasing_dir == "buy":
+                            text "Buy"
+                        elif purchasing_dir == "sell":
+                            text "Sell"
         
         use exit_button
     
@@ -160,143 +160,146 @@ init: # Items:
     
     screen itemstats(item=None, size=(635, 380), style_group="content", mc_mode=False):
         if item:
-            fixed:
-                maximum (size[0], size[1])
+            vbox:
+                xysize size
+                align .5, .5
+                frame:
+                    xalign .5
+                    xysize (440, 40)
+                    background Frame("content/gfx/frame/p_frame7.png", 10, 10)
+                    label '[item.id]' text_color gold xalign 0.5 text_size 20 text_outlines [(1, "#000000", 0, 0)] text_style "interactions_text"
+                    
                 vbox:
-                    align (0.5, 0.5)
-                    yfill True
-                    frame:
-                        xalign 0.5
-                        xysize (440, 40)
-                        background Frame("content/gfx/frame/p_frame7.png", 10, 10)
-                        label '[item.id]' text_color gold xalign 0.5 text_size 20 text_outlines [(1, "#000000", 0, 0)] text_style "interactions_text"
-                    vbox:
-                        yfill True
-                        align (0.5, 0.5)
-                        #xmaximum (size[0]-15-175)
-                        null height -15
-                        label ('{color=#ecc88a}_____________________________________') align (0.5, 0.5)
-                        hbox:
-                            align (0.5, 0.5)
-                            xfill True
-                            frame:
-                                xpos 0
-                                yalign 0.5
-                                background Frame("content/gfx/frame/frame_it2.png", 5, 5)
-                                xysize (130, 130)
-                                add (ProportionalScale(item.icon, 110, 110)) align(0.5, 0.5)
-                            frame:
-                                background Frame("content/gfx/frame/p_frame4.png", 10, 10)
-                                xysize (205, 130)
-                                vbox:
-                                    style_group "stats"
-                                    spacing -7
-                                    xfill True
-                                    null height 15
-                                    frame:
-                                        xsize 195
-                                        text ('Price:') color gold yalign 0.5
-                                        label ('{size=-3}{color=[gold]}[item.price]') align (1.0, 0.5)
-                                    frame:
-                                        xsize 195
-                                        text ('Slot:') color ivory yalign 0.5
-                                        label ('{size=-3}%s'%item.slot.capitalize()) align (1.0, 0.5)
-                                    frame:
-                                        xsize 195
-                                        text ('Type:') color ivory yalign 0.5
-                                        label ('{size=-3}%s'%item.type.capitalize()) xalign 1.0 align (1.0, 0.5)
-                                    frame:
-                                        xsize 195
-                                        text ('Sex:') color ivory yalign 0.5
-                                        if item.slot in ["gift", "resources", "loot"]:
-                                            label "{size=-3}N/A" xalign 1.0 align (1.0, 0.5)
-                                        elif item.type == "food" and item.sex == 'unisex':
-                                            label "{size=-3}N/A" xalign 1.0 align (1.0, 0.5)
-                                        elif item.sex == 'male':
-                                            label ('{size=-3}{color=#FFA54F}%s'%item.sex.capitalize()) xalign 1.0 align (1.0, 0.5)
-                                        elif item.sex == 'female':
-                                            label ('{size=-3}{color=#FFAEB9}%s'%item.sex.capitalize()) xalign 1.0 align (1.0, 0.5)
-                                        elif item.sex == 'unisex':
-                                            label ('{size=-3}%s'%item.sex.capitalize()) xalign 1.0 align (1.0, 0.5)
-                            frame:
-                                xysize (165, 130)
-                                background Frame("content/gfx/frame/p_frame7.png", 5, 5)
-                                has viewport scrollbars "vertical" mousewheel True style_group "proper_stats" xysize (165, 125) child_size 160, 500
-                                vbox:
-                                    spacing 1
-                                    if item.mod:
-                                        label ('Stats:') text_size 18 text_color gold xpos 10
-                                        for stat, value in item.mod.items():
-                                            frame:
-                                                xysize 140, 20
-                                                text stat.capitalize() color ivory size 16 align (0.02, 0.5)
-                                                label (u'{size=-4}[value]') align (0.98, 0.5)
-                                        null height 2
-                                    if item.max:
-                                        label ('Max:') text_size 18 text_color gold xpos 10
-                                        for stat, value in item.max.items():
-                                            frame:
-                                                xysize 140, 20
-                                                text stat.capitalize() color ivory size 16 align (0.02, 0.5)
-                                                label u'{size=-4}[value]' align (0.98, 0.5)
-                                        null height 2
-                                    if item.min:
-                                        label ('Min:') text_size 18 text_color gold xpos 10
-                                        for stat, value in item.min.items():
-                                            frame:
-                                                xysize 140, 20
-                                                text stat.capitalize() color ivory size 16 align (0.02, 0.5)
-                                                label (u'{size=-4}%d'%value) align (0.98, 0.5)
-                                        null height 2
-                                    if item.addtraits:
-                                        label ('Adds Traits:') text_size 16 text_color gold xpos 10
-                                        for trait in item.addtraits:
-                                            frame:
-                                                xysize 140, 20
-                                                text(u'%s'%trait.capitalize()) color ivory size 16 align (0.5, 0.5)
-                                        null height 2
-                                    if item.removetraits:
-                                        label ('Removes Traits:') text_size 16 text_color gold xpos 10
-                                        for trait in item.removetraits:
-                                            frame:
-                                                xysize 140, 20
-                                                text(u'%s'%trait.capitalize()) color ivory size 16 align (0.5, 0.5)
-                                        null height 2
-                                    if item.add_be_spells:
-                                        label ('Adds Skills:') text_size 16 text_color gold xpos 10
-                                        for skill in item.add_be_spells:
-                                            frame:
-                                                xysize 140, 20
-                                                text(u'%s'%skill.capitalize()) color ivory size 16 align (0.5, 0.5)
-                                        null height 2
-                                    if item.remove_be_spells:
-                                        label ('Removes Skills:') text_size 16 text_color gold xpos 10
-                                        for skill in item.remove_be_spells:
-                                            frame:
-                                                xysize 140, 20
-                                                text (u'%s'%skill.capitalize()) color ivory size 16 align (0.5, 0.5)
-                                        null height 2
-                                    if item.addeffects:
-                                        label ('Adds Effects:') text_size 16 text_color gold xpos 10
-                                        for effect in item.addeffects:
-                                            frame:
-                                                xysize 140, 20
-                                                text(u'%s'%effect.capitalize()) color ivory size 16 align (0.5, 0.5)
-                                        null height 2
-                                    if item.removeeffects:
-                                        label ('Removes Effects:') text_size 16 text_color gold xpos 10
-                                        for effect in item.removeeffects:
-                                            frame:
-                                                xysize 140, 20
-                                                text(u'%s'%effect.capitalize()) color ivory size 16 align (0.5, 0.5)
-                                                
-                        null height -15
-                        label ('{color=#ecc88a}_____________________________________') align (0.5, 0.5)
+                    align .5, .5
+                    label ('{color=#ecc88a}----------------------------------------') xalign .5
+                    hbox:
+                        xalign .5
+                        xfill True
                         frame:
-                            xalign .5
-                            background Frame("content/gfx/frame/p_frame7.png", 10, 10)
-                            has viewport mousewheel True xysize (460, 120)
-                            text '[item.desc]' style "TisaOTM" size 16 color gold
+                            xalign .0
+                            yalign 0.5
+                            background Frame("content/gfx/frame/frame_it2.png", 5, 5)
+                            xysize (130, 130)
+                            add (ProportionalScale(item.icon, 110, 110)) align .5, .5
+                        frame:
+                            background Frame("content/gfx/frame/p_frame4.png", 10, 10)
+                            padding 15, 15
+                            align .5, .5
+                            style_prefix "proper_stats"
+                            has vbox spacing 1
+                            frame:
+                                xysize 195, 22
+                                padding 4, 1
+                                text ('Price:') color gold xalign .0 yoffset -1
+                                label ('[item.price]') xalign 1.0 text_size 18 text_color gold yoffset -2
+                            frame:
+                                xysize 195, 22
+                                padding 4, 1
+                                text ('Slot:') color ivory xalign .0 yoffset -1
+                                python:
+                                    if item.slot in SLOTALIASES:
+                                        slot = SLOTALIASES[item.slot]
+                                    else:
+                                        slot = item.slot.capitalize()
+                                label ('{size=-3}[slot]') align 1.0, .5
+                            frame:
+                                xysize 195, 22
+                                padding 4, 1
+                                text ('Type:') color ivory yalign 0.5
+                                label ('{size=-3}%s'%item.type.capitalize()) xalign 1.0 text_size 18 yoffset -2
+                            frame:
+                                xysize 195, 22
+                                padding 4, 1
+                                text ('Sex:') color ivory xalign .0 yoffset -1
+                                if item.slot in ["gift", "resources", "loot"]:
+                                    label "N/A" xalign 1.0 text_size 18 yoffset -2
+                                elif item.type == "food" and item.sex == 'unisex':
+                                    label "N/A" xalign 1.0 text_size 18 yoffset -2
+                                elif item.sex == 'male':
+                                    label ('{color=#FFA54F}%s'%item.sex.capitalize()) xalign 1.0 text_size 18 yoffset -2
+                                elif item.sex == 'female':
+                                    label ('{color=#FFAEB9}%s'%item.sex.capitalize()) xalign 1.0 text_size 18 yoffset -2
+                                elif item.sex == 'unisex':
+                                    label ('%s'%item.sex.capitalize()) xalign 1.0 text_size 18 yoffset -2
+                        frame:
+                            xalign 1.0
+                            xysize (165, 130)
+                            background Frame("content/gfx/frame/p_frame7.png", 5, 5)
+                            has viewport mousewheel True draggable True style_group "proper_stats" xysize (165, 122) child_size 160, 500
+                            vbox:
+                                spacing 1
+                                if item.mod:
+                                    label ('Stats:') text_size 18 text_color gold xpos 10
+                                    for stat, value in item.mod.items():
+                                        frame:
+                                            xysize 153, 20
+                                            text stat.capitalize() color ivory size 16 align (0.02, 0.5)
+                                            label (u'{size=-4}[value]') align (0.98, 0.5)
+                                    null height 2
+                                if item.max:
+                                    label ('Max:') text_size 18 text_color gold xpos 10
+                                    for stat, value in item.max.items():
+                                        frame:
+                                            xysize 153, 20
+                                            text stat.capitalize() color ivory size 16 align (0.02, 0.5)
+                                            label u'{size=-4}[value]' align (0.98, 0.5)
+                                    null height 2
+                                if item.min:
+                                    label ('Min:') text_size 18 text_color gold xpos 10
+                                    for stat, value in item.min.items():
+                                        frame:
+                                            xysize 153, 20
+                                            text stat.capitalize() color ivory size 16 align (0.02, 0.5)
+                                            label (u'{size=-4}%d'%value) align (0.98, 0.5)
+                                    null height 2
+                                if item.addtraits:
+                                    label ('Adds Traits:') text_size 16 text_color gold xpos 10
+                                    for trait in item.addtraits:
+                                        frame:
+                                            xysize 153, 20
+                                            text(u'%s'%trait.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                    null height 2
+                                if item.removetraits:
+                                    label ('Removes Traits:') text_size 16 text_color gold xpos 10
+                                    for trait in item.removetraits:
+                                        frame:
+                                            xysize 153, 20
+                                            text(u'%s'%trait.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                    null height 2
+                                if item.add_be_spells:
+                                    label ('Adds Skills:') text_size 16 text_color gold xpos 10
+                                    for skill in item.add_be_spells:
+                                        frame:
+                                            xysize 153, 20
+                                            text(u'%s'%skill.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                    null height 2
+                                if item.remove_be_spells:
+                                    label ('Removes Skills:') text_size 16 text_color gold xpos 10
+                                    for skill in item.remove_be_spells:
+                                        frame:
+                                            xysize 153, 20
+                                            text (u'%s'%skill.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                    null height 2
+                                if item.addeffects:
+                                    label ('Adds Effects:') text_size 16 text_color gold xpos 10
+                                    for effect in item.addeffects:
+                                        frame:
+                                            xysize 153, 20
+                                            text(u'%s'%effect.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                    null height 2
+                                if item.removeeffects:
+                                    label ('Removes Effects:') text_size 16 text_color gold xpos 10
+                                    for effect in item.removeeffects:
+                                        frame:
+                                            xysize 153, 20
+                                            text(u'%s'%effect.capitalize()) color ivory size 16 align (0.5, 0.5)
+                                            
+                    label ('{color=#ecc88a}----------------------------------------') xalign .5
+                    frame:
+                        xalign .5
+                        background Frame("content/gfx/frame/p_frame7.png", 10, 10)
+                        has viewport mousewheel True xysize (460, 100)
+                        text '[item.desc]' style "TisaOTM" size 16 color gold
                                     
     # Equipment slot frame (of an item)
     screen equipment_slot(pos=(0.5, 0.5), name="", img=None, value=None):
@@ -315,7 +318,7 @@ init: # Items:
                 action Return(value)
     
     # Inventory paging
-    screen paging(path="content/gfx/interface/buttons/", use_filter=True, ref=None, xysize=(270, 60), root=None, align=(0.5, 0.0)):
+    screen paging(path="content/gfx/interface/buttons/", use_filter=True, ref=None, xysize=(270, 60), root=None, align=(.5, .0)):
         frame:
             if global_flags.flag("hero_equip"):
                 background Frame("content/gfx/frame/BG_choicebuttons.png", 10, 10)
@@ -323,12 +326,14 @@ init: # Items:
             else:
                 background Frame("content/gfx/frame/frame_bg.png", 5, 5)
                 ypadding 15
+                
             style_group "content"
             xpadding 15
             xysize xysize
             align align
+            
             vbox:
-                align (0.5, 0.5)
+                align .5, .5
                 # Filter
                 if use_filter:
                     hbox:
@@ -337,15 +342,22 @@ init: # Items:
                         xalign 0.5
                         $ img = "".join([path, 'prev.png'])
                         imagebutton:
-                            align (0.0, 0.5)
+                            align .0, .5
                             idle img
-                            hover im.MatrixColor(img, im.matrix.brightness(0.15))
+                            hover im.MatrixColor(img, im.matrix.brightness(.15))
                             action Function(ref.apply_filter, "prev")
-                        label ("%s " % (ref.filter).capitalize()) align (0.5, 0.5)  text_color ivory
+                            
+                        python:
+                            if ref.slot_filter in SLOTALIASES:
+                                slot = SLOTALIASES[ref.slot_filter]
+                            else:
+                                slot = ref.slot_filter.capitalize()
+                        label "[slot] " align .5, .5  text_color ivory
+                        
                         imagebutton:
-                            align (1.0, 0.5)
-                            idle (path+'next.png')
-                            hover (im.MatrixColor(path+'next.png', im.matrix.brightness(0.15)))
+                            align 1.0, .5
+                            idle path+'next.png'
+                            hover im.MatrixColor(path+'next.png', im.matrix.brightness(.15))
                             action Function(ref.apply_filter, "next")
                 # Listing
                 hbox:
@@ -358,41 +370,30 @@ init: # Items:
                             yalign 0.5
                             idle (path+'first.png')
                             hover (im.MatrixColor(path+'first.png', im.matrix.brightness(0.15)))
-                            if root:
-                                action Return([root, 'first_page'])
-                            else:
-                                action Function(ref.first)
+                            action Function(ref.first)
                         imagebutton:
                             yalign 0.5
                             idle (path+'prev.png')
                             hover (im.MatrixColor(path+'prev.png', im.matrix.brightness(0.15)))
-                            if root:
-                                action Return([root, 'prev_page'])
-                            else:
-                                action Function(ref.prev)
-                    label ("%d - %d"%(ref.page+1, ref.max_page+1)) align (0.5, 0.5) text_color ivory
+                            action Function(ref.prev)
+                    label ("%d - %d"%(ref.page+1, ref.max_page)) align (0.5, 0.5) text_color ivory
                     hbox:
                         align (1.0, 0.5)
                         imagebutton:
                             yalign 0.5
                             idle (path+'next.png')
                             hover (im.MatrixColor(path+'next.png', im.matrix.brightness(0.15)))
-                            if root:
-                                action Return([root, 'next_page'])
-                            else:    
-                                action Function(ref.next)
+                            action Function(ref.next)
                         imagebutton:
                             yalign 0.5
                             idle (path+'last.png')
                             hover (im.MatrixColor(path+'last.png', im.matrix.brightness(0.15)))
-                            if root:
-                                action Return([root, 'last_page'])
-                            else:    
-                                action Function(ref.last)
+                            action Function(ref.last)
                         
     screen shop_inventory(ref=None, x=0.0):
         key "mousedown_4" action ref.inventory.next
         key "mousedown_5" action ref.inventory.prev
+        
         frame at fade_in_out(t1=0.5, t2=0.5):
             style_group "content"
             background Frame(Transform("content/gfx/frame/mes11.jpg", alpha=0.5), 5, 5)
@@ -722,13 +723,13 @@ init: # PyTFall:
                 text text xalign 0.5
                 input default default length length xalign 0.5
                 
-    screen exit_button(size=(35, 35), align=(1.0, 0.0)):
+    screen exit_button(size=(35, 35), align=(1.0, 0.0), action=Return(['control', 'return'])):
         $ img = im.Scale("content/gfx/interface/buttons/close.png" , size[0], size[1])
         imagebutton:
             align(align[0], align[1])
             idle img
             hover im.MatrixColor(img, im.matrix.brightness(0.25))
-            action Return(['control', 'return'])
+            action action
             
     screen dropdown(pos):
         # Trying to create a drop down screen with choices of actions:
@@ -797,26 +798,26 @@ init: # PyTFall:
                             action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
             
             # Fighters Guild
-            elif isinstance(char.location, FighterGuild):
-                for entry in FighterGuild.ACTIONS:
-                    if entry == 'Training':
-                        if char.status != "slave":
-                            textbutton "[entry]":
-                                action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                    elif entry == 'ServiceGirl':
-                        if (char.status == "slave" or "Server" in char.occupations) and not list(g for g in fg.get_chars() if g.action == "ServiceGirl"):
-                            textbutton "[entry]":
-                                action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                    elif entry == 'BarGirl':
-                        if fg.upgrades["bar"][0] and (char.status == "slave" or "Server" in char.occupations) and not list(g for g in fg.get_chars() if g.action == "BarGirl"):
-                            textbutton "[entry]":
-                                action [SetField(char, "action", entry), Function(equip_for, char, "ServiceGirl"), Hide("set_action_dropdown")]
-                    elif entry == 'Rest':
-                        textbutton "[entry]":
-                            action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
-                    else:
-                        textbutton "[entry]":
-                            action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+            #elif isinstance(char.location, FighterGuild):
+            #    for entry in FighterGuild.ACTIONS:
+            #        if entry == 'Training':
+            #            if char.status != "slave":
+            #                textbutton "[entry]":
+            #                    action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+            #        elif entry == 'ServiceGirl':
+            #            if (char.status == "slave" or "Server" in char.occupations) and not list(g for g in fg.get_chars() if g.action == "ServiceGirl"):
+            #                textbutton "[entry]":
+            #                    action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+            #        elif entry == 'BarGirl':
+            #            if fg.upgrades["bar"][0] and (char.status == "slave" or "Server" in char.occupations) and not list(g for g in fg.get_chars() if g.action == "BarGirl"):
+            #                textbutton "[entry]":
+            #                    action [SetField(char, "action", entry), Function(equip_for, char, "ServiceGirl"), Hide("set_action_dropdown")]
+            #        elif entry == 'Rest':
+            #            textbutton "[entry]":
+            #                action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
+            #        else:
+            #            textbutton "[entry]":
+            #                action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
             
             # Other buildings
             elif hasattr(char.location, "actions"):
@@ -956,7 +957,7 @@ init: # PyTFall:
             textbutton "Back":
                 action Hide("char_rename")
                 
-    screen poly_matrix(in_file, show_exit_button=False):
+    screen poly_matrix(in_file, show_exit_button=False, hidden=[]):
         # If a tuple with coordinates is provided instead of False for show_exit_button, exit button will be placed there.
         
         default tooltip = False
@@ -970,59 +971,60 @@ init: # PyTFall:
                 
         $ func = renpy.curry(point_in_poly)
         for i in matrix:
-            if "tooltip" in i:
-                if "align" in i:
-                    python:
-                        align = tuple(i["align"])
-                        pos = ()
-                        anchor = ()
-                else:
-                    python:
-                        align = ()
-                        # Get a proper placement:
-                        allx, ally = list(), list()
-                        
-                        for t in i["xy"]:
-                            allx.append(t[0])
-                            ally.append(t[1])
+            if i["id"] not in hidden:
+                if "tooltip" in i:
+                    if "align" in i:
+                        python:
+                            align = tuple(i["align"])
+                            pos = ()
+                            anchor = ()
+                    else:
+                        python:
+                            align = ()
+                            # Get a proper placement:
+                            allx, ally = list(), list()
                             
-                        maxx = max(allx)
-                        maxy = max(ally)
-                        minx = min(allx)
-                        miny = min(ally)
-                        
-                        w, h = config.screen_width, config.screen_height
-                        
-                        side = i.get("place", "left")
-                        
-                        if side == "left":
-                            pos = (minx - 10, sum(ally)/len(ally))
-                            anchor = (1.0, 0.5)
-                        elif side == "right":
-                            pos = (maxx + 10, sum(ally)/len(ally))
-                            anchor = (0.0, 0.5)
-                        elif side == "bottom":
-                            pos = (sum(allx)/len(allx), maxy + 10)
-                            anchor = (0.5, 0.0)
-                        elif side == "top":
-                            pos = (sum(allx)/len(allx), miny - 10)
-                            anchor = (0.5, 1.0)
-            
-                button:
-                    background Null()
-                    focus_mask func(i["xy"])
-                    action Return(i["id"])      
-                    hovered [SetField(config, "mouse", {"default": [("content/gfx/interface/icons/zoom_32x32.png", 0, 0)]}),
-                                   Show("show_poly_matrix_tt", pos=pos, anchor=anchor, align=align, text=i["tooltip"]), With(dissolve)]
-                    unhovered [SetField(config, "mouse", None),
-                                       Hide("show_poly_matrix_tt"), With(dissolve)]
-            else:
-                button:
-                    background Null()
-                    focus_mask func(i["xy"])
-                    action Return(i["id"])
-                    hovered SetField(config, "mouse", {"default": [("content/gfx/interface/icons/zoom_32x32.png", 0, 0)]})
-                    unhovered SetField(config, "mouse", None)
+                            for t in i["xy"]:
+                                allx.append(t[0])
+                                ally.append(t[1])
+                                
+                            maxx = max(allx)
+                            maxy = max(ally)
+                            minx = min(allx)
+                            miny = min(ally)
+                            
+                            w, h = config.screen_width, config.screen_height
+                            
+                            side = i.get("place", "left")
+                            
+                            if side == "left":
+                                pos = (minx - 10, sum(ally)/len(ally))
+                                anchor = (1.0, 0.5)
+                            elif side == "right":
+                                pos = (maxx + 10, sum(ally)/len(ally))
+                                anchor = (0.0, 0.5)
+                            elif side == "bottom":
+                                pos = (sum(allx)/len(allx), maxy + 10)
+                                anchor = (0.5, 0.0)
+                            elif side == "top":
+                                pos = (sum(allx)/len(allx), miny - 10)
+                                anchor = (0.5, 1.0)
+                
+                    button:
+                        background Null()
+                        focus_mask func(i["xy"])
+                        action Return(i["id"])
+                        hovered [SetField(config, "mouse", {"default": [("content/gfx/interface/icons/zoom_32x32.png", 0, 0)]}),
+                                       Show("show_poly_matrix_tt", pos=pos, anchor=anchor, align=align, text=i["tooltip"]), With(dissolve)]
+                        unhovered [SetField(config, "mouse", None),
+                                           Hide("show_poly_matrix_tt"), With(dissolve)]
+                else:
+                    button:
+                        background Null()
+                        focus_mask func(i["xy"])
+                        action Return(i["id"])
+                        hovered SetField(config, "mouse", {"default": [("content/gfx/interface/icons/zoom_32x32.png", 0, 0)]})
+                        unhovered SetField(config, "mouse", None)
                 
         if show_exit_button:
             textbutton "All Done":
@@ -1039,6 +1041,47 @@ init: # PyTFall:
                 anchor anchor
             text text
         
+    screen hidden_area(items=()):
+        on "hide":
+            action SetField(config, "mouse", None)
+            
+        # randomly places a "hidden" rectangular area(s) on the screen. Areas are actually plain buttons with super low alpha...
+        # Expects a list/tuple, like: (["hidden_cache_1", (100, 100), (.1, .5)], ["hidden_cache_2", (50, 50), (.54, .10)] If cache is found, screen (which should be called) will return: "hidden_cache_1" string. Tuple is the size in pixels.
+        # Data is randomized outside of this screen!
+        for item, size, align in items:
+            button:
+                align align
+                background Transform(Solid("#000000", xysize=size), alpha=.01)
+                xysize size
+                focus_mask True
+                action Return(item)
+                hovered SetField(config, "mouse", {"default": [("content/gfx/interface/icons/zoom_32x32.png", 0, 0)]})
+                unhovered SetField(config, "mouse", None)
+                
+                # $ raise Exception(args[1])
+                
+    screen fishing_area(items):
+        on "hide":
+            action SetField(config, "mouse", None)
+            
+        hbox:
+            xsize 1280
+            box_wrap True
+            for i in xrange(15):
+                add "water_texture__"
+        
+        # special screen for fishing based on screen hidden_area, uses visible animated imagebuttons instead of invisible areas:
+        $ fishing_circles_webm = Transform(Movie(channel="main_gfx_attacks", play="content/gfx/animations/bubbles_webm/movie.webm", mask="content/gfx/animations/bubbles_webm/mask.webm"), zoom=0.4, alpha=0.4)
+        $ fishing_circles_webm_alpha = Transform(Movie(channel="main_gfx_attacks", play="content/gfx/animations/bubbles_webm/movie.webm", mask="content/gfx/animations/bubbles_webm/mask.webm"), zoom=0.8, alpha=1.0)
+        for item in items:
+            imagebutton:
+                at fish # Randomization is now done here.
+                idle (fishing_circles_webm)
+                hover (fishing_circles_webm_alpha)
+                action Return(item)
+                hovered SetField(config, "mouse", {"default": [("content/gfx/interface/icons/fishing_hook.png", 20, 20)]})
+                unhovered SetField(config, "mouse", None)
+            
     ##############################################################################
     screen notify:
         zorder 500
@@ -1252,6 +1295,21 @@ init: # Settings:
                                 textbutton _("Test"):
                                     action Play("sound", config.sample_sound)
                                     style "soundtest_button"
+                        if config.developer:
+                            frame:
+                                background Frame(Transform("content/gfx/frame/p_frame5.png", alpha=0.9), 10, 10)
+                                #background Frame (Transform("content/gfx/frame/settings1.png", alpha=0.9), 10, 10)
+                                xsize 194
+                                ypadding 10
+                                #style_group "gm_nav"
+                                #style_group "dropdown_gm2"
+                                style_group "smenu"
+                                has vbox align (0.5, 0.5)
+                                button:
+                                    xsize 164
+                                    yalign 0.5
+                                    action SelectedIf(s_menu == "Settings"), Hide("s_menu"), Show("s_menu", s_menu="Debug"), With(dissolve) # SetScreenVariable("s_menu", "Settings")
+                                    text "Debug menu" size 18 align (0.5, 0.5) # style "mmenu_button_text"
 
             elif s_menu in ("Save", "Load"):
                 vbox:
@@ -1326,6 +1384,83 @@ init: # Settings:
                                             text "Buildings: [json_info[buildings]]" style "TisaOTMol" ypos 0
 
                                     key "save_delete" action FileDelete(i)
+            elif s_menu == "Debug":
+                grid 3 1:
+                    align (0.5, 0.5)
+                    spacing 7
+                    frame:
+                        style_group "smenu"
+                        align (0.5, 0.5)
+                        background Frame(Transform("content/gfx/frame/ink_box.png", alpha=0.3), 10, 10)
+                        xpadding 10
+                        ypadding 10
+                        #yfill True
+                        has vbox spacing 5
+                        frame:
+                            background Frame (Transform("content/gfx/frame/settings1.png", alpha=0.9), 10, 10)
+                            xsize 194
+                            style_group "dropdown_gm2"
+                            has vbox align (0.5, 0.5)
+                            vbox:
+                                frame:
+                                    xsize 184
+                                    align (0.5, 0.5)
+                                    background Frame(Transform("content/gfx/frame/stat_box_proper.png", alpha=0.9), 10, 10)
+                                    text _("- Schema -") style "TisaOTMolxm"
+                                #xfill True
+                                #yfill True
+                                spacing 10
+                                align (0.5, 0.5)
+                                button:
+                                    #align (0, 0)
+                                    xysize (184, 32)
+                                    action ToggleField(jsstor, "action", true_value="validate", false_value="skip")
+                                    text "Validation:" align (0.0, 0.5) style "TisaOTMol" size 14
+                                    if jsstor.action == "validate":
+                                        add(im.Scale('content/gfx/interface/icons/checkbox_checked.png', 25, 25)) align (1.0, 0.5)
+                                    else:
+                                        add (im.Scale('content/gfx/interface/icons/checkbox_unchecked.png', 25, 25)) align (1.0, 0.5)
+                                button:
+                                    #align (0, 1)
+                                    xysize (184, 32)
+                                    text "Generation:" align (0.0, 0.5) style "TisaOTMol" size 14
+                                    if jsstor.action == "generate":
+                                        action ToggleField(jsstor, "action", true_value="generate", false_value="skip")
+                                        add(im.Scale('content/gfx/interface/icons/checkbox_checked.png', 25, 25)) align (1.0, 0.5)
+                                    elif jsstor.action == "skip":
+                                        action ToggleField(jsstor, "action", true_value="generate", false_value="skip")
+                                        add (im.Scale('content/gfx/interface/icons/checkbox_unchecked.png', 25, 25)) align (1.0, 0.5)
+                                    else:
+                                        add (im.Scale('content/gfx/interface/icons/checkbox_inactive.png', 25, 25)) align (1.0, 0.5)
+                    frame:
+                        style_group "smenu"
+                        align (0.5, 0.5)
+                        background Frame(Transform("content/gfx/frame/ink_box.png", alpha=0.3), 10, 10)
+                        xpadding 10
+                        ypadding 10
+                        #yfill True
+                        has vbox spacing 5
+                        frame:
+                            background Frame (Transform("content/gfx/frame/settings1.png", alpha=0.9), 10, 10)
+                            xsize 194
+                            ypadding 8
+                            style_group "dropdown_gm2"
+                            has vbox align (0.5, 0.5)
+
+                    frame:
+                        style_group "smenu"
+                        align (0.5, 0.5)
+                        background Frame(Transform("content/gfx/frame/ink_box.png", alpha=0.3), 10, 10)
+                        xpadding 10
+                        ypadding 10
+                        #yfill True
+                        has vbox spacing 5
+                        frame:
+                            background Frame (Transform("content/gfx/frame/settings1.png", alpha=0.9), 10, 10)
+                            xsize 194
+                            ypadding 8
+                            style_group "dropdown_gm2"
+                            has vbox align (0.5, 0.5)
 
         frame:
             # at fade_in_out(sv1=0.0, ev1=1.0, t1=1.0,
@@ -1348,11 +1483,17 @@ init: # Settings:
                     text "Save" style "TisaOTMol" size 26 align (0.5, 0.5)
                 elif s_menu == "Load":
                     text "Load" style "TisaOTMol" size 26 align (0.5, 0.5)
+                elif s_menu == "Debug":
+                    text "Debug" style "TisaOTMol" size 26 align (0.5, 0.5)
                 text "----------" style "TisaOTMol" size 20 align (0.5, 0.5)
             button:
                 yalign 0.5
-                action Hide("s_menu"), With(dissolve)
-                text "Return" size 18 align (0.5, 0.5) # style "mmenu_button_text"
+                if s_menu != "Debug":
+                    action Hide("s_menu"), With(dissolve)
+                    text "Return" size 18 align (0.5, 0.5) # style "mmenu_button_text"
+                else:
+                    action Hide("s_menu"), Show("s_menu", s_menu="Settings"), With(dissolve), With(dissolve)
+                    text "Return" size 18 align (0.5, 0.5) # style "mmenu_button_text"
             button:
                 yalign 0.5
                 action SelectedIf(s_menu == "Settings"), Hide("s_menu"), Show("s_menu", s_menu="Settings"), With(dissolve) # SetScreenVariable("s_menu", "Settings")

@@ -5,7 +5,7 @@ init -9 python:
         NOT_TRANSFERABLE = set(["gift", "quest", "loot", "resources"])
         NOT_SELLABLE = set(["quest"])
         CONS_AND_MISC = set(['consumable', 'misc'])
-
+        
         def __init__(self):
             self.desc = ""
             self.slot = "consumable"
@@ -39,6 +39,16 @@ init -9 python:
             self.locations = []
             self.chance = 50
             self.badness = 0
+            
+            # BE attributes:
+            # self.evasion_bonus = 0 # Needs a int, will be used a percentage (1 = 1%)
+            # self.ch_multiplier = 0 # Critical hit multi...
+            # self.damage_multiplier = 0
+            
+            # self.defence_bonus = {} # Delivery! Not damage types!
+            # self.defence_multiplier = {}
+            # self.delivery_bonus = {} Expects a k/v pair of type: multiplier This is direct bonus added to attack power.
+            # self.delivery_multiplier = {}
 
         def init(self):
             # Rules:
@@ -112,79 +122,86 @@ init -9 python:
             new_stat = stats.stats[stat] + stats.imod[stat] + self.mod[stat]
             if new_stat > new_max:
                 new_stat = new_max
-            return new_stat - stats.get_stat(stat)
+            return new_stat - stats._get_stat(stat)
             
             
     # Inventory with listing
     # this is used together with a specialized screens/functions
     class Inventory(_object):
-        # TODO: Maybe rebind the keys to the item instances instead of strings which seem useless...
+        GENDER_FILTERS = {"any": ["unisex", "female", "male"], "male": ["unisex", "male"], "female": ["unisex", "female"]}
+        SLOT_FILTERS = {"all": ('weapon', 'smallweapon', 'head', 'body', 'wrist', 'feet', 'cape', 'amulet', 'ring', 'consumable', 'gift', 'misc', 'quest', "resources", "loot"),
+                                        "quest": ("quest", "resources", "loot")}
+        
         def __init__(self, per_page):
-            self.items = list() # Handles actual filtered items instances
-            self.content = OrderedDict() # Handles item.id/amount pairs
+            self.filtered_items = list() # Handles actual filtered items instances.
+            self.items = OrderedDict() # Handles item/amount pairs.
             
             # Paging:
-            self.page = 0
-            self.page_size = per_page
-            self.set_max_page()
+            self.set_page_size(per_page)
+            self.filter_index = 0
             
             # Filters:
-            self.filter = 'all'
-            self.male_filter = False # Filters out female only items
-            self.female_filter = False
-            self.ALL_FILTERS = ['all', 'weapon', 'smallweapon', 'head', 'body', 'wrist', 'feet', 'cape', 'amulet', 'ring', 'consumable', 'gift', 'misc', 'quest']
-            self.GEQ_FILTERS = ['all', 'weapon', 'smallweapon', 'consumable', 'head', 'body', 'wrist', 'feet', 'cape', 'amulet', 'ring', 'misc', 'quest']
-            self.FILTERS = self.ALL_FILTERS
+            self.slot_filter = 'all' # Active Slot filter.
+            self.gender_filter = self.GENDER_FILTERS["any"]
 
-        def set_page_size(self, size):
-            self.page_size = size
-            self.page = 0
-            self.set_max_page()
+        # Filters:
+        def set_gender_filter(self, filter):
+            self.gender_filter = self.GENDER_FILTERS[filter]
             
+        @property
+        def filters(self):
+            # returns a selection of availible filters for the occasion:
+            filters = ["all"]
+            availible_item_slots = set(item.slot for item in self.items.iterkeys())
+            
+            # Special cases:
+            if "loot" in availible_item_slots:
+                availible_item_slots.remove("loot")
+                availible_item_slots.add("quest")
+            if "resources" in availible_item_slots:
+                availible_item_slots.remove("resources")
+                availible_item_slots.add("quest")
+                
+            return filters + list(sorted(availible_item_slots))
+        
         def apply_filter(self, direction):
             """Filter for items.
             
             Currently filtered by slot.
             """
-            # if last_label in ("char_profile", "char_equip", "items_transfer"):
-            if last_label in ("items_transfer"):
-                self.FILTERS = self.GEQ_FILTERS
-            else:
-                self.FILTERS = self.ALL_FILTERS + ["resources"] # TODO: Fix this to a more sound design.
-            
-            index = self.FILTERS.index(self.filter)
             if direction == 'next':
-                index = (index + 1) % len(self.FILTERS)
+                self.filter_index = (self.filter_index + 1) % len(self.filters)
             elif direction == 'prev':
-                index = (index - 1) % len(self.FILTERS)
+                self.filter_index = (self.filter_index - 1) % len(self.filters)
             else:
-                index = self.FILTERS.index(direction)
-
-            filter = self.FILTERS[index]
-            items = store.items
-            if filter == 'all':
-                if self.male_filter:
-                    self.items = list(items[item] for item in self.content.iterkeys() if items[item].sex != "female")
-                elif last_label in ("char_equip", "items_transfer") or self.female_filter:
-                    self.items = list(items[item] for item in self.content.iterkeys() if items[item].sex != "male" and items[item].slot in self.FILTERS)
-                else:
-                    self.items = list(items[item] for item in self.content.iterkeys())
-            else:
-                if self.male_filter:
-                    self.items = list(items[item] for item in self.content.iterkeys() if items[item].slot == filter and items[item].sex != 'female')
-                elif last_label in ("char_equip", "items_transfer") or self.female_filter:
-                    self.items = list(items[item] for item in self.content.iterkeys() if items[item].slot == filter and items[item].sex != 'male')
-                else:    
-                    self.items = list(items[item] for item in self.content.iterkeys() if items[item].slot == filter)
-
+                try: # We try to get the correct filter, but it could be a fail...
+                    self.filter_index = self.filters.index(direction)
+                except:
+                    # Explicitly silenced Exception. We set the index to "all" (0) which is always availible!
+                    self.index = 0
+                    
+            self.slot_filter = self.filters[self.filter_index]
+            
+            self.filtered_items = list(item for item in self.items.iterkeys() if item.sex in self.gender_filter and item.slot in self.SLOT_FILTERS.get(self.slot_filter, [self.slot_filter]))
+            
             self.page = 0
-            self.set_max_page()
-            self.filter = filter
 
+        # Paging:
+        @property
+        def paged_items(self):
+            items = []
+            for start in xrange(0, len(self.filtered_items), self.page_size):
+                 items.append(self.filtered_items[start:start+self.page_size])
+            return items
+        
+        def set_page_size(self, size):
+            self.page_size = size
+            self.page = 0
+        
         def next(self):
             """Next page.
             """
-            if self.page < self.max_page:
+            if self.page + 1 < self.max_page:
                 self.page += 1
  
         def prev(self):
@@ -201,30 +218,19 @@ init -9 python:
         def last(self):
             """Last page.
             """
-            self.page = self.max_page
+            self.page = self.max_page - 1 if self.paged_items else 0
 
-        def getpage(self):
-            """Get content of a page.
-            
-            It's a cut-off from the whole.
+        @property
+        def page_content(self):
+            """Get content for current page.
             """
-            start = self.page * self.page_size
-            end = (self.page+1) * self.page_size
-            items = store.items
-            return self.items[start:end]
+            return self.paged_items[self.page] if self.paged_items else []
             
-        def set_max_page(self):
-            """Calculates the max page.
-            """
-            self.max_page = len(self.items) / self.page_size if len(self.items) % self.page_size not in [0, self.page_size] else (len(self.items) - 1) / self.page_size
-
-        def getitem(self, i):
-            """Returns an item.
+        @property
+        def max_page(self):
+            return len(self.paged_items)
             
-            Items coordinates: page number * page size + displacement from the start of the current page.
-            """
-            return self.items[self.page * self.page_size + i]
-            
+        # Add/Remove/Clear:
         def append(self, item, amount=1):
             """
             Add and item to inv and recalc max page.
@@ -233,10 +239,10 @@ init -9 python:
             """
             if isinstance(item, basestring):
                 item = store.items[item]
-            self.content[item.id] = self.content.get(item.id, 0) + amount
-            if item not in self.items:
-                self.items.append(item)
-            self.set_max_page()
+                
+            self.items[item] = self.items.get(item, 0) + amount
+            if item not in self.filtered_items:
+                self.filtered_items.append(item)
 
         def remove(self, item, amount=1):
             """Removes given amount of items from inventory.
@@ -245,44 +251,42 @@ init -9 python:
             """
             if isinstance(item, basestring):
                 item = store.items[item]
-            if self.content.get(item.id, 0) - amount >= 0:    
-                self.content[item.id] = self.content.get(item.id, 0) - amount
-                if self.content[item.id] <= 0:
-                    del(self.content[item.id])
-                    if item in self.items:
-                        self.items.remove(item)
-                self.set_max_page()
+                
+            if self.items.get(item, 0) - amount >= 0:    
+                self.items[item] = self.items.get(item, 0) - amount
+                if self.items[item] <= 0:
+                    del(self.items[item])
+                    if item in self.filtered_items:
+                        self.filtered_items.remove(item)
                 return True
+                
             return False
 
         def clear(self):
             """Removes ALL items from inventory!!!
             """
-            self.content = OrderedDict()
-            self.items = list()
+            self.items = OrderedDict()
+            self.filtered_items = list()
             
-        # Easy access:
-        def __getitem__(self, key):
-            """Returns an amount of items in inventory.
+        # Easy access (special methods):
+        def __getitem__(self, item):
+            """Returns an amount of specif item in inventory.
             """
-            if isinstance(key, Item):
-                key = key.id
-                
-            if key in self.content:
-                return self.content[key]
-            else:
-                return 0
+            if isinstance(item, basestring):
+                item = store.items[item]
+            
+            return self.items.get(item, 0)
 
         def __len__(self):
             """Returns total amount of items in the inventory.
             """
-            return sum(self.content.values())
+            return sum(self.items.values())
             
         def __nonzero__(self):
-            return bool(self.content)
+            return bool(self.items)
             
         def __iter__(self):
-            return iter(self.content)
+            return iter(self.items)
 
     # Shops Classes:
     class ItemShop(_object):
@@ -324,13 +328,12 @@ init -9 python:
                         if dice(item.chance):
                             self.inventory.append(item)
 
-            for item in self.inventory.content:
-                item = items[item]
+            for item in self.inventory:
                 if item.infinite:
-                    self.inventory.content[item.id] = 100
+                    self.inventory.items[item] = 100
                 else:
                     x = int(round(item.chance/10.0))
-                    self.inventory.content[item.id] += x
+                    self.inventory.items[item] += x
 
         def next_day(self):
             '''Basic counter to be activated on next day
@@ -340,9 +343,6 @@ init -9 python:
                 if self.gold > self.normal_gold_amount: self.gold = randint(int(self.normal_gold_amount * 1.3), int(self.normal_gold_amount * 1.6))
                 self.restock()
                 self.restockday += randint(3, 7)
-
-        def get(self, id):
-            return self.inventory.pop(id)
             
             
     class GeneralStore(ItemShop):
@@ -362,140 +362,3 @@ init -9 python:
             else:
                 if self.gold < 15000:
                     self.gold += randint(16000, 25000)
-                    
-                    
-    class GuiItemsTransfer(_object):
-        """Handles the logical bit of transferring items between inventories.
-        """
-        def __init__(self, location, char=None, last_label=None):
-            '''Takes location (so far we only have brothels) as an argument'''
-            self.left_char = None
-            self.right_char = None
-            self.left_image_cache = None
-            self.right_image_cache = None
-            
-            if location == "personal_transfer":
-                self.location = location
-                self.select_left_char(hero)
-                self.left_char.inventory.apply_filter("all")
-                self.select_right_char(char)
-                self.right_char.inventory.apply_filter("all")
-            else:
-                self.location = location
-
-            self.left_item = None
-            self.right_item = None
-            self.items_amount = 1
-            self.filter = 'all'
-            self.item_cache = None
-            self.last_label = last_label
-            
-        def populate_character_viewports(self):
-            """This is a poor hack that is used to populate inventory holders...
-            It's not a good idea to do this on every screen refresh as it seems to be done now.
-            
-            It's prolly a better idea to do this in __init__?
-            """
-            members = list()
-            
-            if isinstance(self.location, UpgradableBuilding): # Updated to allow TrainingDungeon to work as well, might need to change later
-                # Later we may want to call this from girls profile screen/hero profile screen
-                # Right now this check is redundant
-                members = self.location.get_girls()
-                if hero.location == self.location:
-                    members.insert(0, hero)
-            elif isinstance(self.location, NewStyleUpgradableBuilding):
-                # Later we may want to call this from girls profile screen/hero profile screen
-                # Right now this check is redundant
-                # members = self.location.all_workers # <<== Doesn't really work since workers that are not set to do any task or cannot do any task in the building are not included...
-                members = list(w for w in hero.chars if w.location == self.location)
-                if hero.location == self.location:
-                    members.insert(0, hero)
-            elif self.location == "personal_transfer":
-                members = [hero, self.right_char]
-            
-            if members: return [True, members]
-            else: return [False]
-                
-        def show_left_items_selection(self):
-            '''Populates left items selection viewport'''
-            if self.left_char != None:
-                return True
-            else: return False
-            
-        def show_right_items_selection(self):
-            '''Populates right items selection viewport'''
-            if self.right_char != None:
-                return True
-            else: return False
-            
-        def select_left_char(self, char):
-            char.inventory.set_page_size(13)
-            if char == self.right_char:
-                renpy.show_screen('message_screen', "Same character cannot be chozen from both sides!")
-            else:
-                self.left_char = char
-                self.left_image_cache = self.left_char.show('portrait', resize=(205, 205))
-        
-        def select_right_char(self, char):
-            char.inventory.set_page_size(13)
-            if char == self.left_char:
-                renpy.show_screen('message_screen', "Same character cannot be chozen from both sides!")
-            else:
-                self.right_char = char
-                self.right_image_cache = self.right_char.show('portrait', resize=(205, 205))
-        
-        def select_left_item(self, item):
-            self.left_item = item
-            self.item_cache = item
-        
-        def select_right_item(self, item):
-            self.right_item = item
-            self.item_cache = item
-            
-        def show_right_transfer_button(self):
-            if self.left_item and self.right_char:
-                return True
-            else:
-                return False
-                
-        def show_left_transfer_button(self):
-            if self.right_item and self.left_char:
-                return True
-            else:
-                return False
-                
-        
-        def get_left_inventory(self):
-            return [item for item in self.left_char.inventory.getpage()]
-
-            
-        def get_right_inventory(self):
-            return [item for item in self.right_char.inventory.getpage()]
-
-                
-        def transfer_item_right(self):
-            item = self.left_item
-            source = self.left_char
-            target = self.right_char
-            for i in xrange(self.items_amount):
-                if item.id in source.inventory.content:
-                    if not transfer_items(source, target, item):
-                        break
-                else:
-                    break
-            if item.id not in source.inventory.content:                
-                self.left_item = None
-
-        def transfer_item_left(self):
-            item = self.right_item
-            source = self.right_char
-            target = self.left_char
-            for i in xrange(self.items_amount):
-                if item.id in source.inventory.content:
-                    if not transfer_items(source, target, item):
-                        break
-                else:
-                    break
-            if item.id not in source.inventory.content:                
-                self.right_item = None

@@ -1,4 +1,16 @@
 init -11 python:
+    def kill_char(char):
+        # Attempts to remove a character from the game world.
+        # This happens automatiaclly if char.health goes 0 or below.
+        char._location = "After Life"
+        char.alive = False
+        if char in hero.chars:
+            hero.corpses.append(char)
+            hero.remove_char(char)
+        if char in hero.team:
+            hero.team.remove(char)
+        gm.remove_girl(char)
+    
     # Characters related:
     def get_first_name(sex="female"):
         """Gets a randomly generated first name.
@@ -53,7 +65,6 @@ init -11 python:
         for i in ("battle_sprite", "portrait", "origin", "locations", "base_race", "race", "front_row"):
             if i in data:
                 setattr(mob, i, data[i])
-        
         if "stats" in data:
             d = data["stats"]
             for key in d:
@@ -61,9 +72,9 @@ init -11 python:
                     if key != "luck":
                         value = d[key]
                         value = int(round(float(value)*100 / mob.get_max(key)))
-                        mob.mod(key, value)
+                        mob.mod_stat(key, value)
                     elif key == "luck":
-                        mob.mod(key, d[key])
+                        mob.mod_stat(key, d[key])
                 else:
                     devlog.warning(str("Stat: {} for Mob with id: {} is invalid! ".format(key, id)))
                     
@@ -108,6 +119,13 @@ init -11 python:
                     devlog.warning(str("Trait: {} for Mob with id: {} is invalid! ".format(trait, id)))
                     continue
                 mob.apply_trait(trait)
+                
+        if "default_attack_skill" in data:
+            skill = data["default_attack_skill"]
+            if skill in store.battle_skills:
+                mob.default_attack_skill = store.battle_skills[skill]
+            else:
+                devlog.warning("%s Mob tried to apply unknown default attack skill: %s!" % (mob.id, skill))
                 
         if "attack_skills" in data:
             d = data["attack_skills"]
@@ -219,9 +237,8 @@ init -11 python:
             # rg.occupation = choice(d)
         
         # Battle and Magic skills:
-        # TODO: This should be battle_skills! (plural and a list))
-        if "battle_skill" in data:
-            d = data["battle_skill"]
+        if "battle_skills" in data:
+            d = data["battle_skills"]
             if d in store.battle_skills:
                 rg.attack_skills.append(store.battle_skills[d])
             else:
@@ -255,9 +272,9 @@ init -11 python:
                     if key != "luck":
                         value = randint(d[key][0], d[key][1])
                         value = int(round(float(value)*100 / rg.get_max(key)))
-                        rg.mod(key, value)
+                        rg.mod_stat(key, value)
                     elif key == "luck":
-                        rg.mod(key, randint(d[key][0], d[key][1]))
+                        rg.mod_stat(key, randint(d[key][0], d[key][1]))
                 else:
                     devlog.warning(str("Stat: %s for random girl with id: %s is invalid! " % (key, id)))
         

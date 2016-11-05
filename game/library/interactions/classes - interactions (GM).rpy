@@ -3,12 +3,13 @@ init -1 python:
         """
         Simple custom container for girls to be displayed to the player.
         Also responsible for sorting.
-        Occupation = condition on which to sort. For now we only have warrior.
+        Occupation = condition on which to sort.
         """
         def __init__(self, name, curious_priority=True, **kwargs):
             goodoccupations = kwargs.get("goodoccupations", set())
             badoccupations = kwargs.get("badoccupations", set())
-            
+            has_tags = kwargs.get("has_tags", set())
+            has_no_tags = kwargs.get("has_no_tags", set())
             goodtraits = kwargs.get("goodtraits", set())
             if goodtraits:
                 goodtraits = set(traits[t] for t in goodtraits)
@@ -20,9 +21,11 @@ init -1 python:
             self.name = name
             self.curious_priority = curious_priority
             self.girls = list()
-            
             # Get available girls and check occupation
-            choices = list(i for i in chars.values() if i not in hero.chars and not i.arena_active and i.location in ["city", "girl_meets_quest"] and i not in gm.get_all_girls())
+            if not(has_tags):
+                choices = list(i for i in chars.values() if i not in hero.chars and not i.arena_active and i.location in ["city", "girl_meets_quest"] and i not in gm.get_all_girls())
+            else:
+                choices = list(i for i in chars.values() if i not in hero.chars and not i.arena_active and i.location in ["city", "girl_meets_quest"] and i not in gm.get_all_girls() and i.has_image(*has_tags, exclude=has_no_tags))
             # We remove all chars with badtraits:
             if badtraits:
                 choices = list(i for i in choices if not any(trait in badtraits for trait in i.traits))
@@ -273,7 +276,7 @@ init -1 python:
                 self.bg_cache = "bg " + (bg or exit)
             
             elif bg is not None:
-                self.bg_cache = "bg " + bg
+                self.bg_cache = bg
             
             # Routine to get the correct image for this interaction:
             if img is None:
@@ -320,7 +323,7 @@ init -1 python:
             
             self.start("girl_interactions", girl, img, exit, bg)
         
-        def start_tr(self, girl, img=None, exit="char_profile", bg="sex_dungeon_1"):
+        def start_tr(self, girl, img=None, exit="char_profile", bg="bg sex_dungeon_1"):
             """
             Starts the training scenario.
             girl = The girl to use.
@@ -349,6 +352,17 @@ init -1 python:
             Ends the current scenario.
             safe = Whether to prevent the label jump.
             """
+            # Music flag:
+            if not self.mode in self.USE_GI and renpy.music.get_playing(channel='world'):
+                global_flags.set_flag("keep_playing_music")
+            
+            # Reset GM counters
+            gm_disp_mult = 1
+            
+            # Reset scene
+            renpy.scene()
+            renpy.hide_screen("girl_interactions")
+            
             self.see_greeting = True
             self.show_menu = False
             self.show_menu_givegift = False

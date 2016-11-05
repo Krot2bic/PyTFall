@@ -11,121 +11,123 @@ label char_profile:
     while 1:
         $ result = ui.interact()
         
-        # If the girl has runaway
-        if char in pytfall.ra:
-            if result[0] == "girl":
-                if result[1] == "gallery":
-                    $ gallery = PytGallery(char)
-                    jump gallery
+        if isinstance(result, (list, tuple)):
+            # If the girl has runaway
+            if char in pytfall.ra:
+                if result[0] == "girl":
+                    if result[1] == "gallery":
+                        $ gallery = PytGallery(char)
+                        jump gallery
+                    
+                    elif result[1] == "get_rid":
+                        if renpy.call_screen("yesno_prompt", message="Are you sure you wish to stop looking for %s?"%char.name, yes_action=Return(True), no_action=Return(False)):
+                            python:
+                                hero.remove_char(char)
+                                girls.remove(char)
+                                char.dispoition -= 300
+                                if char in hero.team: hero.team.remove(char)
+                            if girls:
+                                $ index = (index+1) % len(girls)
+                                $ char = girls[index]
+                            else:
+                                jump char_profile_end
+                    else:
+                        $ renpy.show_screen("message_screen", "This girl has run away!")
                 
-                elif result[1] == "get_rid":
-                    if renpy.call_screen("yesno_prompt", message="Are you sure you wish to stop looking for %s?"%char.name, yes_action=Return(True), no_action=Return(False)):
-                        python:
-                            hero.remove_char(char)
-                            girls.remove(char)
-                            char.dispoition -= 300
-                            if char in hero.team: hero.team.remove(char)
-                        if girls:
-                            $ index = (index+1) % len(girls)
-                            $ char = girls[index]
-                        else:
-                            jump char_profile_end
-                else:
+                elif result[0] != "control":
                     $ renpy.show_screen("message_screen", "This girl has run away!")
             
-            elif result[0] != "control":
-                $ renpy.show_screen("message_screen", "This girl has run away!")
-        
-        # Else if you still have the girl
-        else:
-            if result[0] == "jump":
-                if result[1] == "item_transfer":
-                    hide screen char_profile
-                    $ pytfall.it = GuiItemsTransfer("personal_transfer", char=char, last_label=last_label)
-                    jump items_transfer
-            
-            elif result[0] == "dropdown":
-                python:
-                    if result[1] == "loc":
-                        renpy.show_screen("set_location_dropdown", result[2], pos=renpy.get_mouse_pos())
-                    elif result[1] == "action":
-                        renpy.show_screen("set_action_dropdown", result[2], pos=renpy.get_mouse_pos())
-            
-            elif result[0] == "girl":
-                if result[1] == "gallery":
-                    $ gallery = PytGallery(char)
-                    jump gallery
-                elif result[1] == "it":
-                    $ pytfall.it = GuiItemsTransfer("personal_transfer", char=char, last_label=last_label)
-                    jump items_transfer
-                elif result[1] == "get_rid":
-                    if char.status == "slave":
-                        $ message = "Are you sure you wish to sell {} for {}?".format(char.name, int(char.fin.get_price()*0.8))
-                    else:
-                        $ message = "Are you sure that you wish to fire {}?".format(char.name)
-                    if renpy.call_screen("yesno_prompt",
-                                                    message=message,
-                                                    yes_action=Return(True), no_action=Return(False)):
-                        if char.status == 'slave':
-                            $ hero.add_money(int(char.fin.get_price()*0.8), reason="SlaveTrade")
-                            $ char.location = 'slavemarket'
+            # Else if you still have the girl
+            else:
+                if result[0] == "jump":
+                    if result[1] == "item_transfer":
+                        hide screen char_profile
+                        $ items_transfer([hero, char])
+                        show screen char_profile
+                
+                elif result[0] == "dropdown":
+                    python:
+                        if result[1] == "loc":
+                            renpy.show_screen("set_location_dropdown", result[2], pos=renpy.get_mouse_pos())
+                        elif result[1] == "action":
+                            renpy.show_screen("set_action_dropdown", result[2], pos=renpy.get_mouse_pos())
+                
+                elif result[0] == "girl":
+                    if result[1] == "gallery":
+                        $ gallery = PytGallery(char)
+                        jump gallery
+                    elif result[1] == "it": # THIS IS WTF???
+                        $ raise Exception("MEOW")
+                        $ pytfall.it = GuiItemsTransfer("personal_transfer", char=char, last_label=last_label)
+                        jump items_transfer
+                    elif result[1] == "get_rid":
+                        if char.status == "slave":
+                            $ message = "Are you sure you wish to sell {} for {}?".format(char.name, int(char.fin.get_price()*0.8))
                         else:
-                            $ char.location = 'city'
-                        python:    
-                            hero.remove_char(char)
-                            index = girls.index(char) # Index is not set otherwise???
-                            girls.remove(char)
-                            char.disposition -= 300
-                        if char in hero.team:
-                            $ hero.team.remove(char)
-                        if girls:
-                            $ index = (index + 1) % len(girls)
-                            $ char = girls[index]
-                        else:
-                            jump girls_profile_end
+                            $ message = "Are you sure that you wish to fire {}?".format(char.name)
+                        if renpy.call_screen("yesno_prompt",
+                                                        message=message,
+                                                        yes_action=Return(True), no_action=Return(False)):
+                            if char.status == 'slave':
+                                $ hero.add_money(int(char.fin.get_price()*0.8), reason="SlaveTrade")
+                                $ char.location = 'slavemarket'
+                            else:
+                                $ char.location = 'city'
+                            python:    
+                                hero.remove_char(char)
+                                index = girls.index(char) # Index is not set otherwise???
+                                girls.remove(char)
+                                char.disposition -= 300
+                            if char in hero.team:
+                                $ hero.team.remove(char)
+                            if girls:
+                                $ index = (index + 1) % len(girls)
+                                $ char = girls[index]
+                            else:
+                                jump girls_profile_end
+                                
+                    # elif result[1] == 'buyrank':
+                        # # Should prolly move this to the Girl method at some point:
+                        # # TODO: Update to skills (Refinement!)
+                        # # No Longer in use!!!
+                        # python:
+                            # targetrank = char.rank + 1
+                            # maxrank = max(b.maxrank for b in hero.brothels)
+                            # if targetrank > 3 and char.status == "slave":
+                                # renpy.call_screen('message_screen', "Slave Girls cannot be pushed past rank 3!")
+                            # elif targetrank > maxrank:
+                                # renpy.call_screen('message_screen', "You do not currently own any brothels to justify ranking a prostitute to Rank %d" % targetrank)
+                            # else:    
+                                # rankinfo = char.wranks['r%d' % targetrank]
+                    
+                                # if char.exp >= rankinfo['exp']:
+                                    # if char.refinement >= rankinfo['ref']:
+                                        # if hero.take_money(rankinfo['price'], reason="Prositute Ranks"):
+                                            # char.rank += 1
+                                            # char.stats.max['refinement'] += 15
+                                     
+                            # del maxrank
+                            # del targetrank
                             
-                # elif result[1] == 'buyrank':
-                    # # Should prolly move this to the Girl method at some point:
-                    # # TODO: Update to skills (Refinement!)
-                    # # No Longer in use!!!
-                    # python:
-                        # targetrank = char.rank + 1
-                        # maxrank = max(b.maxrank for b in hero.brothels)
-                        # if targetrank > 3 and char.status == "slave":
-                            # renpy.call_screen('message_screen', "Slave Girls cannot be pushed past rank 3!")
-                        # elif targetrank > maxrank:
-                            # renpy.call_screen('message_screen', "You do not currently own any brothels to justify ranking a prostitute to Rank %d" % targetrank)
-                        # else:    
-                            # rankinfo = char.wranks['r%d' % targetrank]
-                
-                            # if char.exp >= rankinfo['exp']:
-                                # if char.refinement >= rankinfo['ref']:
-                                    # if hero.take_money(rankinfo['price'], reason="Prositute Ranks"):
-                                        # char.rank += 1
-                                        # char.stats.max['refinement'] += 15
-                                 
-                        # del maxrank
-                        # del targetrank
-                        
-            elif result[0] == "rename":
-                if result[1] == "name":
-                    $ char.name = renpy.call_screen("pyt_input", char.name, "Enter Name", 20)
-                if result[1] == "nick":
-                    $ char.nickname = renpy.call_screen("pyt_input", char.name, "Enter Nick-Name", 20)
-                if result[1] == "full":
-                    $ char.fullname = renpy.call_screen("pyt_input", char.name, "Enter Full-Name", 20)
-        
-        if result[0] == 'control':
-            $ index = girls.index(char)
-            if result[1] == 'left':
-               $ index = (index - 1) % len(girls)
-               $ char = girls[index]
-            elif result[1] == 'right':
-                $ index = (index + 1) % len(girls)
-                $ char = girls[index]
-                
-            elif result[1] == 'return':
-                jump char_profile_end
+                elif result[0] == "rename":
+                    if result[1] == "name":
+                        $ char.name = renpy.call_screen("pyt_input", char.name, "Enter Name", 20)
+                    if result[1] == "nick":
+                        $ char.nickname = renpy.call_screen("pyt_input", char.name, "Enter Nick-Name", 20)
+                    if result[1] == "full":
+                        $ char.fullname = renpy.call_screen("pyt_input", char.name, "Enter Full-Name", 20)
+            
+            if result[0] == 'control':
+                $ index = girls.index(char)
+                if result[1] == 'left':
+                   $ index = (index - 1) % len(girls)
+                   $ char = girls[index]
+                elif result[1] == 'right':
+                    $ index = (index + 1) % len(girls)
+                    $ char = girls[index]
+                    
+                elif result[1] == 'return':
+                    jump char_profile_end
 
 label char_profile_end:
     hide screen char_profile
@@ -492,7 +494,7 @@ screen char_profile():
                         style_suffix "main_frame"
                         xsize 318
                         has vbox spacing 1
-                        $ stats = [("Attack", "#CD4F39"), ("Defence", "#dc762c"), ("Magic", "#8470FF"), ("MP", "#009ACD"), ("Agility", "#1E90FF"), ("Luck", "#00FA9A"), ("Evasion", "#FFFF94"), ("Resistance", "#FFA500")]
+                        $ stats = [("Attack", "#CD4F39"), ("Defence", "#dc762c"), ("Magic", "#8470FF"), ("MP", "#009ACD"), ("Agility", "#1E90FF"), ("Luck", "#00FA9A")]
                         for stat, color in stats:
                             frame:
                                 xoffset 4
@@ -665,15 +667,16 @@ screen char_profile():
                             draggable True
                             mousewheel True
                             has vbox spacing 1
-                            for key in char.effects:
-                                if char.effects[key]['active']:
+                            for effect, val in char.effects.iteritems():
+                                if val['active']:
                                     frame:
                                         xysize (147, 25)
                                         button:
                                             background Null()
                                             xysize (147, 25)
                                             action NullAction()
-                                            text "[key]" idle_color ivory size 15 align .5, .5 hover_color crimson
+                                            text "[effect]" idle_color ivory size 15 align .5, .5 hover_color crimson
+                                            hovered tt.Action(u"%s"%val.get("desc", "No Description availible."))
                                             hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.10)), 5, 5)
                     
                 # Attacks/Magic ====================================>

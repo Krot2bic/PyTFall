@@ -12,7 +12,7 @@ label test_be:
         n.apply_trait("Air")
         
         for skill in battle_skills.values():
-            if isinstance(skill, SimpleAttack):
+            if "melee" in skill.attributes or "ranged" in skill.attributes:
                 if skill not in h.attack_skills:
                     h.attack_skills.append(skill)
                 if skill not in n.attack_skills:
@@ -22,37 +22,34 @@ label test_be:
                     h.magic_skills.append(skill)
                 if skill not in n.magic_skills:
                     n.magic_skills.append(skill)
-        
-        
-        
+                    
     python:
         # Prepare the teams:
         enemy_team = Team(name="Enemy Team", max_size=3)
         mob = build_mob(id="Goblin Shaman", level=120)
-        
-        # For Xtra testing:
-        mob.resistance = 100
-        mob.evasion = 100
-        
         mob.apply_trait("Fire")
         mob.front_row = True
         mob.controller = BE_AI(mob)
         if len(enemy_team) != 3:
             enemy_team.add(mob)
+            
         mob = build_mob(id="Goblin Archer", level=100)
         mob.front_row = False
-        mob.attack_skills.append("SwordAttack")
+        # mob.attack_skills.append("Sword Slash")
         if len(enemy_team) != 3:
             enemy_team.add(mob)
+            
         mob = build_mob(id="Goblin Archer", level=100)
-        mob.front_row = False
-        mob.attack_skills.append("BowAttack")
+        mob.front_row = True
+        # mob.attack_skills.append("Bow Shot")
         mob.apply_trait("Air")
         if len(enemy_team) != 3:
             enemy_team.add(mob)
         # Add new attack types to see how they look on the other side:
         for m in enemy_team:
-            m.magic_skills.append(battle_skills["Water Blast"])
+            m.attack_skills.append(battle_skills["Projective Slash"])
+        # for m in enemy_team:
+            # m.magic_skills.append(battle_skills["Northern Flow"])
             # m.magic_skills.append(battle_skills["Pure Ion Storm"])
             
         for i in hero.team:
@@ -65,7 +62,7 @@ label test_be:
             hero.team.add(n)
         n.AP = 6
         # ImageReference("chainfights")
-        battle = BE_Core(Image("content/gfx/bg/be/b_forest_1.jpg"), music="content/sfx/music/be/battle (14).mp3", start_sfx=get_random_image_dissolve(1.5), end_sfx=dissolve)
+        battle = BE_Core(Image("content/gfx/bg/be/b_forest_1.jpg"), music= "random", start_sfx=get_random_image_dissolve(1.5), end_sfx=dissolve)
         battle.teams.append(hero.team)
         battle.teams.append(enemy_team)
         battle.start_battle()
@@ -85,12 +82,12 @@ label test_be_logical:
             enemy_team.add(mob)
         mob = build_mob(id="Goblin Archer", level=100)
         mob.front_row = False
-        mob.attack_skills.append("SwordAttack")
+        mob.attack_skills.append("Sword Slash")
         if len(enemy_team) != 3:
             enemy_team.add(mob)
         mob = build_mob(id="Goblin Archer", level=100)
         mob.front_row = False
-        mob.attack_skills.append("BowAttack")
+        mob.attack_skills.append("Bow Shot")
         mob.apply_trait("Air")
         if len(enemy_team) != 3:
             enemy_team.add(mob)
@@ -105,13 +102,6 @@ label test_be_logical:
         n.status = "free"
         n.controller = BE_AI(n)
         n.apply_trait("Air")
-        # for skill in battle_skills.values():
-            # if isinstance(skill, SimpleAttack):
-                # h.attack_skills.append(skill)
-                # n.attack_skills.append(skill)
-            # else:
-                # h.magic_skills.append(skill)
-                # n.magic_skills.append(skill)
         n.front_row = True
         initial_levelup(n, 50, True)
         

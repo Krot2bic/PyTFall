@@ -1,5 +1,18 @@
 init -11 python:
     # Equipment checks and area effects!
+    def has_items(item, chars):
+        if isinstance(item, basestring):
+            item = items[item]
+        
+        amount = 0
+        for c in chars:
+            amount += c.inventory[item]
+            for i in c.eqslots.itervalues():
+                if i == item:
+                    amount += 1
+                    
+        return amount
+    
     def equip_item(item, char, silent=False, area_effect=False):
         """First level of checks, all items should be equiped through this function!
         """
@@ -118,8 +131,12 @@ init -11 python:
             if not silent:
                 renpy.show_screen("message_screen", "This item cannot be used or equipped!")
             return
+        elif item.type in ["food"] and char.effects['Food Poisoning']['active']:
+            if not silent:
+                renpy.show_screen('message_screen', "She's already suffering from food poisoning. More food won't do any good.")
+            return
         elif char.status == "slave":
-            if item.slot in ["weapon"] and not item.type.lower().startswith("nw"):
+            if item.slot in ["weapon"] and not item.type.lower().startswith("tool"):
                 if not silent:
                     renpy.show_screen('message_screen', "Slaves are forbidden to use large weapons by law!")
                 return
@@ -291,17 +308,15 @@ label shop_control:
                     $ focus = None
             
     elif result[0] == 'control':
-        if result[1] == "increase_amount":
+        if isinstance(result[1], basestring):
+            if result[1] == 'return':
+                $ focus = None
+                return
+        elif result[1] > 0:
             if purchasing_dir == 'sell':
-                if amount < char.inventory[focus]:
-                    $ amount += 1
+                $ amount = min(amount + result[1], char.inventory[focus])
             elif purchasing_dir == 'buy':
-                if amount < shop.inventory[focus]:
-                    $ amount += 1
-        elif result[1] == "decrease_amount":
-            if amount > 1:
-                $ amount -= 1
-        elif result[1] == 'return':
-            $ focus = None
-            return
+                $ amount = min(amount + result[1], shop.inventory[focus])
+        else:
+            $ amount = max(amount + result[1], 1)
     jump shop_control

@@ -74,13 +74,13 @@ label interactions_shopping:
                                     for entry in focus.mod:
                                         if entry =='anal' or entry =='normalsex' or entry =='lesbian':
                                             txt =="%s will definitly make me a better whore for Master.\n"%focus.id
-                                            char.mod('disposition', 1)
+                                            char.mod_stat('disposition', 1)
                                 
                                 if char.occupation=='Stripper':
                                     for entry in focus.mod:
                                         if entry =='strip':
                                             txt =="%s will make my stripping performance even better Master.\n"%focus.id
-                                            char.mod('disposition', 1)
+                                            char.mod_stat('disposition', 1)
                                 
                                 if char.occupation=='ServiceGirl':
                                     txt += "ServiceGirl Slave"
@@ -96,7 +96,7 @@ label interactions_shopping:
                                     for entry in focus.mod:
                                         if entry =='anal' or entry =='normalsex' or entry =='lesbian':
                                             txt =="%s will definitly make me a better whore for Master."%focus.id
-                                            char.mod('disposition', 1)
+                                            char.mod_stat('disposition', 1)
                                 
                                 if char.occupation=='Stripper':
                                     txt += "Stripper Slave"
@@ -113,36 +113,36 @@ label interactions_shopping:
                             if char.joy < 40:
                                 if focus.price > 1000:
                                     txt += "Thank you very much Master. I will put the %s to good use.\n"%focus.id
-                                    char.mod('joy', 2)
-                                    char.mod('disposition', 4)
-                                    char.mod('disposition', 1)
+                                    char.mod_stat('joy', 2)
+                                    char.mod_stat('disposition', 4)
+                                    char.mod_stat('disposition', 1)
                                 
                                 else:
                                     txt += "Thank you Master for the %s.\n"%focus.id
-                                    char.mod('disposition', 2)
-                                    char.mod('joy', 1)
+                                    char.mod_stat('disposition', 2)
+                                    char.mod_stat('joy', 1)
                             
                             elif 39 < char.joy < 80:
                                 if focus.price > 1000:
                                     txt += "Thank you *KISS* very *VERY* much Master *KISS* for the %s .\n"%focus.id
-                                    char.mod('disposition', 5)
-                                    char.mod('joy', 3)
+                                    char.mod_stat('disposition', 5)
+                                    char.mod_stat('joy', 3)
                                 
                                 else:
                                     txt += "*KISS* Thank you Master. I like the %s.\n"%focus.id
-                                    char.mod('disposition', 2)
-                                    char.mod('joy', 2)
+                                    char.mod_stat('disposition', 2)
+                                    char.mod_stat('joy', 2)
                             
                             else:
                                 if focus.price > 1000:
                                     txt += "MASTER! I love the %s. Thank you so much.\nShe gives you a kiss that leaves you breathless for a moment.\n"%focus.id
-                                    char.mod('disposition', 6)
-                                    char.mod('joy', 4)
+                                    char.mod_stat('disposition', 6)
+                                    char.mod_stat('joy', 4)
                                 
                                 else:
                                     txt += "Master *KISS* Thank you Master. I like the %s.\n"%focus.id
-                                    char.mod('disposition', 3)
-                                    char.mod('joy', 3)
+                                    char.mod_stat('disposition', 3)
+                                    char.mod_stat('joy', 3)
                             
                             pytfall.tailor_store.inventory.remove(focus)
                             char.inventory.append(focus)
@@ -198,7 +198,7 @@ label interactions_shopping:
     jump girl_interactions
     
 
-screen tailor_store_shopping_girl:
+screen tailor_store_shopping_girl():
     
     frame:
         align(0.5,0)
@@ -214,14 +214,14 @@ screen tailor_store_shopping_girl:
             text(u'{size=+1}Day  =  %d'%day) align(0.5,0.5)
             null width 50
 
-    use shop_inventory(root='inv',ref=char,x=0.0,title="Inventory")
-    use shop_inventory(root='shop',ref=pytfall.tailor_store,x=1.0,title="Tailor Store")
+    use shop_inventory(ref=char,x=0.0,title="Inventory")
+    use shop_inventory(ref=pytfall.tailor_store, x=1.0, title="Tailor Store")
     
     if focus:
         frame background Frame("content/gfx/frame/mes12.jpg",5,5): 
             align (0.5,0.15)
             xmaximum 700
-            ymaximum 400 #changed so the other frame can go below
+            ymaximum 400 # changed so the other frame can go below
             hbox:
                 use itemstats(item=focus,mode='normal')                                                                 
             frame background Solid((0,0,0,0)):
@@ -230,12 +230,12 @@ screen tailor_store_shopping_girl:
                     text (u' Price: %s'%focus.price)
                     null width 20
                     textbutton "Buy/Sell" action Return(['control','buy/sell']) maximum(150,30)
-        if char.eqslots['body']: #only show the currently equiped item if there is one
+        if char.eqslots['body']: # only show the currently equiped item if there is one
             frame background Frame("content/gfx/frame/mes12.jpg",5,5): 
                 align (0.5,0.95)
                 xmaximum 700
                 ymaximum 300
-                use itemstats(item=char.eqslots['body']) #added a mode to the itemstats
+                use itemstats(item=char.eqslots['body']) # added a mode to the itemstats
                     
         
     use r_lightbutton(img=im.Scale("content/gfx/interface/buttons/shape69.png",40,40),return_value =['control','return'], align=(0.99,0))

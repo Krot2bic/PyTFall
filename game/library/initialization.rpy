@@ -41,6 +41,8 @@ init -999 python:
     
     def content_path(path):
         '''Returns proper path for a file in the content directory *To be used with os module.'''
+        if "/conent/" in path:
+            renpy.error("/conent/ already in path: "+path)
         return renpy.loader.transfn('content/' + path)
     
     # enable logging via the 'logging' module
@@ -71,7 +73,7 @@ init -999 python:
                 else:
                     self.log[msg] = time.time()
                     devlog.info("Starting timer: %s"%msg)
-                    
+
     tl = TimeLog()
     tl.timer("Ren'Py User Init!")
 
@@ -283,14 +285,94 @@ init -999 python:
                 else:
                     value = string
         return value
-        
+
     # Returns the position of cursor if show cursorPosition is called
     # show cursorPosition on bottom
     def dd_cursor_position(st, at):
         x, y = renpy.get_mouse_pos()
         return Text("{size=-5}%d - %d"%(x, y)), .1
-        # -------------------------------------------------------------------------------------------------------- Ends here    
-    
+
+    class JasonSchemator(object):
+        def __init__(self, action=None):
+            self.action = action if action is not None else "skip" # the default: no validation.
+
+        def configure(self, timelog=None):
+            """ load schemas from schema directory """
+
+            if self.action != "skip":
+                import jsonschema
+                self._tl = timelog
+                self._validator = {}
+                self._schema = {}
+                self._err = []
+
+                for fin in listdir("schema"):
+                    filename = renpy.loader.transfn("schema"+os.path.sep+fin)
+
+                    if self.action == "generate":
+                        devlog.warn("schema already exists for "+filename+" (remove beforehand to get an updated one)")
+                    else:
+                        name = fin[:-5]
+                        self._schema[name] = json.loads(open(filename, 'rb').read().decode("utf-8"))
+                        self._validator[name] = jsonschema.Draft4Validator(self._schema[name])
+
+        def err(self, err, file=None):
+            devlog.warn(err)
+            if file is not None:
+                err = err + ":"+os.linesep+renpy.loader.transfn(file)
+            self._err.append(err)
+
+        def add(self, name, content, filename=""):
+
+            if self.action == "validate" or self.action == "strict":
+
+                if not name in self._validator:
+                    self.err("No schema yet to validate a "+name+" json file")
+                else:
+                    file = filename.rsplit(os.path.sep+"game"+os.path.sep, 1)[1]
+                    if self._tl:
+                        time_msg = "Validating "+file
+                        self._tl.timer(time_msg)
+
+                    for cn in content:
+                        try:
+                            self._validator[name].validate(cn)
+                        except Exception, e:
+                            self.err("Did not validate as "+name, file)
+
+                            errors = sorted(self._validator[name].iter_errors(cn), key=lambda e: e.path)
+                            for error in errors:
+                                self.err(error.message)
+
+                                for suberror in sorted(error.context, key=lambda e: e.schema_path):
+                                    self.err(filename+":"+", ".join(list(suberror.schema_path), suberror.message))
+
+                    if self._tl:
+                        self._tl.timer(time_msg)
+
+            elif self.action == "generate":
+                import skinfer
+                if name in self._schema:
+                    self._schema[name] = skinfer.merge_schema(self._schema[name], skinfer.infer_schema(content))
+                else:
+                    self._schema[name] = skinfer.infer_schema(content)
+
+        def finish(self):
+            if self.action == "generate":
+                for name in self._schema.keys():
+                    file = renpy.loader.transfn("schema")+os.path.sep+"{0}.json".format(name)
+                    if not os.path.isfile(file):
+                        with open(file, 'w') as outfile:
+                            json.dump(self._schema[name], outfile, sort_keys=True, indent=2,
+                                      ensure_ascii=False, separators=(',', ': '))
+            elif self.action == "strict" and len(self._err) > 0:
+                renpy.error(os.linesep.join(self._err))
+
+    # set to False to update existing json files in schema directory, None skips validation and writing
+    jsstor = JasonSchemator()
+
+    # -------------------------------------------------------------------------------------------------------- Ends here
+
     ########################## Images ##########################
     # Colors are defined in colors.rpy to global namespace, prolly was not the best way but file was ready to be used.
     
@@ -416,6 +498,7 @@ init -1 python: # Constants:
     # for f in renpy.list_files():
         # if f.endswith((".png", ".jpg")):
             # renpy.image(f, At(f, slide(so1=(600, 0), t1=0.7, eo2=(1300, 0), t2=0.7)))
+    SLOTALIASES = {"smallweapon": "Left Hand", "weapon": "Right Hand", "amulet": "Neck", "feet": "Legs", "quest": "Special"}
     equipSlotsPositions = dict()
     equipSlotsPositions['head'] = [u'Head', 0.2, 0.2]
     equipSlotsPositions['body'] = [u'Body', 0.2, 0.4]

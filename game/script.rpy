@@ -10,7 +10,10 @@
         # Global variables and loading content:
         day = 1
         # difficulty = Difficulties()
-        
+
+        # load json schemas for validation
+        jsstor.configure(timelog=tl)
+
         # Load random names selections for rGirls:
         tl.timer("Loading: Random Name Files")
         female_first_names = load_female_first_names(200)
@@ -19,7 +22,7 @@
         random_team_names = load_team_names(50)
         
         # Load random names selections for Teams:
-        file = open(renpy.loader.transfn(content_path("db/RandomTeamNames_1.txt")))
+        file = open(content_path("db/RandomTeamNames_1.txt"))
         randomTeamNames = file.readlines()
         shuffle(randomTeamNames)
         file.close()
@@ -53,7 +56,7 @@
         tgs.body = [i for i in traits.values() if i.body]
         tgs.base = [i for i in traits.values() if i.basetrait and not i.mob_only]
         tgs.elemental = [i for i in traits.values() if i.elemental]
-        tgs.el_strings = [i.id.lower() for i in tgs.elemental]
+        tgs.el_names = set([i.id.lower() for i in tgs.elemental])
         tgs.ct = [i for i in traits.values() if i.character_trait]
         tgs.sexual = [i for i in traits.values() if i.sexual] # This is a subset of character traits!
         tgs.race = [i for i in traits.values() if i.race]
@@ -83,10 +86,10 @@
         del temp
         tl.timer("Loading: SimpleJobs")
         
-        tl.timer("Loading: Brothels")
-        # brothels = load_brothels() # Disabling for now, should be renamed soon to businesses.
-        # pytWhoringActs = build_whoring_acts()
-        tl.timer("Loading: Brothels")
+        tl.timer("Loading: Businesses")
+        adverts = load_json("buildings/adverts.json")
+        businesses = load_businesses(adverts)
+        tl.timer("Loading: Businesses")
         
         tl.timer("Loading: Training")
         schools = load_schools()
@@ -122,10 +125,6 @@
         del crazy_chars
         tl.timer("Loading: All Characters!")
         devlog.info("Loaded %d images from filenames!" % tagdb.count_images())
-        
-        # Temp Code:
-        # atts = [i for i in battle_skills.values() if i.__class__ == SimpleAttack]
-        # raise Exception([i.name for i in atts])
         
         # Build shops:
         pytfall.init_shops()
@@ -194,18 +193,6 @@ label dev_testing_menu:
                         $ pass
                     "Back":
                         jump dev_testing_menu
-
-                        
-            "Logic":
-                while 1:
-                    menu:
-                        "Extend test":
-                            $ h = chars["Hinata"]
-                            "[h.name] prepares herself, awaiting for further orders."
-                            extend " You ask her to sit on top of you, immersing your dick inside."
-                        "Back":
-                            jump dev_testing_menu
-
             "GFX":
                 while 1:
                     menu:
@@ -294,6 +281,7 @@ label dev_testing_menu:
     if config.developer and renpy.has_label("testing"):
         call testing
     
+    $ jsstor.finish()
     jump mainscreen
     
 label after_load:

@@ -272,7 +272,8 @@ init -5 python:
             
             
     class PrivateBusinessUpgrade(MainUpgrade):
-        def __init__(self, name="Private Business", instance=None, desc="Client is always right!?!", img=Null(), build_effort=0, materials=None, in_slots=2, cost=500, **kwargs):
+        def __init__(self, name="Private Business", instance=None, desc="Client is always right!?!", img=None, build_effort=0, materials=None, in_slots=2, cost=500, **kwargs):
+            img = Null() if img is None else img
             super(PrivateBusinessUpgrade, self).__init__(name=name, instance=instance, desc=desc, img=img, build_effort=build_effort, materials=materials, cost=cost, **kwargs)
             self.capacity = in_slots
             self.type = "personal_service"
@@ -360,7 +361,8 @@ init -5 python:
         - Clients are handled in one general pool.
         - Workers randomly serve them.
         """
-        def __init__(self, name="Public Default", instance=None, desc="Client is always right!?!", img=Null(), build_effort=0, materials=None, in_slots=3, cost=500, **kwargs):
+        def __init__(self, name="Public Default", instance=None, desc="Client is always right!?!", img=None, build_effort=0, materials=None, in_slots=3, cost=500, **kwargs):
+            img = Null() if img is None else img
             super(PublicBusinessUpgrade, self).__init__(name=name, instance=instance, desc=desc, img=img, build_effort=build_effort, materials=materials, cost=cost, **kwargs)
             self.jobs = set() # Job bound to this update.
             self.workable = True
@@ -519,7 +521,8 @@ init -5 python:
             
             
     class OnDemandUpgrade(MainUpgrade):
-        def __init__(self, name="On Demand Default", instance=None, desc="Does something on request!", img=Null(), build_effort=0, materials=None, in_slots=0, cost=0, **kwargs):
+        def __init__(self, name="On Demand Default", instance=None, desc="Does something on request!", img=None, build_effort=0, materials=None, in_slots=0, cost=0, **kwargs):
+            img = Null() if img is None else img
             super(OnDemandUpgrade, self).__init__(name=name, instance=instance, desc=desc, img=img, build_effort=build_effort, materials=materials, cost=cost, **kwargs)
             self.capacity = in_slots
             self.type = "on_demand_service"
@@ -544,7 +547,8 @@ init -5 python:
         """Base class upgrade for businesses that just need to complete a task, like FG, crafting and etc.
         """
         # For lack of a better term... can't come up with a better name atm.
-        def __init__(self, name="Task Default", instance=None, desc="Completes given task!", img=Null(), build_effort=0, materials=None, in_slots=0, cost=0, **kwargs):
+        def __init__(self, name="Task Default", instance=None, desc="Completes given task!", img=None, build_effort=0, materials=None, in_slots=0, cost=0, **kwargs):
+            img = Null() if img is None else img
             super(TaskUpgrade, self).__init__(name=name, instance=instance, desc=desc, img=img, build_effort=build_effort, materials=materials, cost=cost, **kwargs)
             
             self.res = None #*Throws an error?
@@ -837,7 +841,7 @@ init -5 python:
             # Build the report:
             simple_jobs["Guarding"](workers_original, workers, building, action="patrol")
             
-        def intercept(self, opfor=list(), interrupted=False):
+        def intercept(self, opfor=None, interrupted=False):
             """This intercepts a bunch of aggressive clients and resolves the issue through combat or intimidation.
             
             opfor = opposition forces
@@ -849,6 +853,7 @@ init -5 python:
             - Check if previous guard action was interrupted and act (look for defenders/restore older process) accordingly.
             """
             job = simple_jobs["Guarding"]
+            opfor = list() if opfor is None else opfor
             
             # gather the response forces:
             defenders = list()
@@ -1349,7 +1354,7 @@ init -5 python:
                         for stat in area.hazard:
                             # value, because we calculated effects on daily base in the past...
                             var = max(1, int(round(area.hazard[stat]*.05)))
-                            char.mod(stat, -var) # TODO: Change to log + direct application.
+                            char.mod_stat(stat, -var) # TODO: Change to log + direct application.
                             
                 if tracker.items and dice(area.risk*0.2 + tracker.day *3):
                     items.append(choice(tracker.items))
@@ -1413,7 +1418,7 @@ init -5 python:
                     self.txt.append("It was a quite day of exploration, nothing of interest happened...")
                 
                 self.stats["agility"] += randrange(2)
-                self.stats["exp"] += randint(5, max(15, self.risk/4))
+                self.stats["exp"] += randint(5, int(max(15, self.risk/4)))
                 
                 inv = list(g.inventory for g in self.team)
                 

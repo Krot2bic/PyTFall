@@ -1,25 +1,26 @@
 [    {
     "id": "Tsundere",
-    "desc": "Sharp, irritable, abusive, harsh and sometimes sarcastic personality that becomes caring and loving when triggered by some sort of cause.",
+    "desc": "Sharp, irritable, abusive, harsh and sometimes sarcastic personality.",
     "mod": {"upkeep": 5},
     "mod_stats": {"character": [1, 5]},
     "max": {"character": 10},
     "mod_skills": {"management": [0.05, 0, 0.01], "waiting": [-0.1, -0.02, -0.1], "bartending": [0, 0, -0.08], "bdsm": [-0.02, 0.04, 0.01], "teaching": [0, 0, -0.1], "cleaning": [0, 0, -0.04], "refinement": [0, 0, -0.2], "service": [-0.05, 0, -0.07], "dancing": [0.1, 0.1, 0.1], "oral": [-0.1, 0.1, 0]},
-    "personality": true
+    "personality": true,
+    "effects": ["Insecure"]
     },
     {
     "id": "Yandere",
-    "desc": "Mentally and emotionally unstable personality. It has a very romantic, nice and caring side that can suddenly change to extremely brutal, psychotic or deranged.",
+    "desc": "Mentally and emotionally unstable personality. Can suddenly change to extremely brutal, psychotic or deranged.",
     "mod": {"upkeep": 5},
     "mod_stats": {"attack": [1, 10]},
     "max": {"character": 10, "intelligence": -10},
     "mod_skills": {"management": [-0.3, 0.1, -0.2], "waiting": [-0.1, 0, -0.2], "bartending": [-0.1, 0, -0.1], "bdsm": [0.2, 0.1, 0.2], "teaching": [0, 0, -0.2], "cleaning": [0, 0, 0.03], "strip": [0, 0.02, 0], "refinement": [0, 0, -0.1], "service": [0, 0.03, -0.1]},
-    "effect": "Unstable",
+    "effects": ["Unstable"],
     "personality": true
     },
     {
     "id": "Kuudere",
-    "desc": "Cold, blunt, calm, seemingly uncaring on the outside personality with great emotional control that occasionally shows her caring side.",
+    "desc": "Cold, blunt, calm, seemingly uncaring on the outside personality with great emotional control.",
     "mod_stats": {"defence": [1, 10]},
     "max": {"character": 15},
     "mod_skills": {"management": [0.05, 0.1, 0.1], "waiting": [0, 0.01, 0], "bartending": [0, 0, 0.1], "bdsm": [-0.05, 0.05, -0.1], "teaching": [0, 0.02, 0], "cleaning": [0, 0, 0.06], "refinement": [0.05, 0.05, 0], "service": [-0.02, 0.03, -0.08], "dancing": [-0.1, 0, -0.1], "strip": [0, 0, -0.1]},
@@ -31,7 +32,7 @@
     "mod_stats": {"character": [-1, 5]},
     "max": {"character": -20},
     "mod_skills": {"management": [-0.2, -0.05, -0.15], "waiting": [0, 0.06, -0.01], "bartending": [0, 0, -0.1], "bdsm": [-0.15, 0.15, 0.1], "teaching": [0.02, 0.02, 0.06], "cleaning": [0.1, 0.1, 0.15], "refinement": [-0.15, -0.05, -0.25], "service": [-0.02, 0.03, 0.1]},
-    "effect": "Introvert",
+    "effects": ["Introvert"],
     "personality": true
     },
     {
@@ -42,7 +43,7 @@
     "min": {"intelligence": 5},
     "max": {"character": -10, "intelligence": 10},
     "mod_skills": {"management": [-0.1, 0.1, -0.2], "waiting": [0, 0.1, 0.02], "bartending": [0, 0.1, 0.01], "bdsm": [-0.2, 0.1, -0.1], "teaching": [0.15, 0.1, 0.1], "cleaning": [0, 0.1, 0.2], "refinement": [-0.2, 0.1, -0.1], "service": [0, 0.1, 0], "dancing": [-0.3, -0.1, -0.2], "vaginal": [0, 0.1, 0], "anal": [0, 0.1, 0], "oral": [0, 0.1, 0], "strip": [0, 0.1, -0.1], "exploration": [0, 0.1, 0.1]},
-    "effect": "Impersonal",
+    "effects": ["Calm"],
     "personality": true
     },
     {
@@ -50,14 +51,16 @@
     "desc": "An «older sister» type personality. Mature, caring, parenial, practical and helpful.",
     "mod": {"upkeep": -5},
     "mod_skills": {"management": [0.15, 0.1, 0.15], "waiting": [0.05, 0.05, 0.04], "bartending": [0.05, 0.05, 0.1], "bdsm": [-0.2, -0.1, -0.1], "teaching": [0.2, 0.1, 0.15], "cleaning": [0.1, 0.1, 0.1], "refinement": [0.05, 0.03, 0], "service": [0.1, 0.1, 0.1], "dancing": [0, 0, 0.07], "strip": [0, 0.1, -0.1], "exploration": [-0.04, 0, -0.08]},
+    "effects": ["Extrovert"],
     "personality": true
     },
     {
     "id": "Imouto",
-    "desc": "A «little sister» type. Looks up to others, childish and dependant.",
+    "desc": "A «little sister» type. Looks up to others, childish and dependent.",
     "mod": {"upkeep": 5},
      "mod_skills": {"management": [-0.15, 0, -0.15], "waiting": [0.05, -0.04, 0.07], "bartending": [-0.1, -0.2, -0.1], "bdsm": [-0.3, -0.3, -0.2], "teaching": [-0.2, -0.1, -0.15], "cleaning": [-0.1, -0.1, -0.1], "refinement": [-0.05, -0.03, 0], "service": [-0.1, -0.1, -0.1], "dancing": [0.06, 0.03, 0.08], "strip": [-0.1, 0.1, 0], "exploration": [0.08, -0.06, 0.1]},
-    "personality": true
+    "personality": true,
+    "effects": ["Impressible"]
     },
     {
     "id": "Kamidere",
@@ -66,7 +69,8 @@
     "max": {"character": 10},
     "mod_stats": {"character": [1, 10]},
     "mod_skills": {"management": [0.1, 0.1, 0.2], "waiting": [-0.2, -0.1, -0.2], "bartending": [0, 0, -0.05], "bdsm": [0.2, 0.2, 0.2], "teaching": [0.2, 0.2, -0.2], "cleaning": [-0.25, -0.1, -0.2], "refinement": [0.2, 0.08, 0.1], "service": [-0.06, -0.01, -0.1], "exploration": [0, 0, 0.05]},
-    "personality": true
+    "personality": true,
+    "effects": ["Assertive"]
     },
     {
     "id": "Bokukko",
@@ -80,7 +84,6 @@
     "id": "Deredere",
     "desc": "Sweet, friendly and outgoing personality, without any issues with emotions or behavior.",
     "mod_skills": {"management": [0, 0, 0.1], "waiting": [0.05, 0, 0.05], "cleaning": [0, 0, 0.03], "service": [0, 0, 0.02], "dancing": [0.1, 0.1, 0.1]},
-    "effect": "Extrovert",
     "personality": true
     }
     ]

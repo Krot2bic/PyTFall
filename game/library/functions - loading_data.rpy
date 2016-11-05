@@ -1,3 +1,34 @@
+# The whole thing should one day be recoded over a single renpy.list_files loop.
+init 11 python:
+    def load_webms():
+        webms = {}
+        for path in renpy.list_files():
+            if "content/gfx/autowebm/" in path:
+                split_path = path.split("/")
+                folder = split_path[-2]
+                file = split_path[-1]
+                if "mask" in file:
+                    webms.setdefault(folder, {})["mask"] = path
+                if "movie" in file:
+                    webms.setdefault(folder, {})["movie"] = path
+                if "moviemask" in file: # rare cases when movie itself is also the mask
+                    webms.setdefault(folder, {})["movie"] = path
+                    webms.setdefault(folder, {})["mask"] = path
+        
+        for folder in webms:
+            temp = folder.split(" ")
+            
+            tag = temp[0]
+            channel = temp[2] if len(temp) == 3 else "main_gfx_attacks"
+            loops = temp[1] if len(temp) >= 2 else 1
+            if loops == "inf":
+                renpy.image(tag, Movie(channel=channel, play=webms[folder]["movie"], mask=webms[folder].get("mask", None)))
+            else:
+                loops = int(loops)
+                renpy.image(tag, MovieLooped(channel=channel, loops=loops, play=webms[folder]["movie"], mask=webms[folder].get("mask", None)))
+                
+    load_webms()
+
 init -11 python:
     # ---------------------- Loading game data:
     def load_team_names(amount):
@@ -64,13 +95,15 @@ init -11 python:
                 for file in girlfolders: # Load data files one after another.
                     if file.startswith("data") and file.endswith(".json"):
                         kind = "pytfall_native"
-                        
+
                         # Load the file:
                         in_file = os.sep.join([dir, packfolder, file])
                         devlog.info("Loading from %s!"%str(in_file)) # Str call to avoid unicode
                         with open(in_file) as f:
                             ugirls = json.load(f)
-                            
+
+                        jsstor.add(path, ugirls, in_file)
+
                         # Apply the content of the file to the character:
                         for gd in ugirls: # We go over each dict one mainaining correct order of application:
                             
@@ -150,7 +183,7 @@ init -11 python:
                                         value = gd["stats"][stat]
                                         if stat != "luck":
                                             value = int(round(float(value)*char.get_max(stat))/100)
-                                        char.mod(stat, value)
+                                        char.mod_stat(stat, value)
                                     else:
                                         devlog.warning("%s stat is unknown for %s!" % (stat, gd["id"]))
                                 del gd["stats"]
@@ -165,6 +198,13 @@ init -11 python:
                                         devlog.warning("%s skill is unknown for %s!" % (skill, gd["id"]))
                                 del gd["skills"]
                                 
+                            if "default_attack_skill" in gd:
+                                skill = gd["default_attack_skill"]
+                                if skill in store.battle_skills:
+                                    char.default_attack_skill = store.battle_skills[skill]
+                                else:
+                                    devlog.warning("%s JSON Loading func tried to apply unknown default attack skill: %s!" % (gd["id"], skill))
+                                
                             for key in ("magic_skills", "attack_skills"):
                                 if key in gd:
                                     # Skills can be either a list or a dict:
@@ -178,7 +218,7 @@ init -11 python:
                                             char.__dict__[key].append(skill)
                                         else:
                                             devlog.warning("%s JSON Loading func tried to apply unknown battle skill: %s!" % (gd["id"], skill))
-                            
+                                            
                             for key in ("color", "what_color"):
                                 if key in gd:
                                     if gd[key] in globals():
@@ -335,7 +375,8 @@ init -11 python:
                         devlog.info("Loading from %s!"%str(in_file)) # Str call to avoid unicode
                         with open(in_file) as f:
                             rgirls = json.load(f)
-                            
+
+                        jsstor.add("randomgirls", rgirls, in_file)
                         for gd in rgirls:
                             # @Review: We will return dictionaries instead of blank instances of rGirl from now on!
                             # rg = rChar()
@@ -373,6 +414,7 @@ init -11 python:
         in_file = content_path("db/arena_fighters.json")
         with open(in_file) as f:
             content = json.load(f)
+        jsstor.add("arena_fighters", content, in_file)
         ac = dict()
         for fighter in content:
             f = ArenaFighter()
@@ -389,7 +431,7 @@ init -11 python:
                 else:
                     f.__dict__[attr] = fighter[attr]
             for stat in stats:
-                f.mod(stat, fighter["stats"][stat])
+                f.mod_stat(stat, fighter["stats"][stat])
             # Get da picz:     
             dir = content_path("npc/arena")
             for file in os.listdir("/".join([dir, f.name])):
@@ -410,7 +452,8 @@ init -11 python:
         mobs = dict()
         with open(in_file) as f:
             content = json.load(f)
-        
+
+        jsstor.add("mobs", content, in_file)
         for mob in content:
             if "id" not in mob:
                 mob["id"] = mob["name"]
@@ -418,21 +461,24 @@ init -11 python:
             mobs[mob["id"]] = mob
         return mobs
 
-    def load_brothels():
-        # Outdated, may not be used in the future...
+    def load_businesses(adverts):
         # Load json content
         in_file = content_path('db/buildings.json')
         with open(in_file) as f:
             content = json.load(f)
+
+        jsstor.add("buildings", content, in_file)
         # Populate into brothel objects
-        brothels = dict()
+        businesses = dict()
         for building in content:
-            b = Brothel()
-            for attr in building:
-                b.__dict__[attr] = building[attr]
-            b.init()
-            brothels[b.id] = b
-        return brothels
+            b = Building()
+            for attr, entry in building.iteritems():
+                if attr == "adverts":
+                    b.add_adverts([adv for adv in adverts if adv['name'] in entry])
+                else:
+                    b.__dict__[attr] = entry
+            businesses[b.id] = b
+        return businesses
 
     def load_tiles():
         # Load json content
@@ -440,6 +486,7 @@ init -11 python:
         with open(in_file) as f:
             content = json.load(f)
 
+        jsstor.add("tiles", content, in_file)
         tiles = {}
         for tile in content:
             t = Tile()
@@ -456,6 +503,8 @@ init -11 python:
         in_file = content_path("/".join(["db", file]))
         with open(in_file) as f:
             content = json.load(f)
+
+        jsstor.add("misc", content, in_file)
         return content
         
     def load_traits():
@@ -469,6 +518,7 @@ init -11 python:
                 in_file = content_path("".join(["db/", file]))
                 with open(in_file) as f:
                     content.extend(json.load(f))
+                jsstor.add("traits", content, in_file)
         traits = dict()
         for trait in content:
             t = Trait()
@@ -485,6 +535,7 @@ init -11 python:
                 in_file = content_path("".join(["db/", file]))
                 with open(in_file) as f:
                     content.extend(json.load(f))            
+                jsstor.add("fg_areas", content, in_file)
         areas = dict()
         for area in content:
             a = FG_Area()
@@ -505,6 +556,7 @@ init -11 python:
                 in_file = content_path("".join(["db/", file]))
                 with open(in_file) as f:
                     content.extend(json.load(f))
+                jsstor.add("items", content, in_file)
                     
         for item in content:
             iteminst = Item()
@@ -531,6 +583,8 @@ init -11 python:
                 in_file = content_path("/".join(["db", file]))
                 with open(in_file) as f:
                     unprocessed = json.load(f)
+
+                jsstor.add("gifts", unprocessed, in_file)
                 for key in unprocessed:
                     item = Item()
                     item.slot = "gift"

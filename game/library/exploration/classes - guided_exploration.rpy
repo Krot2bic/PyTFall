@@ -155,15 +155,15 @@ init -9 python:
                 Member._baseStats.MP = member.max['mp']
                 Member._baseStats.Speed = member.max['agility']
                 for entry in member.attack_skills:
-                    if entry == 'FistAttack':
+                    if entry == 'Fist Attack':
                         Member.RegisterSkill(Library.Skills.FistAttack)
-                    if entry == 'SwordAttack':
+                    if entry == 'Sword Attack':
                         Member.RegisterSkill(Library.Skills.SwordAttack)
                     if entry == 'KnifeAttack':
                         Member.RegisterSkill(Library.Skills.KnifeAttack)
-                    if entry == 'ClawAttack':
+                    if entry == 'Claw Attack':
                         Member.RegisterSkill(Library.Skills.SwordAttack)
-                    if entry == 'CannonAttack':
+                    if entry == 'Cannon Attack':
                         Member.RegisterSkill(Library.Skills.CannonAttack)                        
                 for entry in member.magic_skills:
                     if entry == 'Fire 1':
@@ -202,13 +202,13 @@ init -9 python:
                 
                 if self.map[self.player_tile[0]][self.player_tile[1]].attack_skills:
                     for entry in self.map[self.player_tile[0]][self.player_tile[1]].attack_skills:
-                        if entry == 'FistAttack':
+                        if entry == 'Fist Attack':
                             Enemy.RegisterSkill(Library.Skills.FistAttack, 1)
-                        if entry == 'SwordAttack':
+                        if entry == 'Sword Attack':
                             Enemy.RegisterSkill(Library.Skills.SwordAttack, 1)
                         if entry == 'KnifeAttack':
                             Enemy.RegisterSkill(Library.Skills.KnifeAttack, 1)
-                        if entry == 'ClawAttack':
+                        if entry == 'Claw Attack':
                             Enemy.RegisterSkill(Library.Skills.SwordAttack, 1)
                         
                 if self.map[self.player_tile[0]][self.player_tile[1]].magic_skills:
@@ -248,9 +248,9 @@ init -9 python:
                         if member.name == fighter._name:
                             member.health = fighter._rawStats.Health
                             member.mp = fighter._rawStats.MP
-                            member.mod('attack', randint(0,2))
-                            member.mod('magic', randint(0,2))
-                            member.mod('agility', randint(0,2))
+                            member.mod_stat('attack', randint(0,2))
+                            member.mod_stat('magic', randint(0,2))
+                            member.mod_stat('agility', randint(0,2))
             else:
                 raise Exception, "Game Over!!!"
     
