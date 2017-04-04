@@ -30,7 +30,6 @@ label interactions_hug:
         if result <= 0:
             $ result = rendint(1,2)
         $ char.disposition += result
-        $ del result
         $ del temp
         $ del m
         $ del n
@@ -115,7 +114,7 @@ label interactions_grabbutt:
     $ m = interactions_flag_count_checker(char, "flag_interactions_slapbutt")
     if check_lovers(char, hero) or ct("Nymphomaniac"):
         $ n = 1
-    elif (ct("Half-Sister") and char.disposition < 500) or ct("Frigid"):
+    elif (ct("Half-Sister") and char.disposition < 500 and not "Sister Lover" in hero.traits) or ct("Frigid"):
         $ n = -1
     else:
         $ n = 0
@@ -146,11 +145,9 @@ label interactions_grabbutt:
         $ hero.exp += randint(8, 15)
         $ char.exp += randint(8, 15)
         $ char.disposition += result
-        $ del result
         $ del temp
         $ del m
         $ del n
-        $ del sub
         $ char.override_portrait("portrait", "happy")
         $ char.show_portrait_overlay("zoom_fast", "reset")
         if ct("Yandere"):
@@ -178,9 +175,9 @@ label interactions_grabbutt:
             $ rc("*giggle* How troublesome ♪", "So pushy...  Are you proposing or something?", "Hmhm, don't feel like you have to hold back, hey?", "Hmhm, are you getting turned on?", "Your appetite for lust is proof of your health.")
         else:
             $ rc("Hya! If you keep doing that, I'll get in the mood...", "Teasing people isn't good, you know ♪", "Kya...  Doing this all of sudden, that surprised me.", "Whoa... We're energetic, aren't we...", "Hya! S-such shameful hands... hnn", "Ooh! Are you hinting at something there, [char.mc_ref]? ♥") 
-            $ char.restore_portrait()
-            $ char.hide_portrait_overlay()
-            jump girl_interactions
+        $ char.restore_portrait()
+        $ char.hide_portrait_overlay()
+        jump girl_interactions
     else:
         $ char.override_portrait("portrait", "angry")
         $ char.show_portrait_overlay("angry", "reset")
@@ -213,13 +210,11 @@ label interactions_grabbutt:
             $ rc("Geez! If you don't stop, I'll get angry.", "Whoa! Hey, don't just touch me out of the blue!", "[char.mc_ref]...! I'd rather you do this sort of thing with someone else...!", "Hey! Quit it, already!", "Aah! C...cut it out! ", "What are you doing over there, you sneak?", "Hmph, how unromantic! Know some shame!")  
         if char.disposition <= (200+50*sub):
             $ char.set_flag("_day_countdown_interactions_blowoff", 5)
-            $ del sub
             $ char.restore_portrait()
             $ char.hide_portrait_overlay()
             jump girl_interactions_end
     $ char.restore_portrait()
     $ char.hide_portrait_overlay()
-    $ del sub
     jump girl_interactions_end
     
 
@@ -230,7 +225,7 @@ label interactions_grabbreasts:
     $ m = interactions_flag_count_checker(char, "flag_interactions_grabbreasts")
     if check_lovers(char, hero) or ct("Nymphomaniac"):
         $ n = 1
-    elif (ct("Half-Sister") and char.disposition < 500) or ct("Frigid"):
+    elif (ct("Half-Sister") and char.disposition < 500 and not "Sister Lover" in hero.traits) or ct("Frigid"):
         $ n = -1
     else:
         $ n = 0
@@ -261,7 +256,6 @@ label interactions_grabbreasts:
         $ hero.exp += randint(8, 15)
         $ char.exp += randint(8, 15)
         $ char.disposition += result
-        $ del result
         $ del temp
         $ del m
         $ del n

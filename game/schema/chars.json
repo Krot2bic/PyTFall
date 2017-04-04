@@ -12,13 +12,9 @@
       "type": "object"
     },
     "basetraits": {
-      "anyOf": [
-        { "type": "string" },
-        {
-          "items": { "type": "string" },
-          "type": "array"
-        }
-      ]
+      "items": { "$ref": "#/definitions/basetraits" },
+      "type": "array",
+      "maxItems": 2
     },
     "battle_skills": {
       "additionalProperties": false,
@@ -28,69 +24,47 @@
       },
       "type": "object"
     },
-    "blocked_traits": { "type": "array" },
-    "breasts": { "type": "string" },
-    "btraits": { "type": "array" },
+    "blocked_traits": { "items": { "$ref": "#/definitions/traits" }, "type": "array" },
+    "breasts": { "$ref": "#/definitions/breasts"},
+    "btraits": { "items": { "enum": [], "type": "string" }, "type": "array" },
     "color": { "type": "string" },
     "desc": { "type": "string" },
     "elements": {
-      "items": { "type": "string" },
+      "items": {
+        "enum": [
+          "Dark",
+          "Darkness Immunity",
+          "Electricity",
+          "Fire",
+          "Light",
+          "Neutral",
+          "Water"
+        ],
+        "type": "string"
+      },
       "type": "array"
     },
-    "full_race": { "type": "string" },
+    "full_race": { "items": { "enum": [], "type": "string" }, "type": "string" },
     "fullname": { "type": "string" },
-    "gender": { "type": "string" },
-    "gold": { "type": "number" },
-    "height": { "type": "string" },
+    "gender": { "$ref": "#/definitions/gender" },
+    "gold": { "type": "number", "default": 0 },
+    "height": { "$ref": "#/definitions/height" },
     "id": { "type": "string" },
-    "level": { "type": "number" },
-    "location": { "type": "string" },
+    "level": { "type": "number", "default": 1 },
+    "location": { "$ref": "#/definitions/locations" },
     "magic_skills": {
       "properties": {},
       "type": "object"
     },
     "name": { "type": "string" },
     "nickname": { "type": "string" },
-    "occupation": { "type": "string" },
+    "occupation": { "$ref": "#/definitions/occupations" },
     "origin": { "type": "string" },
-    "personality": { "type": "string" },
-    "race": { "type": "string" },
-    "skills": {
-      "additionalProperties": false,
-      "properties": {
-        "anal": { "type": "number" },
-        "bartending": { "type": "number" },
-        "cleaning": { "type": "number" },
-        "dancing": { "type": "number" },
-        "exploration": { "type": "number" },
-        "management": { "type": "number" },
-        "oral": { "type": "number" },
-        "refinement": { "type": "number" },
-        "service": { "type": "number" },
-        "sex": { "type": "number" },
-        "strip": { "type": "number" },
-        "teaching": { "type": "number" },
-        "vaginal": { "type": "number" },
-        "waiting": { "type": "number" }
-      },
-      "type": "object"
-    },
+    "personality": { "type": "string", "default": "Deredere"},
+    "race": { "$ref": "#/definitions/race" },
+    "skills": { "$ref": "#/definitions/skillValue" },
     "stats": {
-      "additionalProperties": false,
-      "properties": {
-        "agility": { "type": "number" },
-        "attack": { "type": "number" },
-        "character": { "type": "number" },
-        "charisma": { "type": "number" },
-        "constitution": { "type": "number" },
-        "defence": { "type": "number" },
-        "evasion": { "type": "number" },
-        "intelligence": { "type": "number" },
-        "luck": { "type": "number" },
-        "magic": { "type": "number" },
-        "mp": { "type": "number" },
-        "reputation": { "type": "number" }
-      },
+      "$ref": "#/definitions/statValue",
       "required": [
         "agility",
         "attack",
@@ -101,14 +75,10 @@
         "intelligence",
         "magic",
         "luck"
-      ],
-      "type": "object"
+      ]
     },
-    "status": { "type": "string" },
-    "traits": {
-      "items": { "type": "string" },
-      "type": "array"
-    },
+    "status": { "$ref": "#/definitions/status" },
+    "traits": { "items": { "$ref": "#/definitions/traits" }, "type": "array" },
     "what_color": { "type": "string" }
   },
   "required": [

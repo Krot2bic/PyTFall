@@ -27,6 +27,7 @@ label girl_training:
     with dissolve
     
     python:
+        char = PytGroup(the_chosen) if the_chosen else char
         # Ensure valid school
         if training_screen_current is None:
             for i in schools:
@@ -56,7 +57,7 @@ label girl_training:
                 # Schooling
                 if training_screen_current.is_school:
                     # Slave and combat incompatibility
-                    if char.status == "slave" and result[1].type == "Combat":
+                    if result[1].type == "Combat" and char.status in ("slave", "various"):
                         renpy.call_screen("message_screen", "Slaves cannot be trained as Warriors!")
                     
                     else:
@@ -73,7 +74,11 @@ label girl_training:
                 break
     
     hide screen girl_training
-    jump char_profile
+    if the_chosen == None:
+        jump char_profile
+    else:
+        jump chars_list
+
     
 
 screen girl_training:
@@ -352,7 +357,7 @@ screen girl_training_schooling:
         align (0, 0.7)
         xpadding 10
         ypadding 10
-        xysize (590, 610)
+        xysize (610, 610)
         has vbox
         null height 3
         label ("[training_screen_current.name]") xalign 0.5 text_color ivory text_size 25
@@ -367,7 +372,7 @@ screen girl_training_schooling:
                 draggable False
                 mousewheel True
                 vbox:
-                    xmaximum 590
+                    xmaximum 610
                     spacing 10
                     text "Girls currently taking courses here:" color ivory
                     for entry in [girl for girl in hero.chars if girl.location == training_screen_current]:

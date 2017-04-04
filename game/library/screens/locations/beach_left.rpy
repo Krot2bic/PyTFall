@@ -61,6 +61,14 @@ screen city_beach_left():
         idle (img_beach_fish)
         hover (im.MatrixColor(img_beach_fish, im.matrix.brightness(0.15)))
         action [Hide("city_beach_left"), Jump("fishing_logic"), With(dissolve)]
+        
+        
+    $ img_beach_swim = ProportionalScale("content/gfx/interface/icons/beach_resting.png", 90, 90)
+    imagebutton:
+        pos(400, 545)
+        idle (img_beach_swim)
+        hover (im.MatrixColor(img_beach_swim, im.matrix.brightness(0.15)))
+        action [Hide("city_beach_left"), Jump("city_beach_rest")]
     
     use location_actions("city_beach_left")
     
@@ -129,6 +137,87 @@ screen city_beach_fishing():
                 yalign 0.5
                 action [Hide("swimmong_pool_swim"), Show("swimming_pool"), With(dissolve)]
                 text "Leave" size 15
+
+                
+label city_beach_rest:
+    show bg beach_rest with dissolve
+    if not global_flags.flag('rest_at_beach'):
+        $ global_flags.set_flag('rest_at_beach')
+        "Once per day you can relax at the beach, either alone or together with your team. It's free, restores some vitality and increases disposition."
+    if hero.flag("rest_at_beach") == day:
+        "You already relaxed at the beach today. Doing it again will lead to sunburns."
+        jump city_beach_left
+    $ hero.set_flag("rest_at_beach", value=day)
+    
+    python:
+        picture = []
+        if len(hero.team) > 1:
+            for member in hero.team:
+                if member != hero:
+                    if member.has_image("rest", "beach", exclude=["sex", "stripping"]) and member.has_image("bathing", "beach", exclude=["sex", "stripping"]):
+                        if dice(50):
+                            picture.append(member.show("rest", "beach", exclude=["sex", "stripping"], type="reduce", resize=(600, 600)))
+                        else:
+                            picture.append(member.show("bathing", "beach", exclude=["sex", "stripping"], type="reduce", resize=(600, 600)))
+                    elif member.has_image("rest", "beach", exclude=["sex", "stripping"]):
+                        picture.append(member.show("rest", "beach", exclude=["sex", "stripping"], type="reduce", resize=(600, 600)))
+                    elif member.has_image("bathing", "beach", exclude=["sex", "stripping"]):
+                        picture.append(member.show("bathing", "beach", exclude=["sex", "stripping"], type="reduce", resize=(600, 600)))
+                    elif member.has_image("bathing", "beach", exclude=["sex", "stripping"]):
+                        picture.append(member.show("bathing", "beach", exclude=["sex", "stripping"], type="reduce", resize=(600, 600)))
+                    elif member.has_image("beach", exclude=["sex", "stripping"]):
+                        picture.append(member.show("beach", "sfw", exclude=["sex", "stripping"], type="reduce", resize=(600, 600)))
+                    elif member.has_image("swimsuit", "simple bg", exclude=["sex", "stripping"]):
+                        picture.append(member.show("swimsuit", "simple bg", exclude=["sex", "stripping"], type="reduce", resize=(600, 600)))
+                    elif member.has_image("swimsuit", "no bg", exclude=["sex", "stripping"]):
+                        picture.append(member.show("swimsuit", "simple bg", exclude=["sex", "stripping"], type="reduce", resize=(600, 600)))
+                        
+    if len(picture) == 1:
+        show expression picture[0] at truecenter as temp1
+        with dissolve 
+    elif len(picture) == 2:
+        show expression picture[0] at center_left as temp1
+        show expression picture[1] at center_right as temp2
+        with dissolve
+        
+    if len(hero.team) > 1:
+        "You're relaxing at the beach with your team."
+    else:
+        "You're relaxing at the beach."
+        
+    $ members = list(x for x in hero.team if (x != hero and x.effects['Horny']['active'] and (check_lovers(x, hero) or x.disposition >= 500) and interactions_silent_check_for_bad_stuff(x)))
+    if members:
+        $ char = choice(members) 
+        hide temp1
+        hide temp2
+        # Further goes example of running sex scene from anywhere, DO NOT DELETE until it will be implemented elsewhere
+        # $ sex_scene_location = "beach"
+        # $ interactions_run_gm_anywhere(char, exit="city_beach_left", background="beach_rest", custom=True)
+        
+        # # Setup all the required globals:
+        # python:
+            # picture_before_sex = False
+            # sex_scene_location = "beach"
+        
+        # hide temp1
+        # hide temp2
+        # show screen girl_interactions
+        # with dissolve
+        
+        # jump interactions_sex_scene_begins
+
+        show expression member.show("sex", "beach", exclude=["2c anal", "2c vaginal", "gay", "living", "group", "pool", "stage", "dungeon", "onsen"], type="reduce", resize=(600, 600)) at truecenter with dissolve
+        "Unfortunately [member.name] forgot her sunscreen today, so you had no choice but to provide another liquid as a replacement."
+        $ member.sex += 1
+        $ hero.sex += 1
+        $ member.disposition += 3
+    
+    python:
+        for member in hero.team:        
+            member.vitality += randint(10, 15)
+            if member != hero:
+                member.disposition += 1
+    jump city_beach_left
                 
 label fishing_logic:
     # during fishing itself only practical part of skill could be improved; theoretical part will be available via items and asking fishermen in tavern
@@ -138,7 +227,7 @@ label fishing_logic:
         $ global_flags.set_flag('fish_city_beach')
         "If you have a fishing rod, you could try to catch something here. With high enough fishing skill you can get valuable items."
         "You can increase your chances to catch something good by using baits which could be bought or found in various places. However, they cannot be used if your fishing skill is too low, so make sure you practice a lot."
-        "Bites also increase the amount of attempts you can make for every Action Point."
+        "Bites also increase the amount of attempts you can make for every Action Point. You can stop fishing anytime by pressing right mouse button, but it won't return the Action Point you spent."
     menu:
         "Try out fishing?"
         "Yes":
@@ -184,10 +273,13 @@ label fishing_logic:
             if not fish:
                 $ hero.say("There is no suitable fish at the moment.")
             else:
-                python:
-                    item = renpy.call_screen("fishing_area", fish_list)
-                    hero.add_item(item)
-                    our_image = ProportionalScale(item.icon, 150, 150)
+                $ item = renpy.call_screen("fishing_area", fish_list)
+                if item == "Stop Fishing":
+                    "You got tired of fishing and returned to the beach."
+                    jump city_beach_left
+                else:
+                    $ hero.add_item(item)
+                    $ our_image = ProportionalScale(item.icon, 150, 150)
                 
                 show expression our_image at truecenter with dissolve
                 $ hero.say("I caught %s!" % item.id)

@@ -205,6 +205,7 @@ screen main_menu():
     
     # This ensures that any other menu screen is replaced.
     tag menu
+    default prereqs = exist(["content/chars/", "content/rchars/"])
     
     default map_options = ["content/gfx/bg/locations/map_buttons/dark/", "content/gfx/bg/locations/map_buttons/bright/", "content/gfx/bg/locations/map_buttons/gismo/"]
     
@@ -230,7 +231,19 @@ screen main_menu():
         #idle (img)
         #hover (im.MatrixColor(img, im.matrix.brightness(0.25)))
         #action Show("credits", transition=ImageDissolve("content/gfx/masks/m02.jpg", 3))
-        
+    if not prereqs:
+        frame:
+            background Frame("content/gfx/frame/FrameGP.png", 40, 40)
+            xanchor 0
+            xpos 0.50
+            xmaximum 300
+            yalign 0.5
+            text ("Resources are missing, the game won't run without. See the instructions on the "+
+                "{a=http://www.pinkpetal.org/index.php?topic=3401.0}{size=15}forum{/size}{/a}. "+
+                "At least one unique character with accompanied .json is required "+
+                "in the\n{i}game/content/chars/{/i} subdirectory of PyTFall as well as "+
+                "one random character .json in the\n"+
+                "{i}game/content/{b}r{/b}chars/{/i} directory.") size 15
     # ===== Animation ===== #
     
     viewport:
@@ -263,9 +276,10 @@ screen main_menu():
             style_group "mmenu"
             vbox:
                 spacing 4
-                textbutton _("New Game") action Start() xalign 0.5
+                textbutton _("New Game") action SensitiveIf(prereqs), Start() xalign 0.5
                 null height 4
-                textbutton _("Load Game") action Show("s_menu", s_menu="Load"), With(dissolve)
+                textbutton _("Load Game") action SensitiveIf(prereqs), Show("s_menu", s_menu="Load"), With(dissolve)
+
                 textbutton _("Settings") action Show("s_menu", s_menu="Settings"), With(dissolve)
                 hbox:
                     xalign 0.5
@@ -281,82 +295,82 @@ screen credits():
         background Transform(Frame("content/gfx/frame/frame_dec_1.png", 20, 20), alpha=0.7)
         pos(10, 120)
         xysize (900, 580)
-        text ("Dev Team") style "black_serpent" align(0.5, 0.08) drop_shadow [(1, 1)] drop_shadow_color grey antialias True bold True italic True
+        style_group "mmenu"
         textbutton "Hide":
             align(0.5, 0.90)
-            style "yesno_button"
             action Hide("credits", transition=dissolve)
             
         side "c r":
-            area (100, 100, 600, 350)
+            area (100, 100, 800, 350)
             viewport id "vp":
                 draggable True
                 mousewheel True
                 vbox:
-                    text "Brought to you by:" size 15 font "fonts/rubius.ttf"
-                    pos(10, 10)
-                    spacing 20
+                    style_prefix "proper_stats"
+                    text "Brought to you by:" size 22 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True
+                    null height 20
                     hbox:
-                        spacing 30
-                        null width 30
-                        text "Xela" style "earthkid" size 25 drop_shadow [(1, 2)] drop_shadow_color black antialias True
-                        text "DarkTl" font "fonts/agrevue.ttf" color black size 25 drop_shadow [(1, 2)] drop_shadow_color grey antialias True
-                        text"CherryWood" font "fonts/wood 2.ttf" size 25 color red drop_shadow [(1, 2)] drop_shadow_color brown antialias True
-                        
-                    text "Special Thanks to:" size 15 font "fonts/rubius.ttf"
-                    hbox:
-                        style_group "credits"
+                        style_prefix "proper_stats"
                         vbox:
-                            null width 10
-                            null width 10
-                            null width 10
-                            null width 10
-                            null width 10
-                            null width 10
-                            null width 10
-                        vbox:
-                            xsize 120
+                            xsize 150
                             xfill True
+                            text "Xela" color goldenrod drop_shadow [(1, 1)] drop_shadow_color black antialias True
+                            text "DarkTl" color goldenrod drop_shadow [(1, 1)] drop_shadow_color black antialias True
+                            text "CherryWood" color goldenrod drop_shadow [(1, 1)] drop_shadow_color black antialias True
+                            text "Gismo" color goldenrod drop_shadow [(1, 1)] drop_shadow_color black antialias True
+                            null height 10
                             text "Rudistoned:"
                             text "Eliont:"
                             text "Matt:"
-                            text "Jaeke:"
                             text "Xipomus:"
-                            text "longint:"
+                            text "Longint:"
+                            text "Picobyte:"
+                            null height 10
                             text "Armegetton:"
+                            text "MrKlaus:"
+                            text "Krakr"
+                            text "Lamoli"
+                            null height 10
                             text "Sysreq:"
                             text "GonDra:"
+                            text "Jaeke:"
+                            text "Janmaba:"
+                            
                             
                         vbox:
-                            text "{color=[green]}Tagger{/color}, Code contributions, Python consulting."
-                            text "Code contributions, Resources."
-                            text "Code contributions, Python consulting."
-                            text "Extensive testing."
-                            text "Code and content contributions."
-                            text "Code contributions."
-                            text "Writing."
-                            text "Spell-checks."
-                            text "Spell-checks."
-
-                    text "Credits:" size 15 font "fonts/rubius.ttf"
+                            text "The main coder and creator of the project"
+                            text "Jack of all trades and master of none"
+                            text "Code contributions, packs, writing, design and resources"
+                            text "Art, user interface, design, backgrounds and icons"
+                            null height 10
+                            text "First tagger concept, code contributions, python consulting"
+                            text "Code contributions, resources"
+                            text "Code contributions, python consulting"
+                            text "Code and content contributions, rendering"
+                            text "Code contributions"
+                            text "Advanced code contributions, rendering"
+                            null height 10
+                            text "Writing"
+                            text "Writing, items creation"
+                            text "Writing for jobs"
+                            text "Rendering"
+                            null height 10
+                            text "Spell-checks"
+                            text "Spell-checks"
+                            text "Extensive testing"
+                            text "Help with packs"
+                    null height 10
+                    text "Credits:" size 20 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True
+                    null height 5
                     hbox:
-                        style_group "credits"
+                        null width 10
+                        style_prefix "proper_stats"
                         vbox:
-                            null width 10
-                            null width 10
-                            null width 10
-                            null width 10
-                            null width 10
-                            null width 10
-                            null width 10
-                        vbox:
-                            xsize 120
+                            xsize 150
                             xfill True
                             text "PyTom:"
-                            text "Jake:"
                         vbox:
                             text "RenPy" color orange
-                            text "BattleEngine" color aqua
                             
             vbar value YScrollValue("vp")   
         

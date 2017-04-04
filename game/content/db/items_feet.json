@@ -7,7 +7,7 @@
     "sex": "unisex",
     "chance": 100,
     "badness": 95,
-    "eqchance": 5,
+    "eqchance": 1,
     "hidden": false,
     "infinite": true,
     "slot": "feet",
@@ -30,22 +30,6 @@
     "slot": "feet",
     "type": "dress",
     "max": {"vitality": 5},
-    "locations": ["Tailor Store", "Look around"]
-    },
-    {
-    "id": "Fur Slippers",
-    "desc": "These soft fur slippers are pretty comfortable.",
-    "icon": "content/items/feet/fs.png",
-    "price": 30,
-    "sex": "female",
-    "chance": 80,
-    "badness": 85,
-    "eqchance": 15,
-    "hidden": false,
-    "infinite": false,
-    "slot": "feet",
-    "type": "dress",
-    "max": {"joy": 5},
     "locations": ["Tailor Store", "Look around"]
     },
     {
@@ -81,7 +65,7 @@
     "type": "dress",
     "evasion_bonus": 1,
     "max": {"vitality": 15},
-    "mod": {"agility": 10, "refinement": -20},
+    "mod": {"agility": 10},
     "mod_skills": {"refinement": [0, 0, -0.08, 0, 0]},
     "locations": ["Tailor Store", "Ninja Shop"],
     "goodtraits": ["Athletic"]
@@ -157,7 +141,8 @@
     "max": {"character": -20, "joy": -10},
     "mod": {"character": -20, "defence": -10, "attack": -10},
     "mod_skills": {"refinement": [0, 0, -0.1, 0, 0]},
-    "locations": ["Work Shop", "Look around"]
+    "locations": ["Work Shop", "Look around"],
+    "goodtraits": ["Masochist"]
     },
     {
     "id": "Kung Fu Shoes",
@@ -569,7 +554,7 @@
     },
     {
     "id": "Ice Shoes",
-    "desc": "Made from never melting ice.",
+    "desc": "Made from never melting high-density ice.",
     "icon": "content/items/feet/is.png",
     "price": 650,
     "sex": "female",
@@ -590,7 +575,7 @@
     "desc": "Good boots during march, not an unimportant thing for the soldier. The Empire took care of high quality for this price category.",
     "icon": "content/items/else/imperial/ilb1.png",
     "price": 100,
-    "sex": "unisex",
+    "sex": "male",
     "chance": 80,
     "badness": 80,
     "eqchance": 10,

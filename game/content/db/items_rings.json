@@ -94,7 +94,7 @@
     "slot": "ring",
     "mod_skills": {"strip": [0.04, 0, 0.03, 0, 0], "group": [0.04, 0, 0.03, 0, 0], "service": [0.04, 0, 0.03, 0, 0]},
     "locations": ["Exploration"],
-    "goodrait": ["Curious"]
+    "goodtraits": ["Curious"]
     },
     {
     "id": "Minor Ring of Charisma",
@@ -368,7 +368,7 @@
     "hidden": false,
     "infinite": false,
     "slot": "ring",
-    "max": {"mp": 70, "health": -50},
+    "max": {"mp": 50, "health": -50},
     "locations": ["Witches Hut"]
     },
     {
@@ -383,7 +383,7 @@
     "hidden": false,
     "infinite": false,
     "slot": "ring",
-    "max": {"mp": -70, "health": 50},
+    "max": {"mp": -50, "health": 50},
     "locations": ["Witches Hut"]
     },
     {
@@ -479,7 +479,7 @@
     "mod": {"charisma": 10, "character": 10},
     "max": {"charisma": 10, "character": 10},
     "mod_skills": {"refinement": [0, 0, 0.02, 0, 0], "management": [0, 0, 0.06, 0, 0], "teaching": [0, 0, 0.02, 0, 0]},
-    "locations": ["General Shop"]
+    "locations": ["General Store"]
     },
     {
     "id": "Silver Skull",
@@ -530,7 +530,7 @@
     "slot": "ring",
     "max": {"character": -10, "charisma": 5},
     "mod": {"charisma": 5},
-    "locations": ["General Shop", "Look around"]
+    "locations": ["General Store", "Look around"]
     },
     {
     "id": "Frozen Tear",
@@ -577,7 +577,7 @@
     "slot": "ring",
     "max": {"agility": 5, "charisma": 25},
     "mod": {"luck": 5},
-    "locations": ["General Shop", "Look around", "Fishing"],
+    "locations": ["General Store", "Look around", "Fishing"],
     "goodtraits": ["Lolita"]
     },
     {
@@ -585,21 +585,150 @@
     "desc": "«If early day, or late at night, it's not my problem, I'll be alright. No cause you name is worth the fight, but if I'm bored, then yeah, I might.»",
     "icon": "content/items/ring/gray_l.png",
     "price": 5000,
-    "sex": "female",
+    "sex": "unisex",
     "chance": 1,
     "badness": 0,
     "eqchance": 5,
     "hidden": false,
     "infinite": false,
     "slot": "ring",
-    "max": {"joy": -50, "magic": 150, "mp": 150},
+    "max": {"joy": -40, "magic": 150, "mp": 150},
     "mod": {"luck": 5, "defence": 100},
-    "min": {"joy": 50},
+    "min": {"joy": 40},
     "evasion_bonus": 2,
     "damage_multiplier": 0.05,
     "defence_multiplier": {"melee": 0.1, "ranged": 0.05, "magic": 0.05},
     "locations": ["Exploration", "Fishing"],
+    "add_be_spells": ["Gray Shield"],
     "goodtraits": ["Indifferent"],
     "removetraits": ["Pessimist", "Optimist", "Serious"]
+    },
+    {
+    "id": "Flame Ring",
+    "desc": "The ring shimmers with red light, but in fact it's only slightly warm.",
+    "icon": "content/items/ring/fire.png",
+    "price": 500,
+    "sex": "unisex",
+    "chance": 15,
+    "badness": 15,
+    "eqchance": 70,
+    "hidden": false,
+    "infinite": false,
+    "slot": "ring",
+    "max": {"attack": 5, "mp": 5},
+    "locations": ["Exploration"],
+    "addtraits": ["Minor Fire Focus"]
+    },
+    {
+    "id": "Breeze Ring",
+    "desc": "The patterns on the ring look a bit different every time one looks at them.",
+    "icon": "content/items/ring/air.png",
+    "price": 500,
+    "sex": "unisex",
+    "chance": 15,
+    "badness": 15,
+    "eqchance": 70,
+    "hidden": false,
+    "infinite": false,
+    "slot": "ring",
+    "max": {"mp": 10},
+    "locations": ["Exploration"],
+    "addtraits": ["Minor Air Focus"]
+    },
+    {
+    "id": "Winter Ring",
+    "desc": "The ring covered with frost, but the metal itself is not as cold as one might think.",
+    "icon": "content/items/ring/ice.png",
+    "price": 500,
+    "sex": "unisex",
+    "chance": 15,
+    "badness": 15,
+    "eqchance": 70,
+    "hidden": false,
+    "infinite": false,
+    "slot": "ring",
+    "max": {"defence": 10},
+    "locations": ["Exploration"],
+    "addtraits": ["Minor Ice Focus"]
+    },
+    {
+    "id": "Bone Ring",
+    "desc": "Entirely carved out of bone, it causes mild numbness in the finger.",
+    "icon": "content/items/ring/dark.png",
+    "price": 500,
+    "sex": "unisex",
+    "chance": 15,
+    "badness": 15,
+    "eqchance": 70,
+    "hidden": false,
+    "infinite": false,
+    "slot": "ring",
+    "max": {"magic": 10},
+    "locations": ["Exploration"],
+    "addtraits": ["Minor Darkness Focus"]
+    },
+    {
+    "id": "Woody Ring",
+    "desc": "The ring seems to woven from tree roots. The gem is pulsing with pleasant, soft light.",
+    "icon": "content/items/ring/earth.png",
+    "price": 500,
+    "sex": "unisex",
+    "chance": 15,
+    "badness": 15,
+    "eqchance": 70,
+    "hidden": false,
+    "infinite": false,
+    "slot": "ring",
+    "max": {"health": 10},
+    "locations": ["Exploration"],
+    "addtraits": ["Minor Earth Focus"]
+    },
+    {
+    "id": "Aquatic Ring",
+    "desc": "The ring pleasantly moisturizes the skin, exuding a subtle smell of the sea.",
+    "icon": "content/items/ring/water.png",
+    "price": 500,
+    "sex": "unisex",
+    "chance": 15,
+    "badness": 15,
+    "eqchance": 70,
+    "hidden": false,
+    "infinite": false,
+    "slot": "ring",
+    "max": {"charisma": 5, "constitution": 5},
+    "locations": ["Exploration"],
+    "addtraits": ["Minor Water Focus"]
+    },
+    {
+    "id": "Discharge Ring",
+    "desc": "The ring softly hums on the verge of audibility. The gem is dim, but miniature lightning are shining around it.",
+    "icon": "content/items/ring/ele.png",
+    "price": 500,
+    "sex": "unisex",
+    "chance": 15,
+    "badness": 15,
+    "eqchance": 70,
+    "hidden": false,
+    "infinite": false,
+    "slot": "ring",
+    "max": {"agility": 10},
+    "locations": ["Exploration"],
+    "addtraits": ["Minor Electricity Focus"]
+    },
+    {
+    "id": "Daylight Ring",
+    "desc": "The ring is covered with glowing patterns, but the gem shines especially brightly.",
+    "icon": "content/items/ring/light.png",
+    "price": 500,
+    "sex": "unisex",
+    "chance": 15,
+    "badness": 15,
+    "eqchance": 70,
+    "hidden": false,
+    "infinite": false,
+    "slot": "ring",
+    "max": {"vitality": 10},
+    "locations": ["Exploration"],
+    "addtraits": ["Minor Light Focus"]
     }
   ]

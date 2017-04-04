@@ -260,7 +260,7 @@ init:
             spacing 1
             pos (1142, 156)
             button:
-                action SetScreenVariable("rframe_display", "skills"), With(dissolve)
+                action Hide("show_trait_info"), SetScreenVariable("rframe_display", "skills"), With(dissolve)
                 text "Skills" style "pb_button_text"
             button:
                 action SetScreenVariable("rframe_display", "traits"), With(dissolve)
@@ -308,7 +308,7 @@ init:
                                     background Null()
                                     xysize (147, 25)
                                     action NullAction()
-                                    text "[entry.name]" idle_color ivory size 15 align .5, .5 hover_color crimson
+                                    text "[entry.name]" idle_color ivory align .5, .5 hover_color crimson size min(15, int(250 / max(1, len(entry.name))))
                                     hovered tt.action(entry.desc)
                                     hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.10)), 5, 5)
         
@@ -330,7 +330,7 @@ init:
                                     background Null()
                                     xysize (147, 25)
                                     action NullAction()
-                                    text "[entry.name]" idle_color ivory size 15 align .5, .5 hover_color crimson
+                                    text "[entry.name]" idle_color ivory align .5, .5 hover_color crimson size min(15, int(250 / max(1, len(entry.name))))
                                     hovered tt.action(entry.desc)
                                     hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.10)), 5, 5)
         
@@ -353,12 +353,12 @@ init:
                     for trait in list(t for t in hero.traits if not any([t.personality, t.race, t.elemental])):
                         if not trait.hidden:
                             frame:
-                                xysize (147, 25)
+                                xsize 147
                                 button:
                                     background Null()
-                                    xysize (147, 25)
-                                    action NullAction()
-                                    text trait.id idle_color ivory size 15 align .5, .5 hover_color crimson
+                                    xsize 147
+                                    action Show("show_trait_info", trait=trait.id, place="mc_trait")
+                                    text trait.id idle_color ivory size 15 align .5, .5 hover_color crimson text_align .5
                                     hovered tt.Action(u"%s"%trait.desc)
                                     hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.10)), 5, 5)
                                 
@@ -414,18 +414,18 @@ init:
                 text "Status" style "pb_button_text"
                 hovered tt.Action("Show Hero Stats")
             button:
-                action Show("hero_team", transition=dissolve)#, With(dissolve)
+                action Hide("show_trait_info"), Show("hero_team", transition=dissolve)#, With(dissolve)
                 text "Team" style "pb_button_text"
                 hovered tt.Action("Show [hero.team.name]!")#, With(dissolve)
             button:
-                action Return(['hero', 'equip'])#, With(dissolve)
+                action Hide("show_trait_info"), Return(['hero', 'equip'])#, With(dissolve)
                 text "Equipment" style "pb_button_text"
                 hovered tt.Action("Take a look at your inventory.")
             button:
-                action Show("hero_finances")#, With(dissolve)
+                action Hide("show_trait_info"), Show("hero_finances")#, With(dissolve)
                 text "Finance" style "pb_button_text"
             button:
-                action If(hero.friends | hero.lovers, true=[SetScreenVariable("lframe_display", "friends"), With(dissolve)])
+                action Hide("show_trait_info"), If(hero.friends | hero.lovers, true=[SetScreenVariable("lframe_display", "friends"), With(dissolve)])
                 text "Friends" style "pb_button_text"
                 
         # AP ====================================>
@@ -443,7 +443,7 @@ init:
             pos (900, 7) # (178, 70)
             idle im.Scale("content/gfx/interface/buttons/close2.png", 35, 35)
             hover im.Scale("content/gfx/interface/buttons/close2_h.png", 35, 35)
-            action Return(['control', 'return'])
+            action Hide("show_trait_info"), Return(['control', 'return'])
             hovered tt.Action("Return to previous screen!")
         
         # EXP BAR ====================================>

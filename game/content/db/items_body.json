@@ -7,7 +7,7 @@
     "sex": "unisex",
     "chance": 5,
     "badness": 95,
-    "eqchance": 10,
+    "eqchance": 1,
     "hidden": false,
     "infinite": true,
     "slot": "body",
@@ -85,6 +85,7 @@
     "type": "dress",
     "max": {"joy": 15, "charisma": 15},
     "mod": {"charisma": 10},
+    "addeffects": ["Revealing Clothes"],
     "mod_skills": {"refinement": [0, 0, 0.03, 0, 0], "sex": [0, 0, 0.02, 0, 0], "service": [0, 0, 0.04, 0, 0]},
     "locations": ["Tailor Store"]
     },
@@ -139,6 +140,7 @@
     "type": "dress",
     "max": {"charisma": 40, "agility": 25},
     "mod": {"charisma": 15, "agility": 5},
+    "addeffects": ["Revealing Clothes"],
     "mod_skills": {"refinement": [0.01, 0.01, 0.01, 0, 0], "strip": [0.02, 0, 0.02, 0, 0], "vaginal": [0, 0, 0.01, 0, 0], "oral": [0, 0, 0.01, 0, 0], "sex": [0, 0, 0.02, 0, 0]},
     "evasion_bonus": 10,
     "locations": ["Ninja Shop"]
@@ -326,6 +328,7 @@
     "mod": {"defence": 10, "agility": 10, "magic": -10},
     "evasion_bonus": 4,
     "locations": ["Work Shop"],
+    "addeffects": ["Revealing Clothes"],
     "goodtraits": ["Manly"]
     },
     {
@@ -421,6 +424,7 @@
     "mod": {"attack": 15, "defence": 40, "character": 15, "agility": -20, "magic": -20},
     "locations": ["Work Shop", "Exploration"],
     "defence_bonus": {"ranged": 15, "melee": 15},
+    "addeffects": ["Revealing Clothes"],
     "badtraits": ["Shy"]
     },
     {
@@ -461,6 +465,7 @@
     "mod_skills": {"refinement": [0.04, 0.02, 0.04, 0, 0], "bartending": [0.04, 0, 0.1, 0, 0], "waiting": [0.01, 0, 0.3, 0, 0], "service": [0.01, 0, 0.3, 0, 0]},
     "evasion_bonus": 5,
     "removetraits": ["Clumsy"],
+    "addeffects": ["Revealing Clothes"],
     "locations": ["Ninja Shop"],
     "goodtraits": [],
     "badtraits": ["Shy"]
@@ -482,6 +487,7 @@
     "mod": {"agility": 20, "defence": 55, "luck": 10},
     "mod_skills": {"refinement": [0, 0, 0.02, 0, 0], "exploration": [0, 0, 0.02, 0, 0]},
     "evasion_bonus": 3,
+    "addeffects": ["Revealing Clothes"],
     "defence_bonus": {"magic": 30, "melee": 30},
     "locations": ["Exploration"],
     "goodtraits": ["Not Human"]
@@ -522,6 +528,7 @@
     "max": {"defence": 50, "agility": 50},
     "mod": {"agility": 35, "defence": 40, "luck": 10},
     "defence_bonus": {"magic": 30, "ranged": 30},
+    "addeffects": ["Revealing Clothes"],
     "evasion_bonus": 5,
     "mod_skills": {"refinement": [0, 0, 0.02, 0, 0], "exploration": [0, 0, 0.02, 0, 0]},
     "locations": ["Exploration"],
@@ -544,6 +551,7 @@
     "mod": {"agility": 35, "defence": 40, "luck": 10, "magic": 40},
     "mod_skills": {"refinement": [0, 0, 0.02, 0, 0], "exploration": [0, 0, 0.02, 0, 0]},
     "evasion_bonus": 1,
+    "addeffects": ["Revealing Clothes"],
     "defence_bonus": {"magic": 60},
     "locations": ["Exploration"],
     "goodtraits": ["Not Human"]
@@ -590,6 +598,7 @@
     "evasion_bonus": 10,
     "mod_skills": {"strip": [0.2, 0, 0.08, 0, 0], "vaginal": [0, 0, 0.02, 0, 0], "oral": [0, 0, 0.02, 0, 0], "anal": [0, 0, 0.02, 0, 0], "group": [0, 0, 0.02, 0, 0], "sex": [0, 0, 0.02, 0, 0]},
     "locations": ["Exploration", "Ninja Shop"],
+    "addeffects": ["Revealing Clothes"],
     "defence_multiplier": {"status": 0.25},
     "delivery_multiplier": {"status": 0.25},
     "goodtraits": [],
@@ -612,7 +621,7 @@
     "mod": {"charisma": 5},
     "evasion_bonus": 2,
     "mod_skills": {"cleaning": [0, 0, 0.01, 0, 0], "bartending": [0, 0, 0.01, 0, 0], "service": [0, 0, 0.01, 0, 0], "teaching": [0, 0, -0.1, 0, 0], "strip": [0, 0, -0.1, 0, 0]},
-    "locations": ["Tailor"],
+    "locations": ["Tailor Store"],
     "goodtraits": ["Human"],
     "badtraits": ["Not Human"]
     },
@@ -632,7 +641,7 @@
     "max": {"agility": 5, "intelligence": 20, "charisma": 20},
     "mod": {"intelligence": 10, "charisma": 20},
     "mod_skills": {"refinement": [0.01, 0.01, 0, 0, 0]},
-    "locations": ["Tailor"],
+    "locations": ["Tailor Store"],
     "goodtraits": ["Human"],
     "badtraits": ["Not Human"]
     },
@@ -652,12 +661,12 @@
     "max": {"agility": 10, "intelligence": 10, "charisma": 25},
     "mod": {"intelligence": 10, "charisma": 25},
     "mod_skills": {"refinement": [0.01, 0.01, 0, 0, 0]},
-    "locations": ["Tailor"],
+    "locations": ["Tailor Store"],
     "goodtraits": ["Not Human"],
     "badtraits": ["Human"]
     },
     {
-    "id": "Revealing Clothes",
+    "id": "Revealing Outfit",
     "desc": "A small shirt and a short skirt. Great for seducing.",
     "icon": "content/items/body/min.png",
     "price": 600,
@@ -673,8 +682,9 @@
     "evasion_bonus": 1,
     "mod": {"charisma": 25, "agility": 5},
     "mod_skills": {"sex": [0.01, 0.01, 0.01, 0, 0], "strip": [0.01, 0.01, 0.02, 0, 0]},
-    "locations": ["Tailor"],
+    "locations": ["Tailor Store"],
     "addtraits": ["Sexy Air"],
+    "addeffects": ["Revealing Clothes"],
     "goodtraits": ["Nymphomaniac", "Sexy Air", "Exhibitionist"],
     "badtraits": ["Frigid", "Shy"]
     },
@@ -695,7 +705,8 @@
     "max": {"agility": 20, "charisma": 15, "joy": 5},
     "mod": {"charisma": 15, "agility": 10},
     "mod_skills": {"strip": [0.01, 0.01, 0.02, 0, 0]},
-    "locations": ["Tailor"],
+    "locations": ["Tailor Store"],
+    "addeffects": ["Revealing Clothes"],
     "goodtraits": ["Long Legs", "Athletic", "Manly"],
     "badtraits": ["Lolita"]
     },
@@ -777,24 +788,6 @@
     "max": {"mp": 30, "magic": 60, "agility": -40, "attack": -50, "defence": 60},
     "mod": {"magic": 40, "constitution": 15, "defence": 40, "attack": -15},
     "locations": ["Exploration"]
-    },
-    {
-    "id": "Tiger Leotard",
-    "desc": "This fluffy leotard holds a bound tiger spirit, and can give any girl a sleek, feline demeanor.",
-    "icon": "content/items/body/tl.png",
-    "price": 950,
-    "sex": "female",
-    "chance": 30,
-    "badness": 25,
-    "eqchance": 30,
-    "hidden": true,
-    "infinite": false,
-    "slot": "body",
-    "type": "dress",
-    "max": {"character": 60},
-    "mod": {"charisma": 20, "character": 20, "agility": 35},
-    "addtraits": ["Strange Eyes"],
-    "locations": ["Tailor Store"]
     },
     {
     "id": "Organic Lingerie",
@@ -931,8 +924,8 @@
     "locations": ["Tailor Store"]
     },
     {
-    "id": "Leather Kilt",
-    "desc": "Piece of skin covering your most important parts. Beware, in some cultures wearing this is an invitation for indecent acts between men!",
+    "id": "Kilt",
+    "desc": "Piece of cloth covering your most important parts. Beware, in some cultures wearing this is an invitation for indecent acts between men!",
     "icon": "content/items/body/lk.png",
     "price": 500,
     "sex": "male",
@@ -948,8 +941,8 @@
     "mod": {"character": 25, "defence": 10, "attack": 10, "constitution": 2}
     },
     {
-    "id": "Imperial Leather Armor",
-    "desc": "This piece of fabric and skin is far from an ideal. Nevertheless it is the basic armor of Imperial soldiers. Lowest durability, but quite comfortable and does not constrain movement much. The Empire doesn't bear responsibility if you die earlier.",
+    "id": "Imperial Armor",
+    "desc": "This piece of metal and skin is far from an ideal. Nevertheless it is the basic armor of Imperial soldiers. Lowest durability, but quite comfortable and does not constrain movement much. The Empire doesn't bear responsibility if you die earlier.",
     "icon": "content/items/else/imperial/iba2.png",
     "price": 280,
     "sex": "male",
@@ -972,7 +965,7 @@
     "sex": "female",
     "chance": 90,
     "badness": 100,
-    "eqchance": 0,
+    "eqchance": 5,
     "hidden": false,
     "infinite": false,
     "slot": "body",

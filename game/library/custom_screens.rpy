@@ -8,17 +8,19 @@ init: # Items:
             has hbox box_wrap True
             for item in char.inventory.page_content:
                 frame:
-                    if item.bg_color == "dark":
-                        background Frame("content/gfx/frame/frame_it2.png", -1, -1)
-                    else:
-                        background Frame("content/gfx/frame/frame_it2.png", -1, -1)
                     xysize frame_size
-                    use r_lightbutton (img=ProportionalScale(item.icon, 70, 70), return_value=return_value+[item], align=(0.5, 0.5))
-                    label (u"{color=#ecc88a}%d" % char.inventory[item]):
-                        align (0.995, 0.995)
-                        style "stats_label_text"
-                        text_size 18
-                        text_outlines [(2, "#9c8975", 0, 0), (1, "#000000", 0, 0)]
+                    if char.inventory[item]:
+                        background Frame("content/gfx/frame/frame_it2.png", -1, -1)
+                        use r_lightbutton (img=ProportionalScale(item.icon, 70, 70), return_value=return_value+[item], align=(0.5, 0.5))
+                        label (u"{color=#ecc88a}%d" % char.inventory[item]):
+                            align (0.995, 0.995)
+                            style "stats_label_text"
+                            text_size 18
+                            text_outlines [(2, "#9c8975", 0, 0), (1, "#000000", 0, 0)]
+                    else:
+                        # in groups indicate some have the item
+                        background Frame("content/gfx/frame/frame_it1.png", -1, -1)
+                        use r_lightbutton (img=ProportionalScale(im.Sepia(item.icon), 70, 70), return_value=return_value+[item], align=(0.5, 0.5))
     
     screen eqdoll(active_mode=True, char=None, frame_size=[55, 55], scr_align=(0.23, 0.23), return_value=['item', 'get'], txt_size=17, fx_size=(300, 320)):
         # active_mode = Allows equipped item to be focused if true, otherwise just dispayes a picture of an item (when equipped).
@@ -27,7 +29,7 @@ init: # Items:
         if char == hero:
             # add Transform(hero.show("sprofile", resize=(400, 720)), alpha=0.8) align(0.5, 1.0)
             add im.Scale("content/gfx/interface/images/doll_male.png", 286, 400) align (0.5, 0.5)
-        else:
+        elif not isinstance(char, dict):
             #f rame:
                 # align (0.5, 0.5)
                 # background Frame("content/gfx/frame/MC_bg3.png", 10, 10)
@@ -39,56 +41,47 @@ init: # Items:
             align scr_align
             xysize fx_size
             
-            for key in equipSlotsPositions:
+            for slot in equipSlotsPositions:
                 python:
-                    if char.eqslots[key]:
-                        img = char.eqslots[key].icon
+                    is_multiple_pytgroup = False
+
+                    if isinstance(char, dict):
+                        # saved equipment state
+                        equipment = char[slot]
+
+                    elif isinstance(char.eqslots[slot], list):
+
+                        is_multiple_pytgroup = True
+                        equipment = char.eqslots[slot][0]
+                    else:
+                        equipment = char.eqslots[slot]
+
+                    if equipment and active_mode:
                         # Frame background:
+                        img = im.Sepia(equipment.icon) if is_multiple_pytgroup else equipment.icon
                         # Old dark/light frame codes, to be removed at review.
-                        if char.eqslots[key].bg_color == "dark":
+                        if equipment.bg_color == "dark":
                             bg = im.Scale(im.Twocolor("content/gfx/frame/frame_it2.png", grey, black), *frame_size)
                         else:
                             bg = im.Scale(im.Twocolor("content/gfx/frame/frame_it2.png", grey, black), *frame_size)
+                        equipment = [equipment, slot]
                     else:
                         bg = im.Scale(im.Twocolor("content/gfx/frame/frame_it2.png", grey, black), *frame_size)
+                        key = "ring" if slot.startswith("ring") else slot
                         img = blank
                 frame:
+                    
                     background bg
-                    pos (equipSlotsPositions[key][1], equipSlotsPositions[key][2]-0.1)
+                    pos (equipSlotsPositions[slot][1]+ (0 if not isinstance(char, dict) or equipSlotsPositions[slot][1] < 0.5 else -0.619), equipSlotsPositions[slot][2])
                     xysize (frame_size[0], frame_size[1])
-                    if active_mode and char.eqslots[key]:
-                        use r_lightbutton(img=ProportionalScale(img, frame_size[0]-15, frame_size[1]-15), return_value=return_value+[char.eqslots[key]])
-                    elif char.eqslots[key]:
-                        add ProportionalScale(img, frame_size[0]-10, frame_size[1]-10) align (0.5, 0.5)
+                    if active_mode and equipment:
+                        if not isinstance(char, dict):
+                            use r_lightbutton(img=ProportionalScale(img, frame_size[0]*0.78, frame_size[1]*0.78), return_value=return_value+equipment)
+                        else:
+                            add ProportionalScale(img, frame_size[0]*0.71, frame_size[1]*0.71) align (0.5, 0.5)
                     else:
-                        text (u"{color=#CDCDC1}%s"%equipSlotsPositions[key][0]) align (0.5, 0.5) size txt_size
+                        add Transform(ProportionalScale("content/gfx/interface/buttons/filters/%s_bg.png"%key, frame_size[0]*0.71, frame_size[1]*0.71), alpha=0.35) align (0.5, 0.5)
                         
-        vbox:
-            spacing 4
-            align(1.0, 0.5)
-            xoffset 150
-            for key in ['ring', 'ring2',  'ring1']:
-                python:
-                    if char.eqslots[key]:
-                        img = char.eqslots[key].icon
-                        # Frame background:
-                        if char.eqslots[key].bg_color == "dark":
-                            bg = im.Scale(im.Twocolor("content/gfx/frame/frame_it2.png", grey, black), *frame_size)
-                        else:
-                            bg = im.Scale(im.Twocolor("content/gfx/frame/frame_it2.png", grey, black), *frame_size)
-                    else:
-                        bg = im.Scale(im.Twocolor("content/gfx/frame/frame_it2.png", grey, black), *frame_size)
-                        img = blank
-                frame:
-                    background bg
-                    xysize (frame_size[0], frame_size[1])
-                    if active_mode and char.eqslots[key]:
-                        # We add extra return to return value to control which ring exactly is removed...
-                        use r_lightbutton(img=ProportionalScale(img, frame_size[0]-15, frame_size[1]-15), return_value=return_value+[char.eqslots[key], key])
-                    elif char.eqslots[key]:
-                        add (ProportionalScale(hero.eqslots[key].icon, frame_size[0]-15, frame_size[1]-15)) align (0.5, 0.5)
-                    else:
-                        text (u"{color=#CDCDC1}Ring") align (0.5, 0.5) size 14
     
     screen shopping(left_ref=None, right_ref=None):
         use shop_inventory(ref=left_ref, x=0.0)
@@ -293,7 +286,46 @@ init: # Items:
                                         frame:
                                             xysize 153, 20
                                             text(u'%s'%effect.capitalize()) color ivory size 16 align (0.5, 0.5)
-                                            
+                                if hasattr(item, 'mtemp'):
+                                    if item.mtemp:
+                                        label ('Frequency:') text_size 18 text_color gold xpos 10
+                                        frame:
+                                            xysize 153, 20
+                                            if item.mreusable:
+                                                if item.mtemp > 1:
+                                                    text "Every [item.mtemp] days" color ivory size 16 align (0.02, 0.5)
+                                                else:
+                                                    text "Every day" color ivory size 16 align (0.02, 0.5)
+                                            else:
+                                                if item.mtemp > 1:
+                                                    text "After [item.mtemp] days" color ivory size 16 align (0.02, 0.5)
+                                                else:
+                                                    text "After one day" color ivory size 16 align (0.02, 0.5)
+                                        if hasattr(item, 'mdestruct'):
+                                            if item.mdestruct:
+                                                frame:
+                                                    xysize 153, 20
+                                                    text "Disposable" color ivory size 16 align (0.02, 0.5)
+                                        if hasattr(item, 'mreusable'):
+                                            if item.mreusable:
+                                                frame:
+                                                    xysize 153, 20
+                                                    text "Reusable" color ivory size 16 align (0.02, 0.5)
+                                        if hasattr(item, 'statmax'):
+                                            if item.statmax:
+                                                frame:
+                                                    xysize 153, 20
+                                                    text "Stat limit" color ivory size 16 align (0.02, 0.5)
+                                                    label (u'{size=-4}%d'%item.statmax) align (0.98, 0.5)
+                                if hasattr(item, 'ctemp'):
+                                    if item.ctemp:
+                                        label ('Duration:') text_size 18 text_color gold xpos 10
+                                        frame:
+                                            xysize 153, 20
+                                            if item.ctemp > 1:
+                                                text "[item.ctemp] days" color ivory size 16 align (0.02, 0.5)
+                                            else:
+                                                text "One day" color ivory size 16 align (0.02, 0.5)
                     label ('{color=#ecc88a}----------------------------------------') xalign .5
                     frame:
                         xalign .5
@@ -508,9 +540,9 @@ init: # PyTFall:
                 unhovered SetField(pytfall, "city_dropdown", False)
     
         # Hotkeys:
-        if show_return_button and not get_screens("girl_interactions", "building_management_leftframe_upgrades_mode"):
+        if show_return_button and not get_screens("girl_interactions", "building_management_leftframe_businesses_mode"):
             key "mousedown_3" action Return(['control', 'return'])
-        if renpy.current_screen().tag not in ["girl_interactions", "hero_profile", "quest_log"]:
+        if renpy.current_screen().tag not in ["girl_interactions", "hero_profile", "quest_log", "dungeon"]:
             if global_flags.flag("visited_arena"):
                 key "a" action [Function(hs), Jump("arena_inside")]
             if global_flags.flag("visited_city_beach"):
@@ -628,7 +660,7 @@ init: # PyTFall:
                             action Show("s_menu", transition=dissolve)
                             hovered tt.Action("Game Preferences!")
                             
-                    if renpy.current_screen().tag not in ["mainscreen", "girl_interactions", "quest_log"]:
+                    if renpy.current_screen().tag not in ["mainscreen", "girl_interactions", "quest_log", "dungeon"]:
                         imagebutton:
                             idle im.Scale("content/gfx/interface/buttons/MS.png" , 38, 37)
                             hover im.MatrixColor(im.Scale("content/gfx/interface/buttons/MS.png" , 38, 37), im.matrix.brightness(0.25))
@@ -692,12 +724,13 @@ init: # PyTFall:
             add im.Scale("content/gfx/frame/frame_bg.png", size[0], size[1])
             
             vbox:
+                style_prefix "proper_stats"
                 spacing 30
                 align(0.5, 0.5)
                 vbox:
                     xmaximum (size[0] - 50) 
-                    text msg xalign 0.5
-                textbutton "Ok" action If(use_return, true=Return(), false=Hide("message_screen")) minimum(250, 30) xalign 0.5 style "yesno_button"
+                    text msg xalign 0.5 color lightgoldenrodyellow size 20
+                textbutton "Ok" action If(use_return, true=Return(), false=Hide("message_screen")) minimum(120, 30) xalign 0.5 style "yesno_button"
         
     screen display_disposition(tag, d, size, x, y, t):
         tag tag
@@ -773,7 +806,7 @@ init: # PyTFall:
             anchor (xval, yval)
             has vbox
             
-            if isinstance(char.location, NewStyleUpgradableBuilding):
+            if isinstance(char.location, UpgradableBuilding):
                 # Jobs:
                 $ jobs = char.location.get_valid_jobs(char)
                 for i in jobs:
@@ -823,7 +856,7 @@ init: # PyTFall:
             elif hasattr(char.location, "actions"):
                 for entry in char.location.actions:
                     if entry == "Guard":
-                        if char.status != "slave" and ("Warrior" in char.occupations or char.disposition <= 950):
+                        if char.status not in ("slave", "various") and ("Warrior" in char.occupations or char.disposition <= 950):
                             textbutton "[entry]":
                                 action [SetField(char, "action", entry), Function(equip_for, char, entry), Hide("set_action_dropdown")]
                     
@@ -870,7 +903,7 @@ init: # PyTFall:
             has vbox
             # Updating to new code: *Ugly code atm, TODO: Fix IT!
             for building in hero.buildings:
-                if isinstance(building, NewStyleUpgradableBuilding):
+                if isinstance(building, UpgradableBuilding):
                     if char.action in building.jobs:
                         $ can_keep_action = True
                     else:
@@ -926,7 +959,7 @@ init: # PyTFall:
             has vbox
             
             for building in hero.buildings:
-                if isinstance(building, NewStyleUpgradableBuilding) and building.habitable:
+                if isinstance(building, UpgradableBuilding) and building.habitable:
                     textbutton "[building.name]":
                         action SelectedIf(char.home==building), SetField(char, "home", building), Hide("set_home_dropdown")
             textbutton "Streets":
@@ -957,7 +990,7 @@ init: # PyTFall:
             textbutton "Back":
                 action Hide("char_rename")
                 
-    screen poly_matrix(in_file, show_exit_button=False, hidden=[]):
+    screen poly_matrix(in_file, show_exit_button=False, cursor="content/gfx/interface/icons/zoom_glass.png", xoff=20, yoff=20, hidden=[]):
         # If a tuple with coordinates is provided instead of False for show_exit_button, exit button will be placed there.
         
         default tooltip = False
@@ -1014,7 +1047,7 @@ init: # PyTFall:
                         background Null()
                         focus_mask func(i["xy"])
                         action Return(i["id"])
-                        hovered [SetField(config, "mouse", {"default": [("content/gfx/interface/icons/zoom_32x32.png", 0, 0)]}),
+                        hovered [SetField(config, "mouse", {"default": [(cursor, xoff, yoff)]}),
                                        Show("show_poly_matrix_tt", pos=pos, anchor=anchor, align=align, text=i["tooltip"]), With(dissolve)]
                         unhovered [SetField(config, "mouse", None),
                                            Hide("show_poly_matrix_tt"), With(dissolve)]
@@ -1023,7 +1056,7 @@ init: # PyTFall:
                         background Null()
                         focus_mask func(i["xy"])
                         action Return(i["id"])
-                        hovered SetField(config, "mouse", {"default": [("content/gfx/interface/icons/zoom_32x32.png", 0, 0)]})
+                        hovered SetField(config, "mouse", {"default": [(cursor, xoff, yoff)]})
                         unhovered SetField(config, "mouse", None)
                 
         if show_exit_button:
@@ -1055,7 +1088,7 @@ init: # PyTFall:
                 xysize size
                 focus_mask True
                 action Return(item)
-                hovered SetField(config, "mouse", {"default": [("content/gfx/interface/icons/zoom_32x32.png", 0, 0)]})
+                hovered SetField(config, "mouse", {"default": [("content/gfx/interface/icons/net.png", 0, 0)]})
                 unhovered SetField(config, "mouse", None)
                 
                 # $ raise Exception(args[1])
@@ -1081,7 +1114,7 @@ init: # PyTFall:
                 action Return(item)
                 hovered SetField(config, "mouse", {"default": [("content/gfx/interface/icons/fishing_hook.png", 20, 20)]})
                 unhovered SetField(config, "mouse", None)
-            
+        key "mousedown_3" action (Hide("fishing_area"), Return("Stop Fishing"))
     ##############################################################################
     screen notify:
         zorder 500
@@ -1416,22 +1449,22 @@ init: # Settings:
                                     xysize (184, 32)
                                     action ToggleField(jsstor, "action", true_value="validate", false_value="skip")
                                     text "Validation:" align (0.0, 0.5) style "TisaOTMol" size 14
-                                    if jsstor.action == "validate":
-                                        add(im.Scale('content/gfx/interface/icons/checkbox_checked.png', 25, 25)) align (1.0, 0.5)
-                                    else:
+                                    if jsstor.action == "skip":
                                         add (im.Scale('content/gfx/interface/icons/checkbox_unchecked.png', 25, 25)) align (1.0, 0.5)
+                                    else:
+                                        add(im.Scale('content/gfx/interface/icons/checkbox_checked.png', 25, 25)) align (1.0, 0.5)
                                 button:
                                     #align (0, 1)
                                     xysize (184, 32)
-                                    text "Generation:" align (0.0, 0.5) style "TisaOTMol" size 14
-                                    if jsstor.action == "generate":
-                                        action ToggleField(jsstor, "action", true_value="generate", false_value="skip")
+                                    text "Strict:" align (0.0, 0.5) style "TisaOTMol" size 14
+                                    action ToggleField(jsstor, "action", true_value="strict", false_value="validate")
+                                    if jsstor.action == "strict":
                                         add(im.Scale('content/gfx/interface/icons/checkbox_checked.png', 25, 25)) align (1.0, 0.5)
-                                    elif jsstor.action == "skip":
-                                        action ToggleField(jsstor, "action", true_value="generate", false_value="skip")
+                                    elif jsstor.action == "validate":
                                         add (im.Scale('content/gfx/interface/icons/checkbox_unchecked.png', 25, 25)) align (1.0, 0.5)
                                     else:
                                         add (im.Scale('content/gfx/interface/icons/checkbox_inactive.png', 25, 25)) align (1.0, 0.5)
+                                        sensitive False
                     frame:
                         style_group "smenu"
                         align (0.5, 0.5)

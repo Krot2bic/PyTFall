@@ -4,25 +4,23 @@ init:
         is text
         size 9
         color lawngreen
-        
+
     style negative_item_eqeffects_chage:
         is positive_item_eqeffects_change
         color "#ff1a1a"
-        
-    screen discard_item(char, item):
+
+    screen discard_item(eq_sourse, item):
         zorder 10
         modal True
-        
+
         add Transform("content/gfx/images/bg_gradient2.png", alpha=0.3)
         frame:
-            background Frame (Transform("content/gfx/frame/ink_box.png", alpha=0.75), 10, 10)
+            background Frame(Transform("content/gfx/frame/ink_box.png", alpha=0.75), 10, 10)
             style_group "dropdown_gm2"
-            align (0.42, 0.61)
+            align .42, .61
             xsize 500
-            xpadding 10
-            ypadding 10
-            xmargin 0
-            ymargin 0
+            padding 10, 10
+            margin 0, 0
             has vbox spacing 5 xfill True
             text "{=TisaOTM}{size=-3}Discard {color=#ffd700}[item.id]{/color}?" xalign 0.52 color "#ecc88a"
             hbox:
@@ -30,15 +28,14 @@ init:
                 spacing 10
                 textbutton "{size=-1}Yes":
                     xalign 0.5
-                    action Function(char.inventory.remove, item), Hide("discard_item"), With(dissolve)
-                $ amount = char.inventory[item]
+                    action Function(eq_sourse.inventory.remove, item), Hide("discard_item"), With(dissolve)
+                $ amount = eq_sourse.inventory[item]
                 textbutton "{size=-1}Discard All":
                     xalign 0.5
-                    action SensitiveIf(amount > 1), Function(char.inventory.remove, item, amount), Hide("discard_item"), With(dissolve)
+                    action SensitiveIf(amount > 1), Function(eq_sourse.inventory.remove, item, amount), Hide("discard_item"), With(dissolve)
                 textbutton "{size=-1}No":
                     xalign 0.5
                     action Hide("discard_item"), With(dissolve)
-                
 
 init python:
     def build_str_for_eq(eqtarget, dummy, stat, tempc):
@@ -51,9 +48,9 @@ init python:
             tempstr = tempstr + "{=positive_item_eqeffects_change}(+%d){/=}"%temp if temp > 0 else tempstr + "{=negative_item_eqeffects_chage}(%d){/=}"%temp
         else: # No change at all...
             tempstr = "{color=[tempc]}%s{/color}"%getattr(eqtarget, stat)
-            
+
         tempstr = tempstr + "{color=[tempc]}/{/color}"
-            
+
         if tempmax:
             # Absolute change of the max values, same rules as the actual values apply:
             tempstr = tempstr + "{color=[green]}%s{/color}"%dummy.get_max(stat) if tempmax > 0 else tempstr + "{color=[red]} %d{/color}"%dummy.get_max(stat)
@@ -69,40 +66,51 @@ label char_equip:
         unequip_slot = None
         item_direction = None
         dummy = None
-        
+        eqsave = [False, False, False]
+
+        if not eqtarget:
+            came_to_equip_from = "chars_list"
+            eqtarget = PytGroup(the_chosen) if the_chosen else char
+
+        if not hasattr(store, "equip_girls") or equip_girls is None or char not in equip_girls:
+            if isinstance(eqtarget, PytGroup) or eqtarget == hero:
+                equip_girls = []
+            else:
+                equip_girls = list(girl for girl in hero.chars if girl.action != "Exploring")
+
         eqtarget.inventory.set_page_size(16)
         hero.inventory.set_page_size(16)
         inv_source = eqtarget
-    
+
     scene bg gallery3
-    
+
     $ global_flags.set_flag("hero_equip")
     $ renpy.retain_after_load()
     show screen char_equip
-    
+
     $ inv_source.inventory.apply_filter("all")
-    
+
 label char_equip_loop:
     while 1:
-        
         $ result = ui.interact()
-        
+        #$ char = eqtarget
+
         if not result:
             jump char_equip_loop
-        
+
         if result[0] == "jump":
             if result[1] == "item_transfer":
                 hide screen char_equip
-                $ items_transfer([hero, eqtarget])
+                $ items_transfer([hero] + (list(eqtarget.lst) if isinstance(eqtarget,PytGroup) else [eqtarget]))
                 $ eqtarget.inventory.set_page_size(16)
                 $ hero.inventory.set_page_size(16)
                 show screen char_equip
-                
+
         elif result[0] == "equip_for":
             python:
                 renpy.show_screen("equip_for", renpy.get_mouse_pos())
                 dummy = None
-            
+
         elif result[0] == "item":
             if result[1] == 'equip/unequip':
                 $ dummy = None # Must be set here so the items that jump away to a label work properly.
@@ -116,7 +124,7 @@ label char_equip_loop:
                             unequip_slot = None
                             item_direction = None
                             jump("char_equip_loop")
-                            
+
                         # See if we can access the equipment first:
                         if equipment_access(eqtarget, focusitem):
                             # If we're not equipping from own inventory, check if we can transfer:
@@ -124,71 +132,143 @@ label char_equip_loop:
                                 if not transfer_items(inv_source, eqtarget, focusitem):
                                     # And terminate if we can not...
                                     jump("char_equip_loop")
-                                    
+
                             # If we got here, we just equip the item :D
-                            equip_item(focusitem, eqtarget, area_effect=True)
-                            
+                            equip_item(focusitem, eqtarget)
+
                     elif item_direction == 'unequip':
                         # Check if we are allowed to access inventory and act:
                         if equipment_access(eqtarget):
                             eqtarget.unequip(focusitem, unequip_slot)
-                            
+
                             # We should try to transfer items in case of:
                             # We don't really care if that isn't possible...
                             if inv_source != eqtarget:
                                 transfer_items(eqtarget, inv_source, focusitem, silent=False)
-                                
+
                     focusitem = None
                     selectedslot = None
                     unequip_slot = None
                     item_direction = None
-                 
+
             elif result[1] == "discard":
                 python:
                     # Check if we can access the inventory:
                     if equipment_access(inv_source):
                         renpy.call_screen("discard_item", inv_source, focusitem)
-                            
+
                     focusitem = None
                     selectedslot = None
                     unequip_slot = None
                     item_direction = None
                     dummy = None
-                
+                    eqsave = {0:False, 1:False, 2:False}
+
             elif result[1] == "transfer":
                 python:
                     if inv_source == hero:
                         transfer_items(hero, eqtarget, focusitem, silent=False)
                     else:
                         transfer_items(eqtarget, hero, focusitem, silent=False)
-                    
+
             elif result[1] == 'equip':
                 python:
                     focusitem = result[2]
+                    if isinstance(inv_source, PytGroup) and inv_source.inventory[focusitem] == 0:
+
+                        selected_chars = inv_source.all
+                        inv_source.lst = set([c for c in selected_chars if c.inventory[focusitem]])
+                        inv_source.unselected = set([c for c in selected_chars if not c.inventory[focusitem]])
+
                     selectedslot = focusitem.slot
                     item_direction = 'equip'
-                    
+
                     # # To Calc the effects:
-                    dummy = copy_char(eqtarget)
+                    dummy = copy_char(eqtarget._first if isinstance(eqtarget, PytGroup) else eqtarget)
                     equip_item(focusitem, dummy, silent=True)
                     # renpy.show_screen("diff_item_effects", eqtarget, dummy)
-                    
+
             elif result[1] == 'unequip':
                 python:
-                    if len(result) == 4:
-                        unequip_slot = result[3]
-                        
-                    selectedslot = result[2].slot
-                    if selectedslot:
-                        focusitem = result[2]
-                        item_direction = 'unequip'
-                        
-                    # To Calc the effects:
-                    dummy = copy_char(eqtarget)
-                    dummy.eqslots[selectedslot] = focusitem
-                    dummy.unequip(focusitem, unequip_slot)
-                    # renpy.show_screen("diff_item_effects", eqtarget, dummy)
-        
+                    unequip_slot = result[3]
+
+                    if isinstance(eqtarget, PytGroup):
+
+                        if isinstance(result[2], list):
+                            # chars have different items in the equipslots. Will show the most abundant in sepia
+                            chosen_item = result[2][0]
+                        else:
+                            # This (sub)group has only one item. shown in color.
+                            chosen_item = result[2]
+                            # ring itemslot can be ring while actual slot is ring1 or ring2
+
+                            if focusitem == chosen_item:
+                                # The focusitem was clicked a 2nd time, so determine next item and subgroup from all chars.
+                                eqtarget.lst = set(eqtarget.all)
+                                eqtarget.unselected = set()
+
+                                all_slotequip = eqtarget.eqslots[unequip_slot]
+
+                                if isinstance(all_slotequip, list):
+                                    # a list, so there is a next subgroup
+                                    chosen_item = all_slotequip[(all_slotequip.index(chosen_item) + 1) % len(all_slotequip)]
+                                    eqtarget.lst = set(eqtarget.all)
+
+                        if focusitem != chosen_item:
+                            subgroup_equipped = set([c for c in eqtarget.lst if c.eqslots[unequip_slot] == chosen_item])
+                            eqtarget.unselected = set(eqtarget.all).difference(subgroup_equipped)
+                            eqtarget.lst = subgroup_equipped
+
+                        result[2] = chosen_item
+                        dummy = copy_char(eqtarget._first)
+                    else:
+                        dummy = copy_char(eqtarget)
+
+                    focusitem = result[2]
+                    item_direction = 'unequip'
+
+                    if focusitem:
+                        # To Calc the effects:
+                        dummy.eqslots[unequip_slot] = focusitem
+                        dummy.unequip(focusitem, unequip_slot)
+                        #renpy.show_screen("diff_item_effects", eqtarget, dummy)
+
+        elif result[0] == "unequip_all":
+            python:
+                if isinstance(eqtarget, PytGroup):
+                    for c in eqtarget.lst:
+                        # Check if we are allowed to access inventory and act:
+                        if equipment_access(c, silent=True):
+                            for slot in c.eqslots.values():
+                                if slot:
+                                    c.unequip(slot)
+
+                elif equipment_access(eqtarget, silent=False):
+                    for slot in eqtarget.eqslots.values():
+                        if slot:
+                            eqtarget.unequip(slot)
+
+                focusitem = None
+                selectedslot = None
+                unequip_slot = None
+                item_direction = None
+
+        elif result[0] == "auto_discard": # TODO: remove
+            python:
+                if isinstance(eqtarget, PytGroup):
+                    for c in eqtarget.lst:
+                        # Check if we are allowed to access inventory and act:
+                        if equipment_access(c, silent=True):
+                            c.auto_discard()
+
+                elif equipment_access(eqtarget, silent=False) and eqtarget != hero:
+                    eqtarget.auto_discard()
+
+                focusitem = None
+                selectedslot = None
+                unequip_slot = None
+                item_direction = None
+
         elif result[0] == 'con':
             if result[1] == 'return':
                 python:
@@ -197,24 +277,55 @@ label char_equip_loop:
                     unequip_slot = None
                     item_direction = None
                     dummy = None
-                    
+                    eqsave = {0:False, 1:False, 2:False}
+
         elif result[0] == 'control':
             if result[1] == 'return':
                 jump char_equip_finish
-    
+            elif equip_girls:
+                python:
+
+                    focusitem = None
+                    selectedslot = None
+                    unequip_slot = None
+                    item_direction = None
+                    dummy = None
+
+                    index = equip_girls.index(char)
+                    if result[1] == 'left':
+                        char = equip_girls[ (index - 1) % len(equip_girls)]
+                    elif result[1] == 'right':
+                        char = equip_girls[(index + 1) % len(equip_girls)]
+
+                    if inv_source == eqtarget:
+                        inv_source = char
+                    eqtarget = char
+
 label char_equip_finish:
     hide screen char_equip
     $ global_flags.del_flag("hero_equip")
-    
+
     python:
         eqtarget.inventory.set_page_size(15)
         hero.inventory.set_page_size(15)
+
         # eqtarget.inventory.female_filter = False
         # hero.inventory.female_filter = False
         if eqtarget.location == "After Life":
-            renpy.show_screen("message_screen", "Either your 'awesome' item handling or my 'brilliant' programming have killed %s..." % eqtarget.fullname)
+            renpy.show_screen("message_screen", "Either your 'awesome' item handling or my 'brilliant' programming killed %s..." % eqtarget.fullname)
             jump("mainscreen")
-            
+
+    python:
+        # Reset all globals so screens that lead here don't get thrown off:
+        focusitem = None
+        selectedslot = None
+        unequip_slot = None
+        item_direction = None
+        dummy = None
+        eqtarget = None
+        eqsave = None
+        equip_girls = None
+
     if came_to_equip_from:
         $ last_label, came_to_equip_from = came_to_equip_from, None
         jump expression last_label
@@ -224,10 +335,10 @@ label char_equip_finish:
 screen equip_for(pos=()):
     zorder 3
     modal True
-    
+
     key "mousedown_4" action NullAction()
     key "mousedown_5" action NullAction()
-    
+
     python:
         x, y = pos
         if x > 1000:
@@ -238,6 +349,11 @@ screen equip_for(pos=()):
             yval = 1.0
         else:
             yval = 0.0
+
+        specializations = ["Sex", "Service", "Striptease"]
+
+        if eqtarget.status != "slave" and eqtarget.status != "various":
+            specializations = ["Battle Mage", "Barbarian", "Wizard"] + specializations
     frame:
         style_group "dropdown_gm"
         pos (x, y)
@@ -245,19 +361,16 @@ screen equip_for(pos=()):
         vbox:
             text "Equip For:" xalign 0 style "della_respira" color ivory
             null height 5
-            for t in ["Combat", "Sex", "Service", "Striptease"]:
-                if t == "Combat" and eqtarget.status == "slave":
-                    pass
-                else:
-                    textbutton "[t]":
-                        xminimum 200
-                        # action NullAction()
-                        action [Function(eqtarget.equip_for, t), Hide("equip_for")]
+            for t in specializations:
+                textbutton "[t]":
+                    xminimum 200
+                    # action NullAction()
+                    action [Function(eqtarget.equip_for, t), Hide("equip_for")]
             textbutton "Close":
                 action Hide("equip_for")
-    
+
 screen char_equip():
-    
+
     # Useful keymappings (first time I try this in PyTFall): ====================================>
     if focusitem:
         key "mousedown_2" action Return(["item", "equip/unequip"])
@@ -267,72 +380,93 @@ screen char_equip():
     key "mousedown_4" action Function(inv_source.inventory.next)
     key "mousedown_5" action Function(inv_source.inventory.prev)
     key "mousedown_6" action Return(['con', 'return'])
-    
+
     default stats_display = "stats"
     default tt = Tooltip("")
-    
+
     # BASE FRAME 2 "bottom layer" ====================================>
     add "content/gfx/frame/equipment2.png"
-    
-    # Equipment slots
+
+    # Equipment slots:
     frame:
         pos (425, 10)
-        xminimum 298
-        xmaximum 298
-        ymaximum 410
-        yminimum 410
+        xysize 298, 410
+        # xminimum 298
+        # xmaximum 298
+        # ymaximum 410
+        # yminimum 410
         background Frame(Transform("content/gfx/frame/Mc_bg3.png", alpha=0.3), 10, 10)
         use eqdoll(active_mode=True, char=eqtarget, frame_size=[70, 70], scr_align=(0.98, 1.0), return_value=['item', "unequip"], txt_size=17, fx_size=(455, 400))
-    
+
     # BASE FRAME 3 "mid layer" ====================================>
     add "content/gfx/frame/equipment.png"
-    
+
     # Item Info (Mid-Bottom Frame): ====================================>
     hbox:
         align (0.388, 1.0)
         spacing 1
         style_group "content"
-        
-        # Item Desciption:
-        showif focusitem:
-            frame:
-                xalign 0.6
-                at fade_in_out()
-                background Transform(Frame(im.MatrixColor("content/gfx/frame/Mc_bg3.png", im.matrix.brightness(-0.2)), 5, 5), alpha=0.3)
-                xysize (710, 296)
-                use char_equip_item_info(item=focusitem, size=(703, 287), tt=tt)
-        
+
+        # Item Description:
+        frame:
+            xalign 0.6
+            at fade_in_out()
+            background Transform(Frame(im.MatrixColor("content/gfx/frame/Mc_bg3.png", im.matrix.brightness(-0.2)), 5, 5), alpha=0.3)
+            xysize (710, 296)
+            use char_equip_item_info(item=focusitem, size=(703, 287), tt=tt)
+
+    if not isinstance(eqtarget, PytGroup):
+        use char_equip_left_frame(tt, stats_display)
+    else:
+        use group_equip_left_frame(tt)
+
+screen char_equip_left_frame(tt, stats_display):
     # Left Frame: =====================================>
     fixed:
         pos (0, 2)
-        xysize (220,724) 
+        xysize (220,724)
         style_group "content"
-        
+
         # NAME =====================================>
-        text (u"{color=#ecc88a}[eqtarget.name]") font "fonts/TisaOTM.otf" size 28 outlines [(1, "#3a3a3a", 0, 0)] xalign 0.53 ypos 126
-        
-        # PORTRAIT ============================>
-        frame:
-            xysize (100, 100)
-            background Frame("content/gfx/frame/mes12.jpg", 5, 5)
-            foreground eqtarget.show("portrait", resize=(100, 100), cache=True) pos (64, 11)
-            
+        text (u"{color=#ecc88a}[eqtarget.name]") font "fonts/TisaOTM.otf" size 28 outlines [(1, "#3a3a3a", 0, 0)] xalign .53 ypos 126
+        hbox:
+            button:
+                xysize (32, 32)
+                background Null()
+                if equip_girls and not(equipment_safe_mode):
+                    action Return(['control', 'left'])
+                    foreground "content/gfx/interface/buttons/small_button_wood_left_idle.png" pos (10, 14)
+                    hover_foreground "content/gfx/interface/buttons/small_button_wood_left_hover.png"
+            # PORTRAIT ============================>
+            frame:
+                xysize (100, 100)
+                pos (32, 11)
+                background Frame("content/gfx/frame/mes12.jpg", 5, 5)
+                add eqtarget.show("portrait", resize=(90, 90), cache=True) align .5, .5
+            button:
+                xysize (32, 32)
+                background Null()
+                if equip_girls and not(equipment_safe_mode):
+                    action Return(['control', 'right'])
+                    foreground "content/gfx/interface/buttons/small_button_wood_right_idle.png" pos (45, 14)
+                    hover_foreground "content/gfx/interface/buttons/small_button_wood_right_hover.png"
+
         # LVL ============================>
         hbox:
             spacing 1
-            if (inv_source.level) <10:
+            if (inv_source.level) < 10:
                 xpos 95
-            elif (inv_source.level) <100:
+            elif (inv_source.level) < 100:
                 xpos 93
-            elif (inv_source.level) <1000:
+            elif (inv_source.level) < 1000:
                 xpos 89
-            elif (inv_source.level) <10000:
+            elif (inv_source.level) < 10000:
                 xpos 83
             else:
                 xpos 79
             label "{color=#CDAD00}Lvl" text_font "fonts/Rubius.ttf" text_size 16 text_outlines [(1, "#3a3a3a", 0, 0)] ypos 173
             label "{color=#CDAD00}[eqtarget.level]" text_font "fonts/Rubius.ttf" text_size 16 text_outlines [(1, "#3a3a3a", 0, 0)] ypos 173
-        
+
         # Left Frame Buttons: =====================================>
         hbox:
             style_group "pb"
@@ -342,19 +476,19 @@ screen char_equip():
             button:
                 xsize 100
                 action SetScreenVariable("stats_display", "stats"), With(dissolve)
-                text "Stats" style "pb_button_text"
+                text "Stats" style "pb_button_text" yoffset 2
             button:
                 xsize 100
                 action SetScreenVariable("stats_display", "pro"), With(dissolve)
-                text "Pro Stats" style "pb_button_text"
-                
+                text "Skills" style "pb_button_text" yoffset 2
+
         # Stats/Skills:
         vbox:
             yfill True
             yoffset 195
             spacing 2
             xmaximum 218
-            
+
             if stats_display == "stats":
                 vbox:
                     spacing 5
@@ -368,7 +502,7 @@ screen char_equip():
                         has vbox spacing 1
                         # STATS ============================>
                         $ stats = ["constitution", "charisma", "intelligence", "fame", "reputation"] if eqtarget == hero else ["constitution", "charisma", "intelligence", "character", "reputation", "joy", "disposition"]
-                        
+
                         # Health:
                         frame:
                             xysize 204, 25
@@ -379,7 +513,7 @@ screen char_equip():
                                 text tempstr style_suffix "value_text" xalign .98 yoffset 3
                             else:
                                 text u"[eqtarget.health]/{}".format(eqtarget.get_max("health")) xalign .98 yoffset 3 style_suffix "value_text" color tempc
-                        
+
                         # Vitality:
                         frame:
                             xysize 204, 25
@@ -390,7 +524,7 @@ screen char_equip():
                                 text tempstr style_suffix "value_text" xalign .98 yoffset 3
                             else:
                                 text u"[eqtarget.vitality]/{}".format(eqtarget.get_max("vitality")) xalign .98 yoffset 3 style_suffix "value_text" color tempc
-                             
+
                         # Rest of stats:
                         for stat in stats:
                             frame:
@@ -402,7 +536,7 @@ screen char_equip():
                                     text tempstr style_suffix "value_text" xalign .98 yoffset 3
                                 else:
                                     text u"{}/{}".format(getattr(eqtarget, stat), eqtarget.get_max(stat)) xalign .98 yoffset 3 style_suffix "value_text" color "#F5F5DC"
-                                            
+
                     # BATTLE STATS ============================>
                     frame:
                         background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.7)
@@ -410,12 +544,12 @@ screen char_equip():
                         padding 6, 6
                         style_group "proper_stats"
                         has vbox spacing 1
-                         
+
                         null height 1
                         label (u"{size=18}{color=#CDCDC1}{b}Battle Stats:") xalign .49
                         $ stats = [("Attack", "#CD4F39"), ("Defence", "#dc762c"), ("Magic", "#8470FF"), ("MP", "#009ACD"), ("Agility", "#1E90FF"), ("Luck", "#00FA9A")]
                         null height 1
-                     
+
                         for stat, color in stats:
                             frame:
                                 xysize 204, 25
@@ -430,14 +564,119 @@ screen char_equip():
                                     text tempstr style_suffix "value_text" xalign .98 yoffset 3
                                 else:
                                     text "{}/{}".lower().format(getattr(eqtarget, stat.lower()), eqtarget.get_max(stat.lower())) xalign .98 yoffset 3 style_suffix "value_text" color tempc
-                                
-            
             elif stats_display == "pro":
                 frame:
-                    background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.7)
+                    background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-.1)), 5, 5), alpha=.7)
                     pos (4, 40)
                     ymaximum 460
-    
+                    has vbox style_prefix "proper_stats" spacing 1
+                    if getattr(focusitem, "mod_skills", {}):
+                        label (u"Pure Bonus:") text_size 20 text_color goldenrod text_bold True xalign .45
+                    for skill, data in getattr(focusitem, "mod_skills", {}).iteritems():
+                        frame:
+                            xysize 208, 22
+                            text str(skill).title() size 16 color yellowgreen align .0, .5
+
+                            $ img_path = "content/gfx/interface/icons/skills_icons/"
+
+                            default PS = ProportionalScale
+
+                            hbox:
+                                align .99, .5
+                                spacing 2
+                                yoffset 1
+                                button:
+                                    style "default"
+                                    xysize 20, 18
+                                    action NullAction()
+                                    yoffset 2
+                                    hovered tt.action("Icon represents skills modifier changes. Green means bonus, red means penalty. Left one is action counter, right one is training counter, top one is resulting value.")
+                                    if data[0] > 0:
+                                        add PS(img_path + "left_green.png", 20, 20)
+                                    elif data[0] < 0:
+                                        add PS(img_path + "left_red.png", 20, 20)
+                                    if data[1] > 0:
+                                        add PS(img_path + "right_green.png", 20, 20)
+                                    elif data[1] < 0:
+                                        add PS(img_path + "right_red.png", 20, 20)
+                                    if data[2] > 0:
+                                        add PS(img_path + "top_green.png", 20, 20)
+                                    elif data[2] < 0:
+                                        add PS(img_path + "top_red.png", 20, 20)
+                                if data[3]:
+                                    button:
+                                        style "default"
+                                        action NullAction()
+                                        hovered tt.action("Direct bonus to action skill values.")
+                                        label "A: " + str(data[3]) text_size 15
+                                if data[4]:
+                                    button:
+                                        style "default"
+                                        action NullAction()
+                                        hovered tt.action("Direct bonus to knowledge skill values.")
+                                        label "K: " + str(data[4]) text_size 15
+
+    use char_equip_right_frame(tt)
+
+screen group_equip_left_frame(tt):
+
+    # Left Frame: =====================================>
+    fixed:
+        pos (0, 2)
+        xysize (220,724)
+        style_group "content"
+        hbox:
+            button:
+                xysize (32, 32)
+                action SetField(eqtarget, "lst", set(eqtarget.all)), SetField(eqtarget, "unselected", set()), SetVariable("focusitem", None), SetVariable("dummy", None)
+                background Null()
+                foreground ProportionalScale("content/gfx/interface/buttons/Group_full.png", 32, 32) pos (14, 70)
+                hover_foreground ProportionalScale(im.MatrixColor("content/gfx/interface/buttons/Group_full.png", im.matrix.brightness(0.20)), 34, 34)
+            # PORTRAIT ============================>
+            frame:
+                xysize (100, 100)
+                background Frame("content/gfx/frame/mes12.jpg", 5, 5)
+                foreground eqtarget.show("portrait", resize=(100, 100), cache=True) pos (32, 11)
+
+        # list of names of characters in group with selection options.
+        viewport:
+            ymaximum 590
+            pos (4, 120)
+            style_group "proper_stats"
+            frame:
+                padding 4, 4
+                ymaximum 590
+                background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.7)
+                xsize 218
+                has hbox
+                hbox:
+                    for offs in [0, 1]:
+                        vbox:
+                            yfill True
+                            spacing 5
+                            frame:
+                                xsize 104
+                                ymaximum 585
+                                padding 6, 6
+                                margin 0, 0
+                                has vbox spacing 1
+                                # character togglebuttons:
+                                for k in eqtarget.all[offs::2]:
+                                    button:
+                                        action ToggleSetMembership(eqtarget.lst, k), ToggleSetMembership(eqtarget.unselected, k), SetVariable("focusitem", None), SetVariable("dummy", None)
+                                        background Null()
+                                        if k in eqtarget.lst:
+                                            if len(eqtarget) == 1:
+                                                sensitive False
+                                            text u"[k.name]" xalign .98 yoffset 3 style_suffix "value_text" color "#F5F5DC"
+                                        else:
+                                            text u"[k.name]" xalign .98 yoffset 3 style_suffix "value_text" color "#75755C"
+                                        hover_background Frame(im.MatrixColor("content/gfx/interface/buttons/choice_buttons2h.png", im.matrix.brightness(0.10)), 0, 0)
+
+
+    use char_equip_right_frame(tt)
+
+screen char_equip_right_frame(tt):
     # Right Frame: =====================================>
     # TOOLTIP TEXT or Applied Traits and Skills ====================================>
     frame:
@@ -445,87 +684,91 @@ screen char_equip():
         background Frame(Transform("content/gfx/frame/ink_box.png", alpha=0.4), 10, 10)
         xpadding 10
         xysize (345, 110)
-        
+
         python:
-            if len(eqtarget.traits.basetraits) == 1:
-                classes = list(eqtarget.traits.basetraits)[0].id
-            elif len(eqtarget.traits.basetraits) == 2:
-                classes = list(eqtarget.traits.basetraits)
-                classes.sort()
-                classes = ", ".join([str(c) for c in classes])
-            else:
-                if eqtarget != hero:
-                    raise Exception("Character without prof basetraits detected! line: 267, girlsprofile screen")
+            if not isinstance(eqtarget, PytGroup):
+                if len(eqtarget.traits.basetraits) == 1:
+                    classes = list(eqtarget.traits.basetraits)[0].id
+                elif len(eqtarget.traits.basetraits) == 2:
+                    classes = list(eqtarget.traits.basetraits)
+                    classes.sort()
+                    classes = ", ".join([str(c) for c in classes])
                 else:
-                    classes = "MC baseclasses are still AFK :("
-        
-        $ t = "{vspace=17}Classes: [classes]\nLocation: [eqtarget.location]\nAction: [eqtarget.action]{/color}"
-        
-        if dummy:
+                    if eqtarget != hero:
+                        raise Exception("Character without prof basetraits detected! line: 267, girlsprofile screen")
+                    else:
+                        classes = "MC baseclasses are still AFK :("
+
+                t = "{vspace=17}Classes: [classes]\nLocation: [eqtarget.location]\nAction: [eqtarget.action]{/color}"
+            else:
+                t = "{vspace=17}[eqtarget.name]{/color}"
+
+        if tt.value:
+            text "{color=#ecc88a}%s"%tt.value size 14 align (0.5, 0.5) font "fonts/TisaOTM.otf" line_leading -5
+        elif dummy:
             # Traits and skills:
             vbox:
                 hbox:
                     add "content/gfx/interface/images/add.png" yalign .5 yoffset -3
                     add "content/gfx/interface/images/remove.png" yalign .5 yoffset -5
-                    label ('Traits:') text_size 16 text_color gold style "stats_label"
+                    label ('Traits|Effects:') text_size 16 text_color gold style "stats_label"
                 viewport:
                     mousewheel True
                     has vbox
                     style_group "proper_stats"
                     python:
-                        t_old = set(t.id for t in eqtarget.traits)
-                        if hasattr(eqtarget, "effects"):
-                            for effect in eqtarget.effects:
-                                if eqtarget.effects[effect]['active']:
-                                    t_old.add(effect)
+                        eqt = eqtarget._first if isinstance(eqtarget, PytGroup) else eqtarget
+                        t_old = set(t.id for t in eqt.traits)
+                        for effect, data in getattr(eqt, "effects", {}).iteritems():
+                            if data['active']: t_old.add(effect)
                         t_new = set(t.id for t in dummy.traits)
-                        if hasattr(eqtarget, "effects"):
-                            for effect in dummy.effects:
-                                if dummy.effects[effect]['active']:
-                                    t_new.add(effect)
+                        for effect, data in getattr(dummy, "effects", {}).iteritems():
+                            if data['active']: t_new.add(effect)
                         temp = t_new.difference(t_old)
                         temp = sorted(list(temp))
-                    if temp:
-                        for skill in temp:
-                            frame:
-                                xpadding 3
-                                text u'{color=#43CD80}%s'%skill.capitalize() size 16 yalign 0.5
-                                    
+                    for i in temp:
+                        frame:
+                            xpadding 3
+                            text u'{color=#43CD80}%s'%i size 16 yalign 0.5
+
                     python:
                         t_old = set(t.id for t in dummy.traits)
-                        t_new = set(t.id for t in eqtarget.traits)
+                        for effect, data in getattr(dummy, "effects", {}).iteritems():
+                            if data['active']: t_old.add(effect)
+                        t_new = set(t.id for t in eqt.traits)
+                        for effect, data in getattr(eqt, "effects", {}).iteritems():
+                            if data['active']: t_new.add(effect)
                         temp = t_new.difference(t_old)
                         temp = sorted(list(temp))
-                    if temp:
-                        for skill in temp:
-                            frame:
-                                xpadding 3
-                                text u'{color=#CD4F39}%s'%skill.capitalize() size 16 yalign 0.5
-                                
+                    for i in temp:
+                        frame:
+                            xpadding 3
+                            text u'{color=#CD4F39}%s'%i size 16 yalign 0.5
+
             vbox:
                 xoffset 165
                 hbox:
                     add "content/gfx/interface/images/add.png" yalign .5 yoffset -3
                     add "content/gfx/interface/images/remove.png" yalign .5 yoffset -5
-                    label ('Skills:') text_size 16 text_color gold style "stats_label"
+                    label ('Battle Skills:') text_size 16 text_color gold style "stats_label"
                 viewport:
                     mousewheel True
                     has vbox
                     style_group "proper_stats"
                     python:
-                        s_old = set(s.name for s in list(eqtarget.attack_skills) + list(eqtarget.magic_skills))
+                        s_old = set(s.name for s in list(eqt.attack_skills) + list(eqt.magic_skills))
                         s_new = set(s.name for s in list(dummy.attack_skills) + list(dummy.magic_skills))
                         temp = s_new.difference(s_old)
-                        temp = sorted(list(temp)) 
+                        temp = sorted(list(temp))
                     if temp:
                         for skill in temp:
                             frame:
                                 xpadding 3
-                                text u'{color=#43CD80}%s'%skill.capitalize() size 16 
-                                    
+                                text u'{color=#43CD80}%s'%skill size 16
+
                     python:
                         s_old = set(s.name for s in list(dummy.attack_skills) + list(dummy.magic_skills))
-                        s_new = set(s.name for s in list(eqtarget.attack_skills) + list(eqtarget.magic_skills))
+                        s_new = set(s.name for s in list(eqt.attack_skills) + list(eqt.magic_skills))
                         temp = s_new.difference(s_old)
                         temp = sorted(list(temp))
                     if temp:
@@ -533,28 +776,16 @@ screen char_equip():
                             frame:
                                 xalign 0.98
                                 xpadding 3
-                                text u'{color=#CD4F39}%s'%skill.capitalize() size 16 yalign 0.5
-                    
-                    
-        elif not tt.value and eqtarget.status == "slave":
-            text (u"{color=[gold]}[eqtarget.name]{/color}{color=#ecc88a}  is Slave%s" % t) size 14 align (0.55, 0.65) font "fonts/TisaOTM.otf" line_leading -5
-        elif not tt.value and eqtarget.status == "free":
-            text (u"{color=[gold]}[eqtarget.name]{/color}{color=#ecc88a}  is Free%s" % t) size 14 align (0.55, 0.65) font "fonts/TisaOTM.otf" line_leading -5
-        
-        #if isinstance(tt.value, BE_Action):
-            #$ element = tt.value.get_element()
-            #if element:
-                #fixed:
-                    #xysize (80, 80)
-                    #yalign 0.5
-                    #if element.icon:
-                        #$ img = ProportionalScale(element.icon, 70, 70)
-                        #add img align (0.5, 0.5)
-            #text tt.value.desc style "content_text" size 18 color "#ecc88a" yalign 0.1
-        
-        elif tt.value:
-            text "{color=#ecc88a}%s"%tt.value size 14 align (0.5, 0.5) font "fonts/TisaOTM.otf" line_leading -5
-            
+                                text u'{color=#CD4F39}%s'%skill size 16 yalign 0.5
+        elif not tt.value:
+            if isinstance(eqtarget, PytGroup):
+                text (u"{color=#ecc88a}%s" % t) size 14 align (0.55, 0.65) font "fonts/TisaOTM.otf" line_leading -5
+            elif eqtarget.status == "slave":
+                text (u"{color=[gold]}[eqtarget.name]{/color}{color=#ecc88a}  is Slave%s" % t) size 14 align (0.55, 0.65) font "fonts/TisaOTM.otf" line_leading -5
+            elif eqtarget.status == "free":
+                text (u"{color=[gold]}[eqtarget.name]{/color}{color=#ecc88a}  is Free%s" % t) size 14 align (0.55, 0.65) font "fonts/TisaOTM.otf" line_leading -5
+
+
     # Right Frame Buttons ====================================>
     vbox:
         pos (931, 118)
@@ -566,7 +797,7 @@ screen char_equip():
             spacing 100
             button:
                 xsize 70
-                action SelectedIf(eqtarget == hero or inv_source == hero), If(eqtarget != hero, true=[SetVariable("inv_source", hero), Function(eqtarget.inventory.apply_filter, hero.inventory.slot_filter), Return(['con', 'return']), With(dissolve)]) 
+                action SelectedIf(eqtarget == hero or inv_source == hero), If(eqtarget != hero, true=[SetVariable("inv_source", hero), Function(eqtarget.inventory.apply_filter, hero.inventory.slot_filter), Return(['con', 'return']), With(dissolve)])
                 hovered tt.Action("Equip from [hero.nickname]'s Inventory")
                 text "Hero" style "pb_button_text"
             button:
@@ -574,12 +805,12 @@ screen char_equip():
                 action SelectedIf(inv_source != hero), SensitiveIf(eqtarget != hero), If(eqtarget != hero, true=[SetVariable("inv_source", eqtarget), Function(eqtarget.inventory.apply_filter, hero.inventory.slot_filter), Return(['con', 'return']), With(dissolve)])
                 hovered tt.Action("Equip from [eqtarget.nickname]'s Inventory")
                 text "Girl" style "pb_button_text"
-        button:
+        button: # TODO: remove
             xalign 0.5
             xysize (110, 30)
-            action If(eqtarget != hero, true=Show("chars_list1"))
-            text "Girls List" style "pb_button_text"
-            
+            action If(eqtarget != hero, true=Return(["auto_discard"]))
+            text "Auto discard" style "pb_button_text"
+
     # Auto-Equip/Item Transfer Buttons and Paging: ================>
     frame:
         background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.7)
@@ -588,22 +819,26 @@ screen char_equip():
         has vbox spacing 1 xalign 0.5
         hbox:
             button:
-                xysize (140, 30)
+                xysize (110, 30)
                 action Return(["equip_for"])
-                text "Auto Equip" style "pb_button_text"
+                text "Auto equip" style "pb_button_text"
             button:
-                xysize (140, 30)
+                xysize (110, 30)
+                action Return(["unequip_all"])
+                text "Unequip all" style "pb_button_text"
+            button:
+                xysize (110, 30)
                 action If(eqtarget != hero, true=Return(["jump", "item_transfer"]))
-                text "Items Transfer" style "pb_button_text"
+                text "Exchange" style "pb_button_text"
         use paging(ref=inv_source.inventory, use_filter=False, xysize=(250, 20), align=(0.5, 0.5))
-        
+
     # Filters: ====================================>
     hbox:
         pos (935, 268)
         box_wrap True
         style_group "dropdown_gm"
         xsize 340
-        spacing 2 
+        spacing 2
         for filter in inv_source.inventory.filters:
             frame:
                 xpadding 0
@@ -624,63 +859,27 @@ screen char_equip():
                     selected_hover Transform(img_selected, alpha=1.15)
                     action [Function(inv_source.inventory.apply_filter, filter), SelectedIf(filter == inv_source.inventory.slot_filter)], With(dissolve)
                     focus_mask True
-        
+
     # Inventory: ====================================>
     frame:
         pos (931, 372)
         background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.7)
         use items_inv(char=inv_source, main_size=(333, 333), frame_size=(80, 80), return_value=['item', 'equip'])
-        
+
     # BASE FRAME 1 "top layer" ====================================>
     add "content/gfx/frame/h1.png"
-    
+
     imagebutton:
         pos (178, 70)
         idle im.Scale("content/gfx/interface/buttons/close2.png", 35, 35)
         hover im.Scale("content/gfx/interface/buttons/close2_h.png", 35, 35)
         action Return(['control', 'return'])
         hovered tt.Action("Return to previous screen!")
-    
-screen chars_list1(source=None, page=0, total_pages=1):
-    modal True
-    zorder 1
-    
-    key "mousedown_3" action Hide("chars_list1")
-    
-    frame:
-        at fade_in_out()
-        background Transform(Frame(im.MatrixColor("content/gfx/frame/Mc_bg3.png", im.matrix.brightness(-0.2)), 5, 5), alpha=0.3)
-        xysize (710, 295)
-        align (0.39, 0.998)
-        vbox:
-            align (0.5, 0.0)
-            hbox:
-                style_group "pb"
-                align (0.5, 0.0)
-                xfill True
-                button:
-                    align (0.5, 0.0)
-                    xysize (100, 30)
-                    action Return(["equip_for"])
-                    text "Team" style "pb_button_text"
-                button:
-                    align (0.5, 0.0)
-                    xysize (100, 30)
-                    action Return(["equip_for"])
-                    text "Status" style "pb_button_text"
-                imagebutton:
-                    #xoffset 9
-                    yoffset -3
-                    align (1.0, 0.0)
-                    idle ("content/gfx/interface/buttons/close3.png")
-                    hover ("content/gfx/interface/buttons/close3_h.png")
-                    action Hide("chars_list1")
-                
-                    
+
 screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="content", mc_mode=False, tt=None):
-    
+
     key "mousedown_3" action Return(['con', 'return'])
-    
+
     # One of the most difficult code rewrites I've ever done (How Gismo aligned everything in the first place is a work of (weird and clumsy) art...):
     # Recoding this as three vertically aligned HBoxes...
     if item:
@@ -689,7 +888,7 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
         fixed:
             style_prefix "proper_stats"
             xysize size
-            
+
             # Top HBox: Discard/Close buttons and the Item ID:
             hbox:
                 align .5, .0
@@ -713,18 +912,18 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                     action Return(['con', 'return'])
                     if tt:
                         hovered tt.Action("Close item info")
-            
+
             # Separation Strip (Outside of alignments):
             label ('{color=#ecc88a}--------------------------------------------------------------------------------------------------') xalign .5 ypos 25
             label ('{color=#ecc88a}--------------------------------------------------------------------------------------------------') xalign .5 ypos 163
-            
+
             # Mid HBox:
             hbox:
                 xsize xs
                 xalign .5
                 ypos 47
                 spacing 5
-                
+
                 # Left Items Info:
                 frame:
                     xalign .02
@@ -765,13 +964,13 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                             label ('{color=#F5F5DC}{size=-4}{color=#FFAEB9}%s'%item.sex.capitalize()) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                         elif item.sex == 'unisex':
                             label ('{color=#F5F5DC}{size=-4}%s'%item.sex.capitalize()) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
-                
+
                 # Buttons and image:
                 button:
                     style_group "pb"
                     align (0.0, 0.5)
                     xysize (80, 45)
-                    action SensitiveIf(eqtarget != hero), Return(['item', 'transfer'])
+                    action SensitiveIf(eqtarget != hero and ((eqtarget.inventory[item] > 0 and inv_source == eqtarget) or (hero.inventory[item] > 0 and inv_source == hero))), Return(['item', 'transfer'])
                     if eqtarget == hero:
                         hovered tt.Action("Disabled")
                         text "Disabled" style "pb_button_text" align (0.5, 0.5)
@@ -781,13 +980,13 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                     else:
                         text "Give to\n {color=#FFA54F}[hero.nickname]{/color}" style "pb_button_text" align (0.5, 0.5) line_leading 3
                         hovered tt.Action("Transfer {} from {} to {}".format(item.id, eqtarget.nickname, hero.nickname))
-                        
+
                 frame:
                     align (0.5, 0.5)
                     background Frame("content/gfx/frame/frame_it2.png", 5, 5)
                     xysize (120, 120)
                     add (ProportionalScale(item.icon, 100, 100)) align(0.5, 0.5)
-                    
+
                 if item_direction == 'unequip':
                     $ temp = "Unequip"
                     $ temp_msg = "Unequip {}".format(item.id)
@@ -804,9 +1003,12 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                     xysize (80, 45)
                     if tt:
                        hovered tt.Action(temp_msg)
-                    action SensitiveIf(focusitem and can_equip(focusitem, eqtarget)), Return(['item', 'equip/unequip'])
-                    text "[temp]" style "pb_button_text" align (0.5, 0.5)
-                    
+                    action SensitiveIf(focusitem), Return(['item', 'equip/unequip'])
+                    if item_direction == 'equip' and not can_equip(focusitem, eqtarget):
+                        text "[temp]" style "pb_button_text" align (0.5, 0.5) color red strikethrough True
+                    else:
+                        text "[temp]" style "pb_button_text" align (0.5, 0.5)
+
                 # Right items info (Stats):
                 frame:
                     xalign 0.98
@@ -828,7 +1030,7 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                                         text (u'{color=#F5F5DC}%s' % stat.capitalize()) size 15 xalign 0.02 yoffset -2
                                         label (u'{color=#F5F5DC}{size=-4}[value]') align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                             null height 3
-                            
+
                         if item.max:
                             label ('Max:') text_size 16 text_color gold xpos 30
                             vbox:
@@ -839,7 +1041,7 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                                         text (u'{color=#F5F5DC}%s'%stat.capitalize()) size 15 xalign 0.02 yoffset -2
                                         label (u'{color=#F5F5DC}{size=-4}[value]') align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
                             null height 3
-                            
+
                         if item.min:
                             label ('Min:') text_size 16 text_color gold xpos 30
                             vbox:
@@ -849,7 +1051,49 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                                         xysize (172, 18)
                                         text (u'{color=#F5F5DC}%s'%stat.capitalize()) size 15 xalign 0.02 yoffset -2
                                         label (u'{color=#F5F5DC}{size=-4}%d'%value) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
-                
+                        if hasattr(item, 'mtemp'):
+                            if item.mtemp:
+                                label ('Frequency:') text_size 16 text_color gold xpos 30
+                                vbox:
+                                    frame:
+                                        xysize (172, 18)
+                                        if hasattr(item, 'mreusable'):
+                                            if item.mreusable:
+                                                if item.mtemp > 1:
+                                                    text (u'{color=#F5F5DC}Every %d days'%item.mtemp) size 15 xalign 0.02 yoffset -2
+                                                else:
+                                                    text (u'{color=#F5F5DC}Every day') size 15 xalign 0.02 yoffset -2
+                                            else:
+                                                if item.mtemp > 1:
+                                                    text (u'{color=#F5F5DC}After %d days'%item.mtemp) size 15 xalign 0.02 yoffset -2
+                                                else:
+                                                    text (u'{color=#F5F5DC}After one day') size 15 xalign 0.02 yoffset -2
+                                    if hasattr(item, 'mdestruct'):
+                                        if item.mdestruct:
+                                            frame:
+                                                xysize (172, 18)
+                                                text (u'{color=#F5F5DC}Disposable') size 15 xalign 0.02 yoffset -2
+                                    if hasattr(item, 'mreusable'):
+                                        if item.mreusable:
+                                            frame:
+                                                xysize (172, 18)
+                                                text (u'{color=#F5F5DC}Reusable') size 15 xalign 0.02 yoffset -2
+                                    if hasattr(item, 'statmax'):
+                                        if item.statmax:
+                                            frame:
+                                                xysize (172, 18)
+                                                text (u'{color=#F5F5DC}Stat limit') size 15 xalign 0.02 yoffset -2
+                                                label (u'{color=#F5F5DC}{size=-4}%d'%item.statmax) align (0.98, 0.5) text_outlines [(1, "#3a3a3a", 0, 0)]
+                        if hasattr(item, 'ctemp'):
+                            if item.ctemp:
+                                label ('Duration:') text_size 16 text_color gold xpos 30
+                                frame:
+                                    xysize (172, 18)
+                                    if item.ctemp > 1:
+                                        text (u'{color=#F5F5DC}%d days'%item.ctemp) size 15 xalign 0.02 yoffset -2
+                                    else:
+                                        text (u'{color=#F5F5DC}One day') size 15 xalign 0.02 yoffset -2
+
             # Bottom HBox: Desc/Traits/Effects/Skills:
             hbox:
                 yalign 1.0
@@ -859,7 +1103,7 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                     xysize 158, 104
                     padding 2, 3
                     has viewport draggable True mousewheel True
-                    
+
                     # Traits:
                     vbox:
                         style_group "proper_stats"
@@ -873,18 +1117,18 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                                     add "content/gfx/interface/images/remove.png"  yalign .5 yoffset -2
                                 null width 4
                                 label ('Traits:') text_size 14 text_color gold
-                                
+
                             for trait in item.addtraits:
                                 frame:
                                     xalign .1
                                     xpadding 2
-                                    text (u'{color=#43CD80}%s'%trait.capitalize()) size 15 align .5, .5
+                                    text (u'{color=#43CD80}%s'%trait) size 15 align .5, .5
                             for trait in item.removetraits:
                                 frame:
                                     xalign 0.9
                                     xpadding 2
-                                    text (u'{color=#CD4F39}%s'%trait.capitalize()) size 15 align .5, .5
-                                
+                                    text (u'{color=#CD4F39}%s'%trait) size 15 align .5, .5
+
                         # Effects:
                         if item.addeffects or item.removeeffects:
                             null height 5
@@ -896,25 +1140,25 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                                     add "content/gfx/interface/images/remove.png"  yalign .5 yoffset -2
                                 null width 4
                                 label ('Effects:') text_size 14 text_color gold xoffset 7
-    
+
                             for effect in item.addeffects:
                                 frame:
                                     xalign .1
                                     xpadding 2
-                                    text (u'{color=#43CD80}%s'%effect.capitalize()) size 15 align .5, .5
+                                    text (u'{color=#43CD80}%s'%effect) size 15 align .5, .5
                             for effect in item.removeeffects:
                                 frame:
                                     xalign 0.9
                                     xpadding 2
-                                    text (u'{color=#CD4F39}%s'%effect.capitalize()) size 15 align .5, .5
-                
+                                    text (u'{color=#CD4F39}%s'%effect) size 15 align .5, .5
+
                 frame:
                     xysize 382, 104
                     padding 10, 5
                     background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.1)), 5, 5), alpha=0.9)
                     has viewport draggable True mousewheel True
                     text '[item.desc]' font "fonts/TisaOTM.otf" size 15 color "#ecc88a" outlines [(1, "#3a3a3a", 0, 0)]
-                    
+
                 frame:
                     background Transform(Frame(im.MatrixColor("content/gfx/frame/p_frame5.png", im.matrix.brightness(-0.05)), 5, 5), alpha=0.9)
                     xysize 158, 104
@@ -932,19 +1176,66 @@ screen char_equip_item_info(item=None, char=None, size=(635, 380), style_group="
                                     add "content/gfx/interface/images/remove.png" yalign .5 yoffset -2
                                 null width 4
                                 label ('Skills:') text_size 14 text_color gold xoffset 7
-                                    
+
                             for skill in item.add_be_spells:
                                 frame:
                                     xalign .1
                                     xpadding 2
-                                    text (u'{color=#43CD80}%s'%skill.capitalize()) size 15 align .5, .5
+                                    text (u'{color=#43CD80}%s'%skill) size 15 align .5, .5
                             for skill in item.remove_be_spells:
                                 frame:
                                     xalign 0.9
                                     xpadding 2
-                                    text (u'{color=#CD4F39}%s'%skill.capitalize()) size 15 align .5, .5
-                                                        
-                                                        
+                                    text (u'{color=#CD4F39}%s'%skill) size 15 align .5, .5
+
+    elif not isinstance(eqtarget, PytGroup): # equipment saves
+        frame:
+            style_prefix "proper_stats"
+            background Null()
+            left_padding 66
+            hbox:
+                for i in range(0, 3):
+                    vbox:
+                        frame:
+                            xpadding -50
+                            background Null()
+                            hbox:
+                                button:
+                                    xysize (90, 30)
+                                    action SelectedIf(eqsave[i] and any(eqtarget.eqsave[i].values())), ToggleDict(eqsave, i), With(dissolve)
+                                    hovered tt.Action("Save [eqtarget.nickname]'s equipment state")
+                                    text "Outfit %d" % (i + 1) style "pb_button_text"
+                                button:
+                                    align (0.5, 0.5)
+                                    xysize (30, 30)
+                                    action Function(eqtarget.eqsave.__setitem__, i, eqtarget.eqslots.copy()), SetDict(eqsave, i, True), With(dissolve)
+                                    text u"\u2193"
+                                    padding (9, 1)
+                                    if tt:
+                                        hovered tt.Action("Save equipment state")
+                                if any(eqtarget.eqsave[i].values()):
+                                    button:
+                                        align (0.5, 0.5)
+                                        xysize (30, 30)
+                                        action Function(eqtarget.load_equip, eqtarget.eqsave[i]), With(dissolve)
+                                        text u"\u2191"
+                                        padding (9, 1)
+                                        if tt:
+                                            hovered tt.Action("Load equipment state")
+                                    button:
+                                        align (0.5, 0.5)
+                                        xysize (30, 30)
+                                        action Function(eqtarget.eqsave.__setitem__, i, {k: False for k in eqtarget.eqslots}), SetDict(eqsave, i, False), With(dissolve)
+                                        text u"\u00D7"
+                                        padding (8, 1)
+                                        if tt:
+                                            hovered tt.Action("Discard equipment state")
+                        frame:
+                            xysize (234, 246)
+                            background Null()
+                            if eqsave[i] and any(eqtarget.eqsave[i].values()):
+                                use eqdoll(active_mode=True, char=eqtarget.eqsave[i], scr_align=(0.98, 1.0), return_value=['item', "save"], txt_size=17, fx_size=(304, 266))
+
 screen diff_item_effects(char, dummy):
     zorder 10
     textbutton "X":
@@ -955,7 +1246,7 @@ screen diff_item_effects(char, dummy):
         background Solid("#F00", alpha=0.1)
         align (0.1, 0.5)
         has hbox
-        
+
         vbox:
             text "Stats:"
             for stat in char.stats:

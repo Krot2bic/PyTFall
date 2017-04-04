@@ -7,6 +7,12 @@ init -997: # Transforms:
         
     transform mid_left:
         align (0.25, 1.0)
+        
+    transform center_right:
+        align (0.95, 0.5)
+        
+    transform center_left:
+        align (0.05, 0.5)
     
     # Other Transforms:
     transform move_to_pos_with_offset(pos, t):
@@ -372,6 +378,22 @@ init -997: # Transforms:
             linear t offset(renpy.random.randint(*random_range), renpy.random.randint(*random_range))
         repeat
         
+    transform vertical_damage_shake(t, random_range, delay=0): # earthquake-like vertical shaking for some earth spells
+        subpixel True
+        offset (0, 0)
+        pause delay
+        choice:
+            linear t offset(0, renpy.random.randint(*random_range))
+        choice:
+            linear t offset(0, renpy.random.randint(*random_range))
+        choice:
+            linear t offset(0, renpy.random.randint(*random_range))
+        choice:
+            linear t offset(0, renpy.random.randint(*random_range))
+        choice:
+            linear t offset(0, renpy.random.randint(*random_range))
+        repeat
+        
     transform battle_bounce(pos):
         alpha 1
         pos pos # Initial position.
@@ -480,6 +502,11 @@ init -997: # Transforms:
         parallel:
             easeout_bounce 0.1 yoffset 10
             easeout_bounce 0.1 yoffset 0
+            
+    transform blowing_wind():
+        easeout_bounce .1 xzoom -1.0 xanchor 0.1 xoffset 20
+        easeout_bounce .1 xzoom 1.0 xanchor 0.0 xoffset 0
+        repeat
         
     transform shake(dt=.4, dist=128):
         function renpy.curry(_shake_function)(dt=dt,dist=dist)

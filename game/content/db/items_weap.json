@@ -70,7 +70,7 @@
     "infinite": false,
     "slot": "weapon",
     "type": "dagger",
-    "attacks": ["Ice Dagger Attack", "Ice Break", "Ice Dagger Attack 3X"],
+    "attacks": ["Ice Strike", "Ice Break", "Ice Strike 3X"],
     "max": {"attack": 25, "magic": 5},
     "mod": {"attack": 10, "magic": 5},
     "locations": ["Exploration"]
@@ -419,7 +419,7 @@
     },
     {
     "id": "Imperial Short Sword",
-    "desc": "It is a standard short sword which is given to recruits in Imperial army. Being covered with a shield, you can be quite dangerous opponent.",
+    "desc": "A standard short sword which is given to recruits in Imperial army. Being covered with a shield, you can be quite dangerous opponent.",
     "icon": "content/items/else/imperial/iss2.png",
     "price": 250,
     "sex": "unisex",

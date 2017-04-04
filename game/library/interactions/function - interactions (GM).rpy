@@ -1,4 +1,164 @@
 init -11 python:
+    def throw_a_normal_dice(): # throwing a classic dice
+        i = randint(1, 6)
+        return i
+        
+    def dice_poker_calculate(dice_list): # check combinations for dice poker and calculate relative scores based on them
+        counter = collections.Counter(dice_list)
+        if len(counter) == 1:
+            return ["Five-of-a-Kind", 8] # all dices are the same
+        elif len(counter) == 2: # two groups of the same number
+            if 4 in counter.values():
+                return ["Four-of-a-Kind", 7] # 4 of 5 are equal
+            else:
+                return ["Full House", 6] # pair of one value and Three-of-a-Kind of another
+        elif len(counter) == 3:
+            if 3 in counter.values(): # three dice showing the same value
+                return ["Three-of-a-Kind", 3]
+            else: 
+                return ["Two Pairs", 2] # two pairs of dice showing the same value
+        elif len(counter) == 4: # one pair
+            return ["One Pair", 1]
+        else:
+            checking_list = [2, 3, 4, 5, 6]
+            result = list(i for i in dice_list if i in checking_list)
+            if len(result) == 5:
+                return ["Six High Straight", 5] # dice showing values from 2 through 6, inclusive
+            else:
+                checking_list = [1, 2, 3, 4, 5]
+                result = list(i for i in dice_list if i in checking_list)
+                if len(result) == 5:
+                    return ["Five High Straight", 4] # dice showing values from 1 through 5, inclusive
+        return ["Nothing", 0] # all checks failed, no combinations
+        
+    def dice_poker_ai_decision(dice_1, dice_2): # handles ai logic in poker
+        counter = collections.Counter(dice_1)
+        
+        if len(counter) == 1: # Five-of-a-Kind
+        # if ai wins, no throws are needed; if ai loses, nothing can be done anyway since you need at least 5 throws to get a better hand
+            return 0
+            
+        if len(counter) == 2: # two groups of the same number
+            if 4 in counter.values(): # Four-of-a-Kind; at this point it won't hurt to try getting Five-of-a-Kind
+                result_1 = list(k for k, v in counter.iteritems() if v == 1) # we find the single left dice value
+                result = dice_1.index(result_1[0]) + 1 # and return its index
+                return result
+            else: # Full House
+                if dice_poker_decide_winner(dice_1, dice_2) in [1, 0]: # ai already has good hand
+                    return 0
+                else: # if not then it throws the lesser dice in hopes to get a good Four-of-a-Kind
+                    i = min(counter.keys())
+                    result = dice_1.index(i) + 1
+                    return result
+                    
+        # here we check Straights, since they are more important than combinations below
+        
+        checking_list = [2, 3, 4, 5, 6]
+        result = result_1 = []
+        for i in dice_1:
+            if i in checking_list and not (i in result):
+                result.append(i)
+        if len(result) == 5: # Six High Straight; at this point it's guaranteed win or lose, since Full House will need 4 throws at least
+            return 0
+                
+        checking_list = [1, 2, 3, 4, 5]
+        result = result_1 = []
+        for i in dice_1:
+            if i in checking_list and not (i in result):
+                result.append(i)
+        if len(result) == 5: # Five High Straight
+            if dice_poker_decide_winner(dice_1, dice_2) in [1, 0]: # ai already has good hand
+                return 0
+            else: # if not than going for Six High Straight is the only chance, which means turning 1 to 6 ie throwing the lesser dice
+                i = min(counter.keys())
+                result = dice_1.index(i) + 1
+                return result
+        
+        # if we are here, it means no Straights exist, but now we should check if just one throw can change it
+        
+        checking_list = [2, 3, 4, 5, 6]
+        result = result_1 = []
+        for i in dice_1:
+            if i in checking_list and not (i in result):
+                result.append(i)
+        if len(result) == 4: # no pairs and one wrong dice for High Straight, like [1, 3, 4, 5, 6]; we should throw the wrong one ie 1
+            for i in dice_1:
+                if i in checking_list:
+                    result_1.append(i)
+                    checking_list.remove(i)
+            result = dice_1.index(result_1[0]) + 1
+            return result
+            
+        checking_list = [1, 2, 3, 4, 5]
+        result = result_1 = []
+        for i in dice_1:
+            if i in checking_list and not (i in result):
+                result.append(i)
+        if len(result) == 4:
+            for i in dice_1:
+                if i in checking_list:
+                    result_1.append(i)
+                    checking_list.remove(i)
+            result = dice_1.index(result_1[0]) + 1
+            return result
+                    
+        # if we are here, no Straights are available, so we continue with other combinations
+                    
+        if len(counter) == 3:  # either Three-of-a-Kind or Two Pairs, it doesn't matter for ai, it just throws a single dice
+            result_1 = list(k for k, v in counter.iteritems() if v == 1)
+            random.shuffle(result_1)
+            result = dice_1.index(result_1[0]) + 1
+            return result
+            
+        if len(counter) == 4: # one pair; we already checked for High Straight combinations, so it only can be improved by making it Three-of-a-Kind
+            result_1 = list(k for k, v in counter.iteritems() if v == 1)
+            random.shuffle(result_1)
+            result = dice_1.index(result_1[0]) + 1
+            return result
+
+                
+        # if we are here, there is no combinations at all; so ai just throws a dice with min value
+        result_1 = min(dice_1)
+        result = dice_1.index(result_1[0]) + 1
+        return result
+            
+    def dice_poker_decide_winner(dice_1, dice_2): # returns 1 if dice_1 is winner, 2 if dice_2 is winner, 0 if it's a draw
+        score_1 = dice_poker_calculate(dice_1)[1]
+        score_2 = dice_poker_calculate(dice_2)[1]
+        if score_1 > score_2:
+            return 1
+        elif score_2 > score_1:
+            return 2
+        else: # if dice combinations give the same scores, we look at dices numbers themselves; the highest one wins
+            if sum(dice_1) > sum(dice_2):
+                return 1
+            elif sum(dice_2) > sum(dice_1):
+                return 2
+            else: return 0
+        
+    def check_if_should_throw_dice(own_dice, other_dice, other_passed): # check how close an enemy to the victory, and based on it either throw (true) or don't (false) dice
+        if own_dice >= 21 or other_dice > 21:
+            return False
+        elif other_passed:
+            if own_dice > other_dice:
+                return False
+            elif own_dice == other_dice:
+                if dice((21-own_dice)*10):
+                    return True
+                else:
+                    return False
+            else:
+                return True
+        elif (21-own_dice) >= 6:
+            return True
+        elif other_dice == 21 and own_dice < 21:
+            return True
+        else:
+            if dice((21-own_dice)*10):
+                return True
+            else:
+                return False
+                
     # Interactions (Girlsmeets Helper Functions):
     def interactions_set_repeating_lines_limit(c): # returns the number of character "patience", ie how many repeating lines she's willing to listen in addition to default value
         if check_lovers(c, hero):
@@ -7,12 +167,20 @@ init -11 python:
             patience = 1
         else:
             patience = 0
-            
+
         if "Well-mannered" in c.traits:
             patience += randint(0,1)
         elif "Ill-mannered" in c.traits:
             patience -= randint(0,1)
         return patience
+        
+    def interactions_drinking_outside_of_inventory(character, count): # allows to raise activation count and become drunk without using real items
+        character.effects['Drunk']['activation_count'] += count
+        if character.effects['Drunk']['activation_count'] >= 35 and not character.effects['Drunk']['active']:
+            character.enable_effect('Drunk')
+        elif character.effects['Drunk']['active'] and character.AP > 0 and not character.effects['Drinker']['active']:
+            character.AP -= 1
+        return
         
     def interactions_flag_count_checker(char_name, char_flag): # this function is used to check how many times a certain interaction was used during the current turn; every interaction should have a unique flag name and call this function after every use
         global day
@@ -21,7 +189,7 @@ init -11 python:
         else:
             char_name.set_flag(char_flag, {"day": day, "times": char_name.flag(char_flag)["times"] + 1})
         return char_name.flag(char_flag)["times"]
-        
+
     def interactions_silent_check_for_bad_stuff(char_name): # we check issues without outputting any lines or doing something else, and just return True/False
         if char_name.effects["Food Poisoning"]['active']:
             return False
@@ -31,9 +199,11 @@ init -11 python:
             return False
         elif (not("Pessimist" in char_name.traits) and char_name.joy <= 25) or (("Pessimist" in char_name.traits) and char_name.joy < 10):
             return False
+        elif char_name.AP <= 0:
+            return False
         else:
             return True
-            
+
     def interactions_check_for_bad_stuff(char_name): # we check major issues when the character will refuse almost anything
         if char_name.effects["Food Poisoning"]['active']:
             char_name.override_portrait("portrait", "indifferent")
@@ -55,7 +225,7 @@ init -11 python:
             char_name.disposition -= randint(5, 15)
             char_name.vitality -= 2
             renpy.jump("girl_interactions_end")
-    
+
     def interactions_check_for_minor_bad_stuff(char_name): # we check minor issues when character might refuse to do something based on dice
         if (not("Pessimist" in char_name.traits) and char_name.joy <= 25) or (("Pessimist" in char_name.traits) and char_name.joy < 10):
             if dice(hero.charisma-char.character) and dice(80):
@@ -80,7 +250,7 @@ init -11 python:
             elif ct("Shy") and dice(50):
                 rc("W-well, I'm a bit tired right now... Maybe some other time...", "Um, I-I don't think I can do it, I'm exhausted. Sorry...")
             elif ct("Imouto"):
-                rc("Noooo, I'm tired. I want to sleep.", "Z-z-z *she falls asleep on the feet*") 
+                rc("Noooo, I'm tired. I want to sleep.", "Z-z-z *she falls asleep on the feet*")
             elif ct("Dandere"):
                 rc("No. Too tired.", "Not enough strength. I need to rest.")
             elif ct("Tsundere"):
@@ -101,7 +271,7 @@ init -11 python:
             char_name.disposition -= randint(0, 1)
             char_name.vitality -= randint(1, 2)
             renpy.jump("girl_interactions")
-            
+
     def interactions_checks_for_bad_stuff_greetings(char_name): # Special beginnings for greetings if something is off, True/False show that sometimes we even will need to skip a normal greeting altogether
         if char_name.effects["Food Poisoning"]['active']:
             char_name.override_portrait("portrait", "indifferent")
@@ -130,7 +300,7 @@ init -11 python:
             return False
         else:
             return False
-            
+
     def rc(*args):
         """
         random choice function
@@ -138,7 +308,7 @@ init -11 python:
         """
         # https://github.com/Xela00/PyTFall/issues/37
         return char.say(choice(list(args)))
-        
+
     def rts(girl, options):
         """
         Get a random string from a random trait that a girl has.
@@ -147,19 +317,19 @@ init -11 python:
         """
         default = options.pop("default", None)
         available = list()
-        
+
         for trait in options.iterkeys():
             if trait in traits:
                 if traits[trait] in girl.traits: available.append(options[trait])
             else:
                 if eval(trait, globals(), locals()): available.append(options[trait])
-        
+
         if not available: trait = default
         else: trait = choice(available)
-        
+
         if isinstance(trait, (list, tuple)): return choice(trait)
         else: return trait
-        
+
     def ec(d):
         # Not used atm.
         """
@@ -181,7 +351,7 @@ init -11 python:
             return True
         else:
             return False
-        
+
     def ct(*args):
         """
         Check traits function.
@@ -189,14 +359,14 @@ init -11 python:
         """
         l = list(traits[i] for i in list(args))
         return any(i in l for i in char.traits)
-        
+
     def co(*args):
         """
         Check occupation
         Checks if any of the occupations belong to the character.
         """
         return ct(*args)
-        
+
     def cgo(*args):
         """
         Checks for General Occupation strings, such as "SIW", "Warrior", "Server", etc.
@@ -206,7 +376,7 @@ init -11 python:
             if hasattr(occ, "occupations"):
                 gen_occs = gen_occs.union(set(occ.occupations))
         return any(i for i in list(args) if i in gen_occs)
-        
+
     def cgochar(char, *args):
         """
         Checks for General Occupation strings, such as "SIW", "Warrior", "Server", etc. Goes with char argument, thus can be used where the game doesn't recognize default "char"
@@ -216,7 +386,7 @@ init -11 python:
             if hasattr(occ, "occupations"):
                 gen_occs = gen_occs.union(set(occ.occupations))
         return any(i for i in list(args) if i in gen_occs)
-        
+
     # Relationships:
     def check_friends(*args):
         friends = list()
@@ -225,7 +395,7 @@ init -11 python:
                 if i != z:
                     friends.append(i.is_friend(z))
         return all(friends)
-        
+
     def set_friends(*args):
         for i in args:
             for z in args:
@@ -237,7 +407,7 @@ init -11 python:
             for z in args:
                 if i != z and z in i.friends:
                     i.friends.remove(z)
-        
+
     def check_lovers(*args):
         lovers = list()
         for i in args:
@@ -257,7 +427,7 @@ init -11 python:
             for z in args:
                 if i != z and z in i.lovers:
                     i.lovers.remove(z)
-                    
+
     # Other:
     def find_les_partners():
         """
@@ -270,7 +440,7 @@ init -11 python:
         for i in chars.values():
             if i.location == char.location:
                 partners.add(i)
-                
+
         # Next figure out if disposition of possible partners towards MC is high enough for them to agree and/or they are lovers of char.
         willing_partners = set()
         for i in partners:
@@ -280,19 +450,27 @@ init -11 python:
                     willing_partners.add(i)
         # @review: (Alex) renamed the function. We are returning all choices, nit just the one partner.
         return willing_partners
-        
-    def interactions_run_gm_anywhere(char, place, background):
-        """           
-        Runs (or doesn't) gm or interactions with the char based on her status; place is where we jump after gm is over
+
+    def interactions_run_gm_anywhere(char, exit, background, custom=False):
         """
-        if chars[char].status == "slave" or not(chars[char].is_available):
+        Runs (or doesn't) gm or interactions with the char based on her status; place is where we jump after gm is over.
+
+        Keyword arguments:
+        custom -- Will not jump to any label internally (default False)
+        """
+        if not isinstance(char, Char):
+            char = chars[char]
+        
+        if custom:
+            gm.start("custom", char, char.get_vnsprite(), exit, background)
+        elif chars[char].status == "slave" or not char.is_available:
             narrator("Nobody's here...")
             renpy.jump(place)
-        elif chars[char] in hero.chars:
-            gm.start("girl_interactions", chars[char], chars[char].get_vnsprite(), place, background)
+        elif char in hero.chars:
+            gm.start("girl_interactions", char, char.get_vnsprite(), exit, background)
         else:
-            gm.start("girl_meets", chars[char], chars[char].get_vnsprite(), place, background)
-            
+            gm.start("girl_meets", char, char.get_vnsprite(), exit, background)
+
     def interactions_prebattle_line(characters):
         """
         Outputs nonrepeatable prebattle lines for provided characters, except hero if s/he was provided.
@@ -327,7 +505,7 @@ init -11 python:
                 character.override_portrait("portrait", "confident")
                 character.say(result)
                 character.restore_portrait()
-                
+
     def interactions_eating_line(characters):
         """
         Outputs nonrepeatable lines during eating for provided characters, except hero if s/he was provided.
@@ -423,8 +601,8 @@ init -11 python:
             n = randint(1,6)
             back = "content/gfx/bg/be/b_city_" + str(n) + ".jpg" # city streets are default backgrounds; always used for hired chars from the characters menu atm.
         return back
-        
-    def run_default_be(enemy_team, slaves=False, background="content/gfx/bg/be/battle_arena_1.jpg", track="random", prebattle=True, death=False):
+
+    def run_default_be(enemy_team, slaves=False, background="content/gfx/bg/be/battle_arena_1.jpg", track="random", prebattle=True, death=False, skill_lvl=float("inf")):
         """
         Launches BE with MC team vs provided enemy team, returns True if MC won and vice versa
         - if slaves == True, slaves in MC team will be inside BE with passive AI, otherwise they won't be there
@@ -435,7 +613,7 @@ init -11 python:
         """
         for member in enemy_team:
             member.controller = BE_AI(member)
-        
+
         your_team = Team(name="Your Team")
         if slaves:
             for member in hero.team:
@@ -449,8 +627,8 @@ init -11 python:
                 if member.status != "slave" or member == hero:
                     your_team.add(member)
             your_team.reset_controller()
-            
-        battle = BE_Core(Image(background), start_sfx=get_random_image_dissolve(1.5), music=track, end_sfx=dissolve, quotes=prebattle)
+
+        battle = BE_Core(Image(background), start_sfx=get_random_image_dissolve(1.5), music=track, end_sfx=dissolve, quotes=prebattle, max_skill_lvl=skill_lvl)
         store.battle = battle
         battle.teams.append(your_team)
         battle.teams.append(enemy_team)
@@ -465,7 +643,7 @@ init -11 python:
                     member.health = 1
                     if member <> hero:
                         member.joy -= randint(5, 15)
-                        
+
         if battle.winner != your_team:
             return False
         else:

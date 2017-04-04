@@ -2,7 +2,6 @@ init:
     image libido_hearth = "content/gfx/interface/icons/heartbeat.png"
 
 init python:
-
     def get_act(character, tags): # copypaste from jobs without the self part, allows to randomly select one of existing tags sets
             acts = list()
             for t in tags:
@@ -19,6 +18,7 @@ init python:
                 act = None
                 
             return act
+            
 # lines for the future male libido
 # You're a little out of juice at the moment, you might want to wait a bit.
 # The spirit is willing, but the flesh is spongy and bruised.
@@ -52,8 +52,9 @@ label interactions_hireforsex: # we go to this label from GM menu hire for sex. 
         $ del m
         $ del n
         jump girl_interactions
-        
-    if char.flag("quest_cannot_be_fucked") == True or ct("Half-Sister"): # cannot hire h-s for that stuff, only seduce, seems reasonable
+
+       
+    if char.flag("quest_cannot_be_fucked") == True or (ct("Half-Sister") and not "Sister Lover" in hero.traits): # cannot hire h-s for that stuff, only seduce, seems reasonable
         call interactions_sex_disagreement
         jump girl_interactions
         
@@ -63,7 +64,7 @@ label interactions_hireforsex: # we go to this label from GM menu hire for sex. 
             $ char.disposition -= randint(15, 35)
             $ char.set_flag("_day_countdown_interactions_blowoff", 2)
             jump girl_interactions_end
-    elif char.vitality <= round(char.get_max("vitality")*0.25): # no sex with low vitality
+    elif char.vitality <= round(char.get_max("vitality")*0.25) or char.AP <= 0: # no sex with low vitality
         call interactions_refused_because_tired
         jump girl_interactions
     $ price = 100 #a placeholder, the price should be close to whore job prices, which are calculated weirdly atm
@@ -158,23 +159,19 @@ label interactions_sex: # we go to this label from GM menu propose sex
     $ interactions_check_for_bad_stuff(char)
     $ interactions_check_for_minor_bad_stuff(char)
     $ m = interactions_flag_count_checker(char, "flag_interactions_sex")
-    $ n = 0
+    $ n = randint(2,3)
     if check_lovers(char, hero):
         $ n += randint(1,2)
     elif check_friends(char, hero):
         $ n += randint(0,1)
-    if (ct("Half-Sister") and char.disposition < 700) or ct("Frigid"):
-        $ n = -1
     elif ct("Nymphomaniac"):
         $ n += 2
 
-    if m > (randint(2,3) + n):
+    if m > n:
         call interactions_too_many_sex_lines
         $ char.disposition -= randint(5,m+5) + randint(1,5)
         if char.joy > 50:
             $ char.joy -= randint(2,4)
-        $ del m
-        $ del n
         jump girl_interactions
     if char.flag("quest_cannot_be_fucked") == True: # a special flag for chars we don't want to be accessible unless a quest will be finished
         call interactions_sex_disagreement
@@ -182,7 +179,7 @@ label interactions_sex: # we go to this label from GM menu propose sex
     if ct("Lesbian") and not ct("Open Minded") and not "Yuri Expert" in hero.traits:
         call interactions_lesbian_refuse_because_of_gender # you can hire them, but they will never do it for free with wrong orientation
         jump girl_interactions
-    if char.vitality < round(char.get_max("vitality")*0.25):
+    if char.vitality < round(char.get_max("vitality")*0.25) or char.AP <= 0:
         call interactions_refused_because_tired
         jump girl_interactions
         
@@ -192,10 +189,8 @@ label interactions_sex: # we go to this label from GM menu propose sex
     else:
         $ disposition_level_for_sex = randint(600, 700) + sub*100 # thus weak willed characters will need from 500 to 600 disposition, strong willed ones from 700 to 800, if there are no other traits that change it
         
-    if ct("Frigid"):
-        $ disposition_level_for_sex += randint(100, 200) # and it's totally possible that with some traits and high character stat the character will never agree, unless lover status is involved
-    elif ct("Nymphomaniac"):
-        $ disposition_level_for_sex -= randint(100, 300)
+    if char.effects['Horny']['active']:
+        $ disposition_level_for_sex -= randint(200, 300)
     
     if char.status == "slave":
         $ disposition_level_for_sex -= randint(50, 100)
@@ -211,6 +206,10 @@ label interactions_sex: # we go to this label from GM menu propose sex
             $ disposition_level_for_sex -= randint(50, 100)
         else:
             $ disposition_level_for_sex += randint(50, 100)
+            
+    if char.flag("flag_int_had_sex_with_mc"):
+        $ disposition_level_for_sex -= 50+char.flag("flag_int_had_sex_with_mc")*10 # the more char does it with MC, the less needed disposition is, despite everything else
+            
     # so normal (without flag) required level of disposition could be from 200 to 1200 for non lovers
     if ct("Open Minded"): # open minded trait greatly reduces the needed disposition level
         $ disposition_level_for_sex -= randint(400, 500)
@@ -274,31 +273,43 @@ label interactions_sex: # we go to this label from GM menu propose sex
     else:
         "She wants to do it in her room."
         show bg girl_room with fade
-        $ sex_scene_location="room"
+        $ sex_scene_location = "room"
     $ picture_before_sex = True
+    
 label interactions_sex_scene_begins: # here we set initial picture before the scene and set local variables
     $ scene_picked_by_character = True # when it's false, there is a chance that the character might wish to do something on her own
     $ sub = check_submissivity(char)
+    
     if picture_before_sex:
         $ get_picture_before_sex(char, location=sex_scene_location)
     
     $ sex_count = guy_count = girl_count = together_count = cum_count = 0 # these variable will decide the outcome of sex scene
     $ max_sex_scene_libido = sex_scene_libido = get_character_libido(char)
+    $ char.AP -= 1
+    
+    if not(char.flag("flag_int_had_sex_with_mc")):
+        $ char.set_flag("flag_int_had_sex_with_mc", 1)
+    else:
+        $ char.set_flag("flag_int_had_sex_with_mc", char.flag("flag_int_had_sex_with_mc")+1)
+        
     call interactions_sex_begins
+    
     jump interaction_scene_choice
 
     
 label interaction_scene_choice: # here we select specific scene, show needed image, jump to scene logic and return here after every scene
-    if sex_scene_libido>0:
+    if sex_scene_libido > 0:
         show screen int_libido_level(sex_scene_libido)
     else:
         hide screen int_libido_level
         show screen int_libido_level_zero
+        
     if char.vitality <=10:
         jump interaction_scene_finish_sex
-    if hero.vitality <= 30:
+    elif hero.vitality <= 30:
         "You are too tired to continue."
         jump interaction_scene_finish_sex
+        
     if char.status == "slave":
         if sex_scene_libido == 0:
             "[char.name] doesn't want to do it any longer. You can force her, but it will not be without consequences."
@@ -316,6 +327,7 @@ label interaction_scene_choice: # here we select specific scene, show needed ima
         if char.vitality < 30:
             "[char.name] is too tired to continue."
             jump interaction_scene_finish_sex
+            
     if not(scene_picked_by_character):
         $ scene_picked_by_character = True
         if dice(sex_scene_libido*10 + 20*sub) and sex_scene_libido > 1: # strong willed and/or very horny characters may pick action on their own from time to time
@@ -338,13 +350,18 @@ label interaction_scene_choice: # here we select specific scene, show needed ima
                 if ct("Virgin"):
                     jump interaction_check_for_virginity
             jump interactions_sex_scene_logic_part
+            
 label interaction_sex_scene_choice:
     if sex_scene_libido>0:
         show screen int_libido_level(sex_scene_libido)
     else:
         hide screen int_libido_level
         show screen int_libido_level_zero
+        
     $ scene_picked_by_character = False
+    
+    if char.effects['Horny']['active']:
+        $ char.disable_effect("Horny")
     menu:
         "What would you like to do now?"
         
@@ -384,15 +401,18 @@ label interaction_sex_scene_choice:
             jump interactions_sex_scene_logic_part
             
         "That's all.":
-            $ del current_action
+            if 'current_action' in locals():
+                $ del current_action
             
 label interaction_scene_finish_sex:
     hide screen int_libido_level
     hide screen int_libido_level_zero
+    
     if sex_scene_libido > 3 and char.vitality >= 50 and ct("Nymphomaniac"):
         $ get_single_sex_picture(char, act="masturbation", location=sex_scene_location, hidden_partner=True)
         "[char.name] is not satisfied yet, so she quickly masturbates right in front of you."
         $ char.disposition -= round(sex_scene_libido*3)
+        
     if (together_count > 0 and sex_count >1) or (sex_count >2 and girl_count >=1 and guy_count >= 1):
         if sex_scene_location == "beach":
             if char.has_image("profile", "beach", exclude=["angry", "sad", "scared", "in pain"]):
@@ -533,6 +553,7 @@ label interaction_scene_finish_sex:
         call interactions_after_normal_sex
         $ char.disposition += randint(10, 20)
         $ char.vitality -= randint(5, 10)
+        
     $ gm.restore_img()
     jump girl_interactions_end
             
@@ -676,6 +697,8 @@ label interactions_sex_scene_logic_part: # here we resolve all logic for changin
     if char.vitality <= 15 and char.health >= 50:
         $ char.health -= 2
     $ sex_count += 1
+    if current_action in ["blow", "tits", "hand", "foot", "vag", "anal"] and "Mana Source" in hero.traits:
+        $ char.mp += int(char.get_max("mp")*0.2)
     if current_action == "mast":
         $ get_single_sex_picture(char, act="masturbation", location=sex_scene_location, hidden_partner=True)
         if sub > 0:
@@ -1361,51 +1384,57 @@ label interactions_sex_disagreement: # the character disagrees to do it
 
 label interaction_check_for_virginity: # here we do all checks and actions with virgin trait when needed
     if ct("Virgin"):
-        if char.status == "slave":
-            if ((cgo("SIW") or ct("Nymphomaniac")) and char.disposition >= 200) or (char.disposition >= 300) or (check_lovers(hero, char)) or (check_friends(hero, char)) or ct("Open Minded"):
-                menu:
-                    "She warns you that this is her first time. She does not mind, but her value at the market might decrease. Do you want to continue?"
-                    "Yes":
-                        call interactions_girl_virgin_line
-                    "No":
-                        if check_lovers(hero, char) or check_friends(hero, char) or char.disposition >= 600:
-                            "You changed your mind. She looks a bit disappointed."
-                        else:
-                            "You changed your mind."
-                        jump interaction_scene_choice
-            else:
-                menu: 
-                    "She tells you that this is her first time, and asks plaintively to do something else instead. You can force her, but it will not be without consequences. Do you want to use force?"
-                    "Yes":
-                        "You violated her."
-                        if char.health >=20:
-                            $ char.health -= 10
-                        else:
-                            $ char.vitality -= 20
-                        if ct("Masochist"):
-                            $ sex_scene_libido += 1
-                            $ char.disposition -= 50
-                        else:
-                            $ char.disposition -= 150
-                            $ char.joy -= 50
-                            $ sex_scene_libido -= 2
-                    "No":
-                        "You agreed to do something else instead. She sighs with relief."
-                        jump interaction_scene_choice
+        if "Illusive" in hero.traits or char.effects['Chastity']['active']:
+            $ current_action = "vag"
+            jump interactions_sex_scene_logic_part
         else:
-            if (check_lovers(hero, char)) or (check_friends(hero, char) and char.disposition >= 600) or ((cgo("SIW") or ct("Nymphomaniac")) and char.disposition >= 250) or (ct("Open Minded") and char.disposition >= 350):
-                menu:
-                    "Looks like this is her first time, and she does not mind. Do you want to continue?"
-                    "Yes":
-                        call interactions_girl_virgin_line
-                    "No":
-                        "You changed your mind. She looks a bit disappointed."
-                        jump interaction_scene_choice
+            if char.status == "slave":
+                if ((cgo("SIW") or ct("Nymphomaniac")) and char.disposition >= 200) or (char.disposition >= 300) or (check_lovers(hero, char)) or (check_friends(hero, char)) or ct("Open Minded"):
+                    menu:
+                        "She warns you that this is her first time. She does not mind, but her value at the market might decrease. Do you want to continue?"
+                        "Yes":
+                            call interactions_girl_virgin_line
+                        "No":
+                            if check_lovers(hero, char) or check_friends(hero, char) or char.disposition >= 600:
+                                "You changed your mind. She looks a bit disappointed."
+                            else:
+                                "You changed your mind."
+                            jump interaction_scene_choice
+                else:
+                    menu: 
+                        "She tells you that this is her first time, and asks plaintively to do something else instead. You can force her, but it will not be without consequences. Do you want to use force?"
+                        "Yes":
+                            "You violated her."
+                            if char.health >=20:
+                                $ char.health -= 10
+                            else:
+                                $ char.vitality -= 20
+                            if ct("Masochist"):
+                                $ sex_scene_libido += 1
+                                $ char.disposition -= 50
+                            else:
+                                $ char.disposition -= 150
+                                $ char.joy -= 50
+                                $ sex_scene_libido -= 2
+                        "No":
+                            "You agreed to do something else instead. She sighs with relief."
+                            jump interaction_scene_choice
             else:
-                "Unfortunately she's still a virgin, and is not ready to pop her cherry yet."
-                jump interaction_scene_choice
+                if (check_lovers(hero, char)) or (check_friends(hero, char) and char.disposition >= 600) or ((cgo("SIW") or ct("Nymphomaniac")) and char.disposition >= 250) or (ct("Open Minded") and char.disposition >= 350):
+                    menu:
+                        "Looks like this is her first time, and she does not mind. Do you want to continue?"
+                        "Yes":
+                            call interactions_girl_virgin_line
+                        "No":
+                            "You changed your mind. She looks a bit disappointed."
+                            jump interaction_scene_choice
+                else:
+                    "Unfortunately she's still a virgin, and is not ready to pop her cherry yet."
+                    jump interaction_scene_choice
         $ char.disposition += 50
         $ char.remove_trait(traits["Virgin"])
+        if "Blood Master" in hero.traits:
+            $ char.enable_effect("Blood Connection")
         if char.health >=15:
             $ char.health -= 10
         else:
