@@ -1,0 +1,19 @@
+[
+    {
+        "id": "black_guard",
+        "name": "Guard",
+        "fullname": "Black Guard",
+        "desc": "A tall, dangerous man in black armor.",
+        "origin": "PyTFall",
+        
+        "base_race": "Human",
+        "gender": "male",
+        "race": "Human",
+        "location": "city",
+        "status": "free",
+        "gold": 100,
+        
+        "basetraits": ["Warrior"]
+        
+    }
+]

@@ -1,0 +1,50 @@
+[
+    {
+    "first_item": "Casual Clothes",
+    "price": 40,
+    "second_item": "Armored Casual Clothes",
+    "location": "Tailor"
+    },
+    {
+    "first_item": "Artisan Outfit",
+    "price": 200,
+    "second_item": "Elite Artisan Outfit",
+    "location": "Tailor"
+    },
+    {
+    "first_item": "Leather Jacket",
+    "price": 600,
+    "second_item": "Altered Leather Jacket",
+    "location": "Tailor"
+    },
+    {
+    "first_item": "Mercenary Clothes",
+    "price": 900,
+    "second_item": "Proper Mercenary Clothes",
+    "location": "Tailor"
+    },
+    {
+    "first_item": "Faerie Gown",
+    "price": 2000,
+    "second_item": "Fae Robe",
+    "location": "Tailor"
+    },
+    {
+    "first_item": "Faerie Cloak",
+    "price": 900,
+    "second_item": "Fae Hood",
+    "location": "Tailor"
+    },
+    {
+    "first_item": "Faerie Boots",
+    "price": 800,
+    "second_item": "Fae Boots",
+    "location": "Tailor"
+    },
+    {
+    "first_item": "Faerie Bracers",
+    "price": 800,
+    "second_item": "Fae Bracers",
+    "location": "Tailor"
+    }
+  ]

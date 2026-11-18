@@ -8,11 +8,6 @@
 ## appropriate.
 
 python early:
-    # These control the name and version of the game, that are reported
-    # with tracebacks and other debugging logs.
-    config.name = "PyTFall"
-    config.version = "0.56 Step by Step..."
-
     #########################################
     ## This is the name of the directory where the game's data is
     ## stored. (It needs to be set early, before any other init code
@@ -23,52 +18,79 @@ python early:
     config.screen_width = 1280
     config.screen_height = 720
 
-init -1000 python hide:
-    ## Should we enable the use of developer tools? This should be
-    ## set to False before the game is released, so the user can't
-    ## cheat using developer tools.
-    config.developer = True
-    config.debug = True
+    # These control the name and version of the game, that are reported
+    # with tracebacks and other debugging logs.
+    config.name = "PyTFall"
+    config.version = '0.72 and take their shit...'
 
+define config.quicksave_slots = 6
+define config.window_icon = "content/gfx/interface/icons/win_icon.png"
+define config.adjust_view_size = None
+define config.image_cache_size_mb = 1250
+define config.debug_image_cache = False
+
+init -999 python:
+    def show_panic_screen_func():
+        if persistent.unsafe_mode:
+            config.window_title = "System Log"
+            config.window_icon = "content/gfx/interface/icons/terminal.png"
+            renpy.game.interface.set_icon()
+            renpy.show_screen("panic_screen")
+            renpy.restart_interaction()
+    config.keymap['panic_screen'] = ['q', 'Q', 'й', 'Й']
+    config.underlay.append(renpy.Keymap(panic_screen=show_panic_screen_func))
+    config.keymap["director"] = []
+
+init python:
+    def hyperlink_styler(link):
+        return style.hyperlink_text
+
+    def hyperlink_clicked(link):
+        return link
+
+    def hyperlink_hovered(link):
+        return link
+
+    style.default.hyperlink_functions = (hyperlink_styler, hyperlink_clicked, hyperlink_hovered)
+    
 init -5 python hide:
+    config.console_history_size = 50
     ## This controls the title of the window, when Ren'Py is
     ## running in a window.
     config.window_title = "%s %s" % (config.name, config.version)
-    config.window_icon = "content/gfx/interface/icons/win_icon.png"
-    config.windows_icon = "content/gfx/interface/icons/win_icon.png"
+    if DEBUG:
+        config.window_title += " @{}".format(renpy.version())
 
     # ----------------------------- Moved from initialization.rpy -------------------------------------->>>
     config.quit_action = Quit()
-    if config.debug:
+    if DEBUG:
         config.keymap['game_menu'] = ["K_ESCAPE"]
     else:
         config.keymap['game_menu'] = []
-
     # Fixing path:
     config.reject_backslash = False
 
     # disabling rollback as not being compatible with games nature
     config.rollback_enabled = False
     config.hard_rollback_limit = 0
-    config.rollback_length = 1
+    config.rollback_length = 0
 
     # Game may bug out on saving, in such case, comment should be removed
     # config.use_cpickle = False
     config.save_dump = False
 
+    config.layers.append("tooltips")
     config.layers.append("pytfall")
-
-    # Imagecache:
-    # config.debug_image_cache = True
-    config.image_cache_size = 80
+    config.layers.append("panic")
 
     # getting rid of auto-saves
     config.has_autosave = False
     config.autosave_frequency = None
-    renpy.config.autosave_on_choice = False
+    config.autosave_on_choice = False
+    config.autosave_on_quit = False
 
     # causes a really odd crash otherwise:
-    config.screenshot_callback = None
+    # config.screenshot_callback = None
 
     # Lets see if we can establish json callback:
     def simple_save_dict(some_dict):
@@ -79,7 +101,9 @@ init -5 python hide:
             some_dict["gold"] = hero.gold
             some_dict["buildings"] = len(hero.buildings)
             try:
-                some_dict["portrait"] = hero.img_db["portrait"][:].pop()
+                img = hero.select_image(hero.id, "portrait")
+                path = "/".join([hero.path_to_imgfolder, img])
+                some_dict["portrait"] = path
             except:
                 pass
     config.save_json_callbacks = [simple_save_dict]
@@ -92,16 +116,24 @@ init -5 python hide:
     # Stop middle click hide menus
     config.keymap["hide_windows"] = None
 
-    # Saves last label in a variable "last_label". Might be useful to jump back to from labels with mulptiple entry points.
+    # kill the new accessibility menu
+    config.keymap["accessibility"] = None
+
+    BLOCKED_LABELS = ["after_load", "save_screen",
+                      "sort_items_for_gameplay",
+                      "sort_traits_for_gameplay"]
+
+    # Saves last label in a variable "last_label". Might be useful to jump back to from labels with multiple entry points.
     def label_callback(name, abnormal):
+        store.last_label_pure = name
+
         if "pytfall" in globals():
-            labels = list(event.label for event in pytfall.world_events.events_cache) # implement as a fixed list on the first sign of delays
+            labels = _list(event.label for event in pytfall.world_events.events_cache)
         else:
-            labels = list()
-        labels.append("after_load")
-        labels.append("save_screen")
-        labels.append("work_in_arena")
-        labels.append("work_in_slavemarket")
+            labels = _list()
+
+        labels.extend(BLOCKED_LABELS)
+
         if not name.startswith("_") and name not in labels:
             store.last_label = name
     config.label_callback = label_callback
@@ -151,12 +183,12 @@ init -5 python hide:
         ## The background of the main menu. This can be a color
         ## beginning with '#', or an image filename. The latter
         ## should take up the full height and width of the screen.
-        mm_root = ImageReference("humans"),
+        # mm_root = ImageReference("humans"),
 
         ## The background of the game menu. This can be a color
         ## beginning with '#', or an image filename. The latter
         ## should take up the full height and width of the screen.
-        gm_root = "content/gfx/bg/gallery.jpg",
+        gm_root = Null(),
 
         ## If this is True, the in-game window is rounded. If False,
         ## the in-game window is square.
@@ -183,12 +215,9 @@ init -5 python hide:
     ## the number is interpreted as a fraction of the size of the
     ## displayable or screen.
 
-    # mm_root = "content/gfx/bg/locations/humans.jpg",
-
     ## The background of the game menu. This can be a color
     ## beginning with '#', or an image filename. The latter
     ## should take up the full height and width of the screen.
-    # gm_root = "content/gfx/bg/gallery.jpg",
 
     #########################################
     ## These let you customize the default font used for text in Ren'Py.
@@ -378,12 +407,22 @@ init python:
     ##    Matches psd files anywhere in the project.
 
     ## Classify files as None to exclude them from the built distributions.
-
+    build.classify("game/**.rpyc", None)
     build.classify('**~', None)
     build.classify('**.bak', None)
     build.classify('**/.**', None)
     build.classify('**/#**', None)
     build.classify('**/thumbs.db', None)
+    build.classify('**/chars/**', None)
+    build.classify('**/rchars/**', None)
+    build.classify('**/other/**', None)
+    build.classify('**/_old/**', None)
+    build.classify('**devlog**', None)
+    build.classify("game/cache/", None)
+    build.classify("game/saves/", None)
+    build.classify('**/00debug.rpy', None)
+    build.classify('**/testing.rpy', None)
+    build.classify("game/**.rpy_", None)
 
     ## To archive files, classify them as 'archive'.
 

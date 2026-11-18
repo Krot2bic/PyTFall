@@ -1,0 +1,26 @@
+[
+    {
+        "id": "Peevish",
+        "name": "Peevish",
+        "fullname": "Peevish McSpud",
+        "desc": "A strange Leprechaun living in the forest. He teaches Water and Earth magic.",
+        "origin": "PyTFall",
+        
+        "race": "Elf",
+        "gender": "male",
+        "full_race": "Leprechaun",
+        "location": "city",
+        "status": "free",
+        "gold": 1000,
+        
+        "color": "lawngreen",
+        "what_color": "lawngreen",
+        
+        "basetraits": ["Mage"],
+        
+        "traits": [
+            "Water",
+            "Fire"
+        ]
+    }
+]

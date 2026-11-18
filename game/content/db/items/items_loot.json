@@ -1,0 +1,242 @@
+[
+    {
+    "id": "Old Coins",
+    "desc": "A handful of coins. Coinage is weird, but gold is gold.",
+    "icon": "content/items/loot/coins.png",
+    "price": 50,
+    "chance": 90,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Look around", "Fishing"]
+    },
+    {
+    "id": "Old Purse",
+    "desc": "A purse of coins. Coinage is weird, but gold is gold.",
+    "icon": "content/items/loot/purse.png",
+    "price": 100,
+    "chance": 80,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Old Bag",
+    "desc": "A bag of coins. Coinage is weird, but gold is gold.",
+    "icon": "content/items/loot/bag.png",
+    "price": 150,
+    "chance": 70,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Old Chest",
+    "desc": "A chest of coins. Coinage is weird, but gold is gold.",
+    "icon": "content/items/loot/chest.png",
+    "price": 200,
+    "chance": 60,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Gilded Crown",
+    "desc": "A shiny but rather cheap gilded copper crown.",
+    "icon": "content/items/loot/crown.png",
+    "price": 250,
+    "chance": 55,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Amethyst",
+    "desc": "A purple variety of quartz suitable for use in jewelry.",
+    "icon": "content/items/loot/amethyst.png",
+    "price": 300,
+    "chance": 50,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Topaz",
+    "desc": "A yellow silicate mineral. It's colorless and transparent in pure form but usually tinted by impurities.",
+    "icon": "content/items/loot/topaz.png",
+    "price": 400,
+    "chance": 45,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Apatite",
+    "desc": "Infrequently used as a gemstone, apatites are still quite valuable.",
+    "icon": "content/items/loot/apatite.png",
+    "price": 500,
+    "chance": 40,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Sapphire",
+    "desc": "A commonly used in jewelry deep blue gemstone.",
+    "icon": "content/items/loot/sapphire.png",
+    "price": 600,
+    "chance": 35,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Emerald",
+    "desc": "A fragile green gemstone.",
+    "icon": "content/items/loot/emerald.png",
+    "price": 700,
+    "chance": 30,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Ruby",
+    "desc": "A very hard and beautiful red gemstone.",
+    "icon": "content/items/loot/ruby.png",
+    "price": 800,
+    "chance": 25,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Diamond",
+    "desc": "One of the best-known and most sought-after gemstones with superlative physical qualities.",
+    "icon": "content/items/loot/diamond.png",
+    "price": 1000,
+    "chance": 20,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Gold Ingots",
+    "desc": "Gold bars of high purity.",
+    "icon": "content/items/loot/gold.png",
+    "price": 3000,
+    "chance": 5,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Golden Mask",
+    "desc": "A ceremonial golden mask remained from ancient civilisations.",
+    "icon": "content/items/loot/gm.png",
+    "price": 250,
+    "chance": 75,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Golden Statue",
+    "desc": "A ceremonial golden statue remained from ancient civilisations.",
+    "icon": "content/items/loot/gs.png",
+    "price": 250,
+    "chance": 48,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Golden Piranha",
+    "desc": "A golden statue of extinct predatory fish remained from ancient civilisations.",
+    "icon": "content/items/loot/gp.png",
+    "price": 200,
+    "chance": 30,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Fishing"]
+    },
+    {
+    "id": "Golden God",
+    "desc": "A golden statue of the god of the hunt remained from ancient civilisations.",
+    "icon": "content/items/loot/gg.png",
+    "price": 1500,
+    "chance": 15,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Green Pearl",
+    "desc": "A valuable object produced by living shelled molluscs.",
+    "icon": "content/items/loot/green_pearl.png",
+    "price": 200,
+    "chance": 15,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Diving"]
+    },
+    {
+    "id": "Pink Pearl",
+    "desc": "A valuable object produced by living shelled molluscs.",
+    "icon": "content/items/loot/pink_pearl.png",
+    "price": 150,
+    "chance": 20,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Diving"]
+    },
+    {
+    "id": "Blue Pearl",
+    "desc": "A valuable object produced by living shelled molluscs.",
+    "icon": "content/items/loot/blue_pearl.png",
+    "price": 100,
+    "chance": 25,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Diving"]
+    },
+    {
+    "id": "Black Pearl",
+    "desc": "A valuable object produced by living shelled molluscs.",
+    "icon": "content/items/loot/black_pearl.png",
+    "price": 250,
+    "chance": 10,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Diving"]
+    },
+    {
+    "id": "Pearl",
+    "desc": "A valuable object produced by living shelled molluscs.",
+    "icon": "content/items/loot/pearl.png",
+    "price": 50,
+    "chance": 30,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Diving"]
+    },
+    {
+    "id": "Old Books",
+    "desc": "A pile of old dusty books. Useless for anyone but collectors.",
+    "icon": "content/items/loot/books.png",
+    "price": 5,
+    "chance": 30,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Exploration", "Arena"]
+    },
+    {
+    "id": "Rebels Leaflet",
+    "desc": "A leaflet left from the rebellion. Calls for the overthrow of the slavery system.",
+    "icon": "content/items/loot/leaflet.png",
+    "price": 0,
+    "chance": 0,
+    "slot": "loot",
+    "type": "treasure",
+    "locations": ["Look around"]
+    }
+  ]

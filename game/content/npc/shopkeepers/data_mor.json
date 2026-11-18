@@ -1,0 +1,19 @@
+[
+    {
+        "id": "Mor",
+        "name": "Mor",
+        "fullname": "Mor",
+        "desc": "A local kid, son of a fisherman.",
+        "origin": "PyTFall",
+        
+        "base_race": "Human",
+        "gender": "male",
+        "race": "Human",
+        "height": "short",
+        "location": "city",
+        "status": "free",
+        "gold": 500,
+        
+        "basetraits": ["Mage"]
+    }
+]

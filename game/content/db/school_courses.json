@@ -1,0 +1,328 @@
+{
+    "Beauty": {
+        "desc": "This course focuses on training charisma and refinement.",
+        "image": "Beauty/",
+        "imageMode": "any",
+        "imageTags": [
+            "beauty",
+            "studying"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "charisma", "refinement"
+        ],
+        "secondary": [
+        ]
+    },
+    "BDSM": {
+        "desc": "This course focuses on training constitution. May also improve general sex skill.",
+        "image": "BDSM/",
+        "imageTags": [
+            "bdsm",
+            "bdsm restrained"
+        ],
+        "primary": [
+            "constitution"
+        ],
+        "secondary": [
+            "sex"
+        ]
+    },
+    "Dance": {
+        "desc": "This course focuses on agility and charisma. May also improve constitution and striptease skill.",
+        "image": "Dance/",
+        "imageMode": "any",
+        "imageTags": [
+            "dancing",
+            "stripping",
+            "singing"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "agility", "charisma"
+        ],
+        "secondary": [
+            "strip", "constitution"
+        ]
+    },
+    "Combat": {
+        "desc": "This course focuses on training attack and security. May also improve defense.",
+        "image": "Combat/",
+        "type": "combat",
+        "imageMode": "any",
+        "imageTags": [
+            "battle",
+            "armor",
+            "ninja"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "attack",
+            "security"
+        ],
+        "secondary": [
+            "defence"
+        ]
+    },
+    "Leadership": {
+        "desc": "This course focuses on training management and character.",
+        "image": "Leader/",
+        "imageMode": "any",
+        "imageTags": [
+            "confident",
+            "defiant"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "character",
+            "management"
+        ],
+        "secondary": [
+
+        ]
+    },
+    "Guard": {
+        "desc": "This course focuses on training defence and security. May also improve constitution.",
+        "image": "Combat/",
+        "type": "combat",
+        "imageMode": "any",
+        "imageTags": [
+            "battle",
+            "armor",
+            "ninja"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "defence",
+            "security"
+        ],
+        "secondary": [
+            "constitution"
+        ]
+    },
+    "Kunoichi": {
+        "desc": "This course focuses on training attack and agility. May also improve general sex and security.",
+        "image": "Kunoichi/",
+        "type": "combat",
+        "imageMode": "any",
+        "imageTags": [
+            "ninja",
+            "battle",
+            "exercising"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "attack",
+            "agility"
+        ],
+        "secondary": [
+            "security", "sex"
+        ]
+    },
+
+    "Striptease": {
+        "desc": "This course focuses on training striptease skill and agility. May also improve general sex skill and charisma.",
+        "image": "Strip/",
+        "type": "xxx",
+        "imageTags": [
+            "stripping"
+        ],
+        "primary": [
+            "strip", "agility"
+        ],
+        "secondary": [
+        "sex",
+        "charisma"
+        ]
+    },
+    "Etiquette": {
+        "desc": "This course focuses on refinement. May also improve service and intelligence.",
+        "image": "Etiquette/",
+        "imageMode": "any",
+        "imageTags": [
+            "etiquette",
+            "studying"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "refinement"
+        ],
+        "secondary": [
+            "service",
+            "intelligence"
+        ]
+    },
+    "Maid": {
+        "desc": "This course focuses on maid skills. May also improve character and intelligence.",
+        "image": "Service/",
+        "imageMode": "any",
+        "imageTags": [
+            "maid",
+            "cleaning",
+            "bunny"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "service",
+            "cleaning",
+            "bartending",
+            "refinement"
+        ],
+        "secondary": [
+            "character",
+            "intelligence"
+        ]
+    },
+    "Cleaning": {
+        "desc": "This course focuses on cleaning and service skills, as well as agility and constitution.",
+        "image": "Service/",
+        "imageMode": "any",
+        "imageTags": [
+            "maid",
+            "cleaning",
+            "bunny"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "constitution",
+            "agility",
+            "cleaning",
+            "service"
+        ],
+        "secondary": [
+        ]
+    },
+    "Barmaid": {
+        "desc": "This course focuses on bartending and service skills, intelligence and character. May also improve constitution.",
+        "image": "Service/",
+        "imageMode": "any",
+        "imageTags": [
+            "maid",
+            "cleaning",
+            "waitress",
+            "bunny"
+        ],
+        "noImageTags": [
+            "sex",
+            "nude",
+            "rest"
+        ],
+        "primary": [
+            "bartending",
+            "intelligence",
+            "character",
+            "service"
+        ],
+        "secondary": [
+            "constitution"
+        ]
+    },
+
+    "Oral Sex": {
+        "desc": "This course focuses on training oral sex skills. May also improve general sex skill.",
+        "image": "Oral/",
+        "type": "xxx",
+        "imageMode": "any",
+        "imageTags": [
+            "bc blowjob",
+            "bc lickanus",
+            "bc lickpussy",
+            "2c lickpussy",
+            "2c lickanus"
+        ],
+        "noImageTags": [
+            "rape"
+        ],
+        "primary": [
+            "oral"
+        ],
+        "secondary": [
+            "sex"
+        ]
+    },
+    "Anal Sex": {
+        "desc": "This course focuses on training anal sex skills. May also improve general sex skill.",
+        "image": "Anal/",
+        "type": "xxx",
+        "imageMode": "any",
+        "imageTags": [
+            "2c analfingering",
+            "2c analtoy",
+            "2c anal",
+            "bc analfootjob",
+            "bc analhandjob",
+            "bc toyanal",
+            "bc anal"
+        ],
+        "noImageTags": [
+            "rape"
+        ],
+        "primary": [
+            "anal"
+        ],
+        "secondary": [
+            "sex"
+        ]
+    },
+    "Vaginal Sex": {
+        "desc": "This course focuses on training vaginal sex skills. May also improve general sex skill.",
+        "image": "Vaginal/",
+        "type": "xxx",
+        "imageMode": "any",
+        "imageTags": [
+            "2c lickpussy",
+            "2c vaginaltoy",
+            "2c vaginal",
+            "2c vaginalfingering",
+            "bc vaginalfootjob",
+            "bc vaginalhandjob",
+            "bc toypussy",
+            "bc vaginal"
+        ],
+        "noImageTags": [
+            "rape"
+        ],
+        "primary": [
+            "vaginal"
+        ],
+        "secondary": [
+            "sex"
+        ]
+    }
+}

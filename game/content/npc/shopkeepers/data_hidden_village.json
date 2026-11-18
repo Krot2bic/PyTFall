@@ -1,0 +1,25 @@
+[
+    {
+        "id": "Ren_hidden_village",
+        "name": "Ren",
+        "desc": "One of the kunoichi of the hidden village. She owns the ninja shop.",
+        "origin": "Naruto",
+        
+        "race": "Human",
+        "location": "city",
+        "status": "free",
+        "gold": 1500,
+
+        "color": "red",
+        "what_color": "orange",
+
+        "traits": [
+            "Virgin",
+            "Average Boobs",
+            "Long Legs",
+            "Slim",
+            "Kuudere",
+            "Human"
+        ]
+    }
+]

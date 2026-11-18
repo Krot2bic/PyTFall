@@ -1,0 +1,21 @@
+[
+    {
+        "id": "street_thug",
+        "name": "Thug",
+        "fullname": "Street Thug",
+        "desc": "Just another city thug looking for easy prey in dark alleys.",
+        "origin": "PyTFall",
+        
+        "color": "palevioletred",
+        "what_color": "palevioletred",
+        
+        "base_race": "Human",
+        "gender": "male",
+        "race": "Human",
+        "location": "city",
+        "status": "free",
+        "gold": 250,
+        
+        "basetraits": ["Assassin"]
+    }
+]

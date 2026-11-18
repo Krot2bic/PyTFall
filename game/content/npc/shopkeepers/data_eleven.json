@@ -1,0 +1,20 @@
+[
+    {
+        "id": "Eleven",
+        "name": "Eleven",
+        "desc": "Ancient golem put in charge of Pytfall's archives.",
+        "origin": "PyTFall",
+        
+        "race": "Android",
+        "gender": "male",
+        "full_race": "Golem",
+        "height": "tall",
+        "location": "city",
+        "status": "free",
+        "gold": 5000,
+        "color": "palevioletred",
+        "what_color": "palevioletred",
+        
+        "basetraits": ["Mage"]
+    }
+]

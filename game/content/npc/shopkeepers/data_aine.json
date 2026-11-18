@@ -1,0 +1,29 @@
+[
+    {
+        "id": "Aine",
+        "name": "Aine",
+        "fullname": "Aine McSpud",
+        "desc": "A cute Leprechaun living in the park. She teaches Dark and Light magic",
+        "origin": "PyTFall",
+        
+        "race": "Elf",
+        "gender": "female",
+        "full_race": "Leprechaun",
+        "location": "city",
+        "status": "free",
+        "gold": 1000,
+        
+        "color": "green",
+        "what_color": "azure",
+        
+        "basetraits": ["Mage"],
+        
+        "traits": [
+            "Darkness",
+            "Light",
+            "Average Boobs",
+            "Dandere",
+            "Slim"
+        ]
+    }
+]

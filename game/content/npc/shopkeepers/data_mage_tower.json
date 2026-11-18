@@ -1,0 +1,28 @@
+[
+    {
+        "id": "Angelica_mage_tower",
+        "name": "Angelica",
+        "fullname": "Angelica The Sage",
+        "desc": "A powerful mage established in PyTFall's mage tower.",
+        "origin": "PyTFall",
+        
+        "base_race": "Human",
+        "gender": "female",
+        "race": "Human",
+        "location": "city",
+        "status": "free",
+        "gold": 5000,
+        
+        "color": "cornflowerblue",
+        "what_color": "cornflowerblue",
+        
+        "basetraits": ["Mage"],
+        
+        "traits": [
+            "Ice",
+            "Electricity",
+            "Average Boobs",
+            "Slim"
+        ]
+    }
+]

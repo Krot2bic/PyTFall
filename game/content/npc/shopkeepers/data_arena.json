@@ -1,0 +1,25 @@
+[
+    {
+        "id": "Xeona_arena",
+        "name": "Xeona",
+        "desc": "A veteran arena fighter. She helps other contestants and offers combat training.",
+        "origin": "PytFall",
+        
+        "race": "Human",
+        "location": "city",
+        "status": "free",
+        "gold": 1500,
+
+        "color": "ivory",
+        "what_color": "white",
+
+        "traits": [
+            "Virgin",
+            "Average Boobs",
+            "Long Legs",
+            "Slim",
+            "Kuudere",
+            "Human"
+        ]
+    }
+]

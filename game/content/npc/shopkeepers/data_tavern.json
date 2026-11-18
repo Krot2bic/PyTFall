@@ -1,0 +1,21 @@
+[
+    {
+        "id": "Rita_tavern",
+        "name": "Rita",
+        "fullname": "Rita ",
+        "desc": "A local tavern owner.",
+        "origin": "PyTFall",
+        
+        "base_race": "Human",
+        "gender": "female",
+        "race": "Human",
+        "location": "city",
+        "status": "free",
+        "gold": 2000,
+        
+        "color": "yellow",
+        "what_color": "yellow",
+
+        "basetraits": ["Manager"]
+    }
+]

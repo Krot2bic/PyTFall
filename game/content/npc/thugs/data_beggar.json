@@ -1,0 +1,20 @@
+[
+    {
+        "id": "beggar",
+        "name": "Beggar",
+        "fullname": "Beggar",
+        "desc": "A local kid, living in the streets.",
+        "origin": "PyTFall",
+        
+        "base_race": "Human",
+        "gender": "female",
+        "race": "Human",
+        "height": "short",
+        "location": "city",
+        "status": "free",
+        "gold": 2,
+        
+        "basetraits": ["Mage"]
+
+    }
+]

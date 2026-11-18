@@ -1,0 +1,53 @@
+[{
+                "name": "Slums Apartment",
+                "desc": "Barely livable apartment with storage space, but it's still better than not having any roof over your head at all!",
+                "location": "Flee Bottom",
+                "price": 1000,
+
+                "rooms": 1,
+
+                "tier": 1,
+                "_daily_modifier": 0.10,
+
+                "img": "content/buildings/Rooms/beggar (3).webp"
+        },
+        {
+                "name": "Studio Apartment",
+                "desc": "Comfortable apartment with plenty of storage space!",
+                "location": "Flee Bottom",
+                "price": 5000,
+
+                "rooms": 1,
+
+                "tier": 1,
+                "_daily_modifier": 0.15,
+
+                "img": "content/gfx/bg/buildings/apartment_1.webp"
+        },
+        {
+                "name": "Large Apartment",
+                "desc": "Comfortable apartment with enough living space for three and a large storage area for all of your items!",
+                "location": "Midtown",
+                "price": 10000,
+
+                "rooms": 3,
+
+                "tier": 3,
+                "_daily_modifier": 0.15,
+
+                "img": "content/buildings/Rooms/decent (1).webp"
+        },
+        {
+                "name": "Lux Apartment",
+                "desc": "Enough space for six people and nearly magical restorative effects for all who sleep here.",
+                "location": "Richford",
+                "price": 50000,
+
+                "rooms": 6,
+
+                "tier": 6,
+                "_daily_modifier": 0.25,
+
+                "img": "content/buildings/Rooms/luxury (3).webp"
+        }
+]

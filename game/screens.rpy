@@ -8,10 +8,16 @@
 # http://www.renpy.org/doc/html/screen_special.html#say
 screen say(who, what, side_image=None, two_window=False):
     zorder 10
-    # add Transform(Text("PyTFaLL", style="earthkid", color=black, size=50), alpha=0.6) align (0.6, 0.9)
-    # add Transform(Text("PyTFaLL", style="earthkid", color=azure, size=70), alpha=0.5) align (0.1, 0.95)
-    # add Transform(Text("PyTFaLL", style="earthkid", color=black, size=50), alpha=0.6) align (0.8, 0.98)
-    # add Transform(Text("PyTFaLL", style="earthkid", color=black, size=50), alpha=0.6) align (0.9, 0.9
+    # add Transform(Text("PyTFaLL", style="earthkid", color=black, size=50), alpha=.6) align (0.6, 0.9)
+    # add Transform(Text("PyTFaLL", style="earthkid", color=azure, size=70), alpha=.5) align (0.1, 0.95)
+    # add Transform(Text("PyTFaLL", style="earthkid", color=black, size=50), alpha=.6) align (0.8, 0.98)
+    # add Transform(Text("PyTFaLL", style="earthkid", color=black, size=50), alpha=.6) align (0.9, 0.9
+
+    if block_say:
+        button:
+            background Null()
+            xysize (config.screen_width, config.screen_height)
+            action Return()
 
     # Decide if we want to use the one-window or two-window variant.
     if not two_window:
@@ -62,9 +68,9 @@ screen say(who, what, side_image=None, two_window=False):
                 # add interactions_surprised_tr pos 150, 650 yanchor 1.0
             else:
                 add side_image.say_screen_portrait pos 219, 639 anchor .5, .5
-                
-            
-            if side_image.say_screen_portrait_overlay_mode not in [None] + side_image.UNIQUE_SAY_SCREEN_PORTRAIT_OVERLAYS:
+
+
+            if side_image.say_screen_portrait_overlay_mode not in [None] + STATIC_CHAR.UNIQUE_SAY_SCREEN_PORTRAIT_OVERLAYS:
                 timer .0001 action Function(interactions_portraits_overlay.change, side_image.say_screen_portrait_overlay_mode)
                 add interactions_portraits_overlay
         else:
@@ -72,7 +78,7 @@ screen say(who, what, side_image=None, two_window=False):
             add interactions_portraits_overlay
     else:
         add SideImage() xalign 0.0 yalign 1.0
-        
+
     # Use the quick menu.
     use quick_menu
 
@@ -83,7 +89,7 @@ screen say(who, what, side_image=None, two_window=False):
 # http://www.renpy.org/doc/html/screen_special.html#choice
 
 screen choice(items):
-    
+
     zorder 15
     modal True
 
@@ -94,7 +100,7 @@ screen choice(items):
         vbox:
             style "menu"
             spacing 2
-            
+
             $ item = items[0][0]
             if item in menu_extensions:
                 for cap, act in menu_extensions.build_choices(item):
@@ -105,9 +111,9 @@ screen choice(items):
                             else:
                                 action act
                             style "menu_choice_button_blue"
-    
+
                             text cap style "menu_choice"
-    
+
                     else:
                         text cap style "menu_caption"
 
@@ -119,13 +125,13 @@ screen choice(items):
                         button:
                             action action
                             style "menu_choice_button"
-    
+
                             text caption style "menu_choice"
-                            
+
                     else:
                         text caption style "menu_caption"
-            
-                        
+
+
 init -2:
     $ config.narrator_menu = True
 
@@ -134,9 +140,7 @@ init -2:
 #
 # Screen that's used to display renpy.input()
 # http://www.renpy.org/doc/html/screen_special.html#input
-
 screen input(prompt=""):
-
     window style "input_window":
         has vbox
 
@@ -201,19 +205,61 @@ screen nvl(dialogue, items=None):
 #
 # Screen that's used to display the main menu, when Ren'Py first starts
 # http://www.renpy.org/doc/html/screen_special.html#main-menu
+
+transform patreon_hover(init_alpha=.25):
+    alpha init_alpha additive .4
+    on hover:
+        linear 1.0 alpha 1.0
+    on idle:
+        linear 1.0 alpha .25
+
 screen main_menu():
-    
-    # This ensures that any other menu screen is replaced.
     tag menu
+
     default prereqs = exist(["content/chars/", "content/rchars/"])
-    
+
     default map_options = ["content/gfx/bg/locations/map_buttons/dark/", "content/gfx/bg/locations/map_buttons/bright/", "content/gfx/bg/locations/map_buttons/gismo/"]
-    
+
     # The background of the main menu.
-    # window:
-       # style "mm_root"
     add "bg_main"
-        
+
+    if not renpy.get_screen("credits"):
+        vbox:
+            align (.5, .01)
+            text "Support us on:":
+                at patreon_hover(init_alpha=.4)
+                xalign .5
+                size 22
+                color goldenrod
+                drop_shadow [(1, 2)]
+                drop_shadow_color black
+                antialias True
+            hbox:
+                spacing 60
+                button:
+                    at patreon_hover
+                    xalign .5
+                    xysize (100, 100)
+                    background pscale("content/gfx/interface/icons/credits/x_hole_idle.png", 100, 100)
+                    hover_background pscale("content/gfx/interface/icons/credits/x_hole_hover.png", 100, 100)
+                    action OpenURL('https://www.patreon.com/xelapy')
+                    add At(pscale("content/gfx/interface/icons/credits/patreonlogoorange.png", 100, 25, yalign=1.0), patreon_bounce)
+                # null width 10
+                button:
+                    at patreon_hover
+                    xalign .5
+                    xysize (100, 100)
+                    background pscale("content/gfx/interface/icons/credits/dark_hole_idle.png", 100, 100)
+                    hover_background pscale("content/gfx/interface/icons/credits/dark_hole_hover.png", 100, 100)
+                    action OpenURL('https://www.patreon.com/darkt')
+                    add At(pscale("content/gfx/interface/icons/credits/patreonlogoorange.png", 100, 25, yalign=1.0), patreon_bounce)
+
+    # button:
+        # background "content/gfx/interface/logos/gibc.png"
+        # hover_background im.MatrixColor("content/gfx/interface/logos/gibc.png", im.matrix.brightness(0.10))
+        # action OpenURL('https://mega.nz/#!mxAw0Q5b!F-4-An4oK5TbB9BO5e-M0Elslolrim6t3UxBdGolj-8')
+        # focus_mask True
+        # xysize(350, 342)
     # $ index = map_options.index(persistent.town_path)
     # button:
         # xalign 0
@@ -222,41 +268,38 @@ screen main_menu():
         # style "blue1"
         # text "<->" color black align (0.5, 0.5) size 15
         # action [SetField(persistent, "town_path", map_options[(index + 1) % len(map_options)]), Jump("_save_reload_game")]
-        
-    #add AlphaBlend(Text("PyTFall", size=210, font="fonts/earthkid.ttf"), Frame(Null(), 25, 25),  "fire_logo", alpha=True) align (0.02, 0.02)
 
-    #$ img = ProportionalScale("content/gfx/interface/icons/arena.png", 60, 60)
+    # $ img = ProportionalScale("content/gfx/interface/icons/arena.png", 60, 60)
     #imagebutton:
         #pos (380, 460)
         #idle (img)
         #hover (im.MatrixColor(img, im.matrix.brightness(0.25)))
-        #action Show("credits", transition=ImageDissolve("content/gfx/masks/m02.jpg", 3))
+        #action Show("credits", transition=ImageDissolve("content/gfx/masks/m02.webp", 3))
     if not prereqs:
         frame:
-            background Frame("content/gfx/frame/FrameGP.png", 40, 40)
+            background Frame("content/gfx/frame/frame_gp.webp", 40, 40)
             xanchor 0
             xpos 0.50
             xmaximum 300
             yalign 0.5
-            text ("Resources are missing, the game won't run without. See the instructions on the "+
-                "{a=http://www.pinkpetal.org/index.php?topic=3401.0}{size=15}forum{/size}{/a}. "+
+            text ("Resources are missing, the game won't run without."+
                 "At least one unique character with accompanied .json is required "+
                 "in the\n{i}game/content/chars/{/i} subdirectory of PyTFall as well as "+
                 "one random character .json in the\n"+
                 "{i}game/content/{b}r{/b}chars/{/i} directory.") size 15
     # ===== Animation ===== #
-    
+
     viewport:
         xysize (768, 328)
         pos (514, 100)
         add "mm_clouds" at mm_clouds(768, 0, 50)
         add "mm_clouds" at  mm_clouds(0, -768, 50)
-    
+
     add "eyes" pos (150, 410)
-    #add "logo" pos (980, 250)
-    add "content/gfx/animations/main_menu/logo/logo1.png" pos (980, 250) # static logo
+    # add "logo" pos (980, 250)
+    add "anim_logo" pos (980, 250) # static logo
     add "fog" at fog
-    
+
     # Fire
     viewport:
         xysize (200, 526)
@@ -266,11 +309,10 @@ screen main_menu():
         add "mm_fire" at mm_fire(263, 0, 1.0, 0, 8)
         add "mm_fire" at mm_fire(526, 263, 0, 1, 8)
         add "mm_fire" at mm_fire(426, 163, 0.5, 0, 8)
-        
+
     # The main menu buttons.
-    vbox: 
+    vbox:
         align (0.947, 0.87)
-        #add "miku_dance"
         frame:
             background Null()
             style_group "mmenu"
@@ -278,102 +320,159 @@ screen main_menu():
                 spacing 4
                 textbutton _("New Game") action SensitiveIf(prereqs), Start() xalign 0.5
                 null height 4
-                textbutton _("Load Game") action SensitiveIf(prereqs), Show("s_menu", s_menu="Load"), With(dissolve)
+                textbutton _("Load Game") action SensitiveIf(prereqs), Show("s_menu", s_menu="Load", main_menu=True), With(dissolve)
 
-                textbutton _("Settings") action Show("s_menu", s_menu="Settings"), With(dissolve)
+                textbutton _("Settings") action Show("s_menu", s_menu="Settings", main_menu=True), With(dissolve)
                 hbox:
                     xalign 0.5
-                    textbutton _("Credits") action Show("credits", transition=ImageDissolve("content/gfx/masks/m02.jpg", 3)) xsize 85 text_size 16
-                    textbutton _("Help") action OpenURL("http://www.pinkpetal.org/index.php#c7") xsize 85 text_size 16
+                    textbutton _("Credits") action Show("credits", transition=ImageDissolve("content/gfx/masks/m02.webp", 1)) xsize 85 text_size 16
+                    textbutton _("Help") action Show("discord", transition=ImageDissolve("content/gfx/masks/m02.webp", 1)) xsize 85 text_size 16
                 textbutton _("Quit") action Quit(confirm=False) xalign 0.5
-    
 
-screen credits():
+
+screen discord():
     zorder 1
     modal True
     frame:
-        background Transform(Frame("content/gfx/frame/frame_dec_1.png", 20, 20), alpha=0.7)
+        background Transform(Frame("content/gfx/frame/frame_dec_1.png", 20, 20), alpha=.7)
         pos(10, 120)
         xysize (900, 580)
         style_group "mmenu"
         textbutton "Hide":
             align(0.5, 0.90)
-            action Hide("credits", transition=dissolve)
-            
-        side "c r":
-            area (100, 100, 800, 350)
+            action Hide("discord", transition=dissolve)
+        vbox:
+            xalign .5
+            yalign .2
+            text "The game is still in development. Support us if you enjoyed it!" align (.45, .1) size 25 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True style_prefix "proper_stats"
+            null height 10
+            text "ANY QUESTIONS OR BUGS TO REPORT?" size 35 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True style_prefix "proper_stats" xalign .5
+            text "JOIN OUR COMMUNITY ON:" size 35 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True style_prefix "proper_stats" xalign .5
+        null height 5
+        button:
+            yalign .6
+            xalign .5
+            xysize 300, 83
+            background Transform("content/gfx/interface/icons/credits/discord.png", zoom=.9, align=(.5, .5))
+            hover_background Transform("content/gfx/interface/icons/credits/discord.png", align=(.5, .5))
+            action OpenURL("https://discord.gg/4tT4qmW")
+
+
+screen credits():
+    zorder 1 modal True
+
+    frame:
+        background Transform(Frame("content/gfx/frame/frame_dec_1.png", 20, 20), alpha=.9)
+        pos (10, 10)
+        xysize (900, 700)
+        style_group "mmenu"
+
+        text "About Us":
+            xalign .5 ypos 50
+            size 35
+            color goldenrod
+            drop_shadow [(1, 2)]
+            drop_shadow_color black
+            antialias True
+            style_prefix "proper_stats"
+
+        side "c":
+            area (100, 100, 800, 550)
             viewport id "vp":
                 draggable True
                 mousewheel True
                 vbox:
-                    style_prefix "proper_stats"
-                    text "Brought to you by:" size 22 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True
-                    null height 20
                     hbox:
-                        style_prefix "proper_stats"
+                        xalign .52
                         vbox:
-                            xsize 150
-                            xfill True
-                            text "Xela" color goldenrod drop_shadow [(1, 1)] drop_shadow_color black antialias True
-                            text "DarkTl" color goldenrod drop_shadow [(1, 1)] drop_shadow_color black antialias True
-                            text "CherryWood" color goldenrod drop_shadow [(1, 1)] drop_shadow_color black antialias True
-                            text "Gismo" color goldenrod drop_shadow [(1, 1)] drop_shadow_color black antialias True
-                            null height 10
-                            text "Rudistoned:"
-                            text "Eliont:"
-                            text "Matt:"
-                            text "Xipomus:"
-                            text "Longint:"
-                            text "Picobyte:"
-                            null height 10
-                            text "Armegetton:"
-                            text "MrKlaus:"
-                            text "Krakr"
-                            text "Lamoli"
-                            null height 10
-                            text "Sysreq:"
-                            text "GonDra:"
-                            text "Jaeke:"
-                            text "Janmaba:"
-                            
-                            
+                            style_prefix "proper_stats"
+                            text "Core Coding" xalign .5 size 22 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True
+                            button:
+                                xalign .5
+                                xysize (100, 100)
+                                background ProportionalScale("content/gfx/interface/icons/credits/x_hole_idle.png", 100, 100)
+                                hover_background ProportionalScale("content/gfx/interface/icons/credits/x_hole_hover.png", 100, 100)
+                                action OpenURL('https://www.patreon.com/xelapy')
+                                add At(pscale("content/gfx/interface/icons/credits/patreonlogoorange.png", 100, 25, yalign=1.0), patreon_bounce)
+                            null height 3
+                            text " XelaPy " xalign .5 size 30 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True
+                            hbox:
+                                spacing 10
+                                xalign .5
+                                button:
+                                    xysize 30, 30
+                                    background Frame("content/gfx/interface/icons/credits/twitter.png")
+                                    hover_background Frame(im.MatrixColor("content/gfx/interface/icons/credits/twitter.png", im.matrix.brightness(.05)))
+                                    action OpenURL('https://twitter.com/XelaPy')
+                                button:
+                                    xysize 30, 30
+                                    background Frame("content/gfx/interface/icons/credits/youtube.png")
+                                    hover_background Frame(im.MatrixColor("content/gfx/interface/icons/credits/youtube.png", im.matrix.brightness(.05)))
+                                    action OpenURL('https://www.youtube.com/channel/UCWnMQ6MO-KpMytYf4hoFFBA')
+                        null width 100
                         vbox:
-                            text "The main coder and creator of the project"
-                            text "Jack of all trades and master of none"
-                            text "Code contributions, packs, writing, design and resources"
-                            text "Art, user interface, design, backgrounds and icons"
-                            null height 10
-                            text "First tagger concept, code contributions, python consulting"
-                            text "Code contributions, resources"
-                            text "Code contributions, python consulting"
-                            text "Code and content contributions, rendering"
-                            text "Code contributions"
-                            text "Advanced code contributions, rendering"
-                            null height 10
-                            text "Writing"
-                            text "Writing, items creation"
-                            text "Writing for jobs"
-                            text "Rendering"
-                            null height 10
-                            text "Spell-checks"
-                            text "Spell-checks"
-                            text "Extensive testing"
-                            text "Help with packs"
+                            style_prefix "proper_stats"
+                            text "Content and Coding":
+                                size 22
+                                xalign .5
+                                color goldenrod
+                                drop_shadow [(1, 2)]
+                                drop_shadow_color black
+                                antialias True
+                            button:
+                                xalign .5
+                                xysize (100, 100)
+                                background pscale("content/gfx/interface/icons/credits/dark_hole_idle.png", 100, 100)
+                                hover_background pscale("content/gfx/interface/icons/credits/dark_hole_hover.png", 100, 100)
+                                action OpenURL('https://www.patreon.com/darkt')
+                                add At(pscale("content/gfx/interface/icons/credits/patreonlogoorange.png", 100, 25, yalign=1.0), patreon_bounce)
+                            null height 3
+                            text " DarkTl ":
+                                align .5, 1.0
+                                size 30
+                                color goldenrod
+                                drop_shadow [(1, 2)]
+                                drop_shadow_color black
+                                antialias True
+                            null height 30
+
                     null height 10
-                    text "Credits:" size 20 color goldenrod drop_shadow [(1, 2)] drop_shadow_color black antialias True
-                    null height 5
-                    hbox:
-                        null width 10
+
+                    text "The game is still in development. Support us if you enjoyed it!":
+                        size 25
+                        color goldenrod
+                        drop_shadow [(1, 2)]
+                        drop_shadow_color black
+                        antialias True
                         style_prefix "proper_stats"
-                        vbox:
-                            xsize 150
-                            xfill True
-                            text "PyTom:"
-                        vbox:
-                            text "RenPy" color orange
-                            
-            vbar value YScrollValue("vp")   
-        
+
+                    null height 10
+
+                    vbox:
+                        style_prefix "proper_stats"
+                        text "Special thanks to:":
+                            size 22
+                            color goldenrod
+                            drop_shadow [(1, 2)]
+                            drop_shadow_color black
+                            antialias True
+                        text "All artists and composers for amazing content featured in PyTFall."
+                        text "Tom Rothamel for Ren'Py."
+
+                        null height 10
+                        text "Many thanks to:":
+                            size 22
+                            color goldenrod
+                            drop_shadow [(1, 2)]
+                            drop_shadow_color black
+                            antialias True
+                        text "TheWorst, Gismo, Picobyte, CherryWood, Xipomus, Lamoli, Thewlis, Rudistoned,"
+                        text "Eliont, Matt, Longint, Armegetton, MrKlaus, Krakr, Sysreq, GonDra, Jaeke, Janmaba."
+
+        textbutton "Hide":
+            align .5, .90
+            action Hide("credits", transition=dissolve)
+
 
 ##############################################################################
 # Navigation
@@ -402,7 +501,7 @@ screen navigation():
         textbutton _("Main Menu") action MainMenu()
         # textbutton _("Help") action Help()
         textbutton _("Quit") action Quit()
-        
+
     key "mousedown_3" action Return()
 
 ##############################################################################
@@ -412,13 +511,13 @@ screen navigation():
 # http://www.renpy.org/doc/html/screen_special.html#yesno-prompt
 
 screen yesno_prompt(message, yes_action, no_action):
-    zorder 10**10 + 1
+    zorder 10000000
     modal True
 
     # window:
         # style "gm_root"
 
-    add Transform("content/gfx/images/bg_gradient2.png", alpha=.3)
+    add Transform("content/gfx/images/bg_gradient2.webp", alpha=.3)
     frame:
         background Frame (Transform("content/gfx/frame/ink_box.png", alpha=.65), 10, 10)
         style_prefix "dropdown_gm2"
@@ -441,8 +540,10 @@ screen yesno_prompt(message, yes_action, no_action):
 
     # Right-click and escape answer "no".
     key "game_menu" action no_action
+    key "K_RETURN" action yes_action
+    key "K_ESCAPE" action no_action
 
-    
+
 ##############################################################################
 # Quick Menu
 #
@@ -474,66 +575,66 @@ init: # Default preference menus, replaces by our own versions:
     # Screens that allow the user to save and load the game.
     # http://www.renpy.org/doc/html/screen_special.html#save
     # http://www.renpy.org/doc/html/screen_special.html#load
-    
+
     # Since saving and loading are so similar, we combine them into
     # a single screen, file_picker. We then use the file_picker screen
     # from simple load and save screens.
-    
+
     screen file_picker():
-    
+
         frame:
             style "file_picker_frame"
-    
+
             has vbox
-    
+
             # The buttons at the top allow the user to pick a
             # page of files.
             hbox:
                 style_group "file_picker_nav"
-    
+
                 textbutton _("Previous"):
                     action FilePagePrevious()
-    
+
                 textbutton _("Auto"):
                     action FilePage("auto")
-    
+
                 textbutton _("Quick"):
                     action FilePage("quick")
-    
+
                 for i in range(1, 9):
                     textbutton str(i):
                         action FilePage(i)
-    
+
                 textbutton _("Next"):
                     action FilePageNext()
-    
+
             $ columns = 2
             $ rows = 4
-    
+
             # Display a grid of file slots.
             grid columns rows:
                 transpose True
                 xfill True
                 style_group "file_picker"
-    
+
                 # Display ten file slots, numbered 1 - 10.
                 for i in range(1, columns * rows + 1):
-                    
+
                     $ file_name = FileSlotName(i, columns * rows)
                     $ file_time = FileTime(i, empty=_("Empty Slot."))
                     $ json_info = FileJson(i, empty= _(""))
                     $ save_name = FileSaveName(i)
-    
+
                     # Each file slot is a button.
                     button:
                         action  FileAction(i)
                         xfill True
-    
+
                         has hbox
-    
+
                         # Add the screenshot.
                         add FileScreenshot(i)
-    
+
                         vbox:
                             spacing 1
                             text "[file_name]. [file_time!t]\n[save_name!t]" xpos 70
@@ -544,154 +645,149 @@ init: # Default preference menus, replaces by our own versions:
                                     if not key.startswith("_"):
                                         $ val = json_info[key]
                                         text "[key]: [val]"
-    
+
                         key "save_delete" action FileDelete(i)
-    
-    
+
+
     screen save():
-    
+
         # This ensures that any other menu screen is replaced.
         tag menu
-    
+
         use navigation
         use file_picker
-    
+
     screen load():
-    
+
         # This ensures that any other menu screen is replaced.
         tag menu
-    
+
         use navigation
         use file_picker
-    
+
     ##############################################################################
     # Preferences
     #
     # Screen that allows the user to change the preferences.
     # http://www.renpy.org/doc/html/screen_special.html#prefereces
-    
+
     screen preferences():
-    
+
         tag menu
-    
+
         # Include the navigation.
         use navigation
-    
+
         # Put the navigation columns in a three-wide grid.
         grid 3 1:
             style_group "prefs"
             xfill True
-    
+
             # The left column.
             vbox:
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     label _("Display")
                     textbutton _("Window") action Preference("display", "window")
                     textbutton _("Fullscreen") action Preference("display", "fullscreen")
-    
+
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     label _("Transitions")
                     textbutton _("All") action Preference("transitions", "all")
                     textbutton _("None") action Preference("transitions", "none")
-    
+
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     label _("Text Speed")
                     bar value Preference("text speed")
-    
+
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     textbutton _("Joystick...") action Preference("joystick")
-    
-    
+
             vbox:
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     label _("Skip")
                     textbutton _("Seen Messages") action Preference("skip", "seen")
                     textbutton _("All Messages") action Preference("skip", "all")
-    
+
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     textbutton _("Begin Skipping") action Skip()
-    
+
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     label _("After Choices")
                     textbutton _("Stop Skipping") action Preference("after choices", "stop")
                     textbutton _("Keep Skipping") action Preference("after choices", "skip")
-    
+
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     label _("Auto-Forward Time")
                     bar value Preference("auto-forward time")
-    
+
                     if config.has_voice:
                         textbutton _("Wait for Voice") action Preference("wait for voice", "toggle")
-    
+
             vbox:
                 frame:
                     style_group "pref"
                     has vbox
-                    
+
                     label _("Mute")
-                    
+
                     textbutton "Music":
                         action Preference("music mute", "toggle")
                     textbutton "Sound":
                         action Preference("sound mute", "toggle")
-                    
+
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     label _("Music Volume")
                     bar value Preference("music volume")
-    
+
                 frame:
                     style_group "pref"
                     has vbox
-    
+
                     label _("Sound Volume")
                     bar value Preference("sound volume")
-    
+
                     if config.sample_sound:
                         textbutton _("Test"):
                             action Play("sound", config.sample_sound)
                             style "soundtest_button"
-    
+
                 if config.has_voice:
                     frame:
                         style_group "pref"
                         has vbox
-    
+
                         label _("Voice Volume")
                         bar value Preference("voice volume")
-    
+
                         textbutton _("Voice Sustain") action Preference("voice sustain", "toggle")
                         if config.sample_voice:
                             textbutton _("Test"):
                                 action Play("voice", config.sample_voice)
                                 style "soundtest_button"
-                                
-        # add Transform("or_dance", alpha=0.7) align(0.02, 0.98)
-
-
